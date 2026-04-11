@@ -89,34 +89,14 @@ replace the need for most dev tools interactions. F12 is the escape hatch, not t
 - Source maps for scrml → JS debugging
 
 ## Deep Dive
-- Architecture analysis: `docs/deep-dives/6nz-editor-2026-03-30.md`
-- CM6 vs custom minimal: evaluated, decision pending
 
-## Structure (preliminary — under revision)
-```
-editor/
-  src/
-    routes/
-      index.scrml           — editor home / file picker
-      edit/[file].scrml      — main editor view (focus-centered)
-    components/
-      navigator.scrml        — on-demand file navigator (replaces file-tree)
-      command-palette.scrml   — NeoVim-style command interface
-      eval-panel.scrml        — live evaluation preview
-      output-panel.scrml      — compiled JS output view
-      dependency-panel.scrml  — dependency chain visualization
-    state/
-      editor-state.scrml      — cursor, viewport, focus tracking
-      file-system.scrml       — file access (not "open files")
-      settings.scrml          — user preferences + config layers
-    helpers/
-      syntax-highlight.scrml
-      autocomplete.scrml
-      keybindings.scrml
-      motions.scrml           — NeoVim-style motions + composable commands
-    runtime/
-      preview-iframe.scrml    — live preview with console capture
-      source-maps.scrml       — scrml ↔ JS source map integration
-      test-runner.scrml       — ~{} inline test execution in preview
-  app.db.sql                  — editor settings, recent files, snippets
-```
+Research lives in `../scrml-support/docs/deep-dives/`:
+- `6nz-editor-2026-03-30.md` — architecture analysis
+- `6nz-editor-research-2026-04-02.md`
+- `6nz-rendering-architecture-2026-04-02.md`
+
+Rendering decision: **CM6 + canvas overlay — locked** (see `master-list.md` §B).
+
+## Structure
+
+Planned structure is tracked in `master-list.md`. No source exists yet — implementation is blocked on scrmlTS compiler API exposure.
