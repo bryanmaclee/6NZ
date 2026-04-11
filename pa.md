@@ -76,12 +76,13 @@ when work is needed there. Cross-repo coordination happens through the user, not
 ### Session-start checklist (this repo only)
 1. Read `pa.md` (this file)
 2. Read `hand-off.md`
-3. Read the last ~10 entries from `/home/bryan-maclee/scrmlMaster/scrml-support/user-voice.md`
-4. Rotate `hand-off.md` → `handOffs/hand-off-<N>.md`
-5. Create fresh `hand-off.md`
-6. **FIRST SESSION ONLY:** run `project-mapper` cold to produce `.claude/maps/` + non-compliance report
-7. Prompt user about incremental map refresh on subsequent sessions
-8. Report: caught up + next priority
+3. List `handOffs/incoming/*.md` (ignore `read/` subdir); if any exist, surface to user
+4. Read the last ~10 entries from `/home/bryan-maclee/scrmlMaster/scrml-support/user-voice.md`
+5. Rotate `hand-off.md` → `handOffs/hand-off-<N>.md`
+6. Create fresh `hand-off.md`
+7. **FIRST SESSION ONLY:** run `project-mapper` cold to produce `.claude/maps/` + non-compliance report
+8. Prompt user about incremental map refresh on subsequent sessions
+9. Report: caught up + inbox + next priority
 
 ### PA's agent orchestration responsibilities
 - Dispatch **dev agents** (pipeline, gauntlet devs, scrml writers) with project-mapper output + task-scoped resources

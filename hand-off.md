@@ -2,33 +2,43 @@
 
 **Date:** 2026-04-11
 **Next hand-off filename:** `handOffs/hand-off-3.md`
+**Next session starts at:** `main` @ `87b3e0a` (or later if you push/pull)
 
 ## Session start state
 - Session 2 rotated to `handOffs/hand-off-2.md`
-- Working tree clean on `main` @ `90d1b40`
-- `.claude/maps/` exists from session 2 cold run (8 maps, fresh as of `740a75b`)
+- Working tree was clean on `main` @ `90d1b40` at session open
+- pa.md had uncommitted dropbox-protocol changes in the working tree (authored by user outside this instance); committed separately in this session
+- `.claude/maps/` fresh as of `740a75b` (session 2 cold run)
 - No source code yet — design phase
 
 ## Session work
 
-1. **z-motion-spec v0.1 scaffold** — created `z-motion-spec/` with:
-   - `README.md` — intro, motivation, CC0 licensing statement, repo layout
-   - `SPEC.md` — formal notation (`[hold](roll)`), grammar (hold-down → roll → commit), semantics, seed vocabulary from user voice (§7), and an explicit Open Questions section (§8) covering: direction key mapping (jkl conflict with Vim `l=right`), roll window duration, hold threshold, selection hold key, operator composition, multi-cursor interaction
-   - `LICENSE` — CC0 1.0 dedication pointing to canonical legal text at creativecommons.org (full CC0 text not embedded — tripped an output content filter on first attempt)
-2. **master-list.md updated** — z-motion-spec moved from "not started" to "what exists" (with `[~]` partial marker for v0.1 + open questions); last-updated bumped to S3 2026-04-11.
+1. **z-motion-spec v0.2 landed** — created `z-motion-spec/` and drafted the spec in two passes:
+   - v0.1 was a notation-only scaffold. After user clarified the real model (insert-mode motions, commit-on-release enabling mechanism, calibration tool, specific per-gesture bindings, physical-roll directionality), it was rewritten as v0.2.
+   - Files: `README.md`, `SPEC.md` (v0.2, ~200 lines), `LICENSE` (CC0 dedication pointing to creativecommons.org — full CC0 legal text tripped Anthropic's output content filter, so short-dedication + link is the workaround).
+   - v0.2 locks: §2 insert-mode purpose, §4 commit-on-release mechanism, §5 mandatory calibration, §7 specific per-gesture bindings (no generalization), §8 physical-roll directionality (j=1 right, l=1 left, rolls compound outward).
+   - Deferred to future work: §9 default vim→z-motion binding table (task #6), §10.1 operator composition (v0.3).
+2. **pa.md dropbox protocol** — committed separately (`87b3e0a`). Adds the one-way sibling-write exception: PAs may drop message files into `<sibling>/handOffs/incoming/` but touch nothing else there. Includes filename convention, frontmatter format, send procedure.
+3. **pa.md checklist wired up** — added step 3 (list `handOffs/incoming/*.md` and surface to user) so the new inbox actually gets read at session start. Subsequent steps renumbered. Step 9 now reports inbox alongside "caught up + next priority."
+4. **master-list.md updated** — z-motion-spec moved to "what exists"; last-updated bumped to S3 2026-04-11.
+5. **Hand-off rotated** — session 2 archived to `handOffs/hand-off-2.md`.
 
-### Notes
-- §8 open questions are the natural next session's work — they need user design input, not more drafting.
-- Content-filter block on the first LICENSE write is worth remembering: embedded long legal boilerplate (CC0 full text) tripped Anthropic's output filter. Short-dedication + link works around it.
+### Commits this session
+- `dd8e692` — session 3: z-motion-spec v0.2 scaffold
+- `87b3e0a` — pa.md: add cross-repo messaging (dropbox) protocol
+- (final cleanup commit for this file + pa.md checklist rewire — to be made at session close)
 
-## Next up (carried from session 2)
+## Next up
 
-- [ ] Compiler API exposure (upstream scrmlTS — blocks implementation; not this repo)
-- [ ] Z-motion spec draft (open-source dir — can start without scrmlTS being ready)
+- [ ] **Task #6** — Assemble vim-motion → z-motion default binding table. Walk canonical vim motions (w, b, e, f, t, F, T, h, j, k, l, 0, $, ^, gg, G, {, }, (, ), %, *, #, n, N, iw, aw, i", a(, etc.) and propose logical z-motion bindings for each. Flag ambiguous mappings. Output: `z-motion-spec/default-bindings.md`. Needs a focused session.
+- [ ] Compiler API exposure (upstream scrmlTS — blocks editor implementation; not this repo)
 - [ ] Decide on `README.md` stub (non-compliance flag from session 2, still open)
-- [ ] Set a git remote before pushing from another machine (user to handle)
+- [ ] Push to `origin` (`github.com/bryanmaclee/6NZ.git`) when you want it on the remote; currently 2+ commits ahead
 
-## Notes
+## Notes for next session
 
-- Maps are fresh as of `740a75b` — prompt user about **incremental** refresh only if significant files changed this session.
-- Per-repo PA rule holds: no cross-repo edits. Cross-repo coordination goes through user.
+- Maps (`.claude/maps/`) are fresh as of `740a75b`. Prompt about **incremental** refresh only if significant files changed.
+- `handOffs/incoming/` is empty (only `read/` subdir exists). Inbox check will be a no-op next session unless a sibling PA drops something.
+- Remote IS configured (`origin` → github). Prior session notes that said "no remote configured" were wrong.
+- Content-filter gotcha: long legal boilerplate (full CC0 text) trips Anthropic's output filter. Short dedication + canonical-URL link is the workaround for license files.
+- Per-repo PA rule still holds; the dropbox protocol is the ONE exception (writes into sibling `handOffs/incoming/` only).
