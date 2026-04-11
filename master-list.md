@@ -2,7 +2,7 @@
 
 **Purpose:** Live inventory of the 6nz editor repo.
 
-**Last updated:** 2026-04-10 (S86 — initial split)
+**Last updated:** 2026-04-11 (S3 — z-motion-spec scaffold)
 
 **Status:** Design phase. No implementation yet.
 
@@ -12,6 +12,10 @@
 
 - [x][x] `editor-README.md` — design principles (focus-centered viewport, no file tree/tabs, NeoVim inspiration + mouse, total configurability)
 - [x][x] `package.json` — stub (just name + version)
+- [x][x] `z-motion-spec/` — v0.1 draft of the open-source Z-motion spec (CC0)
+  - `README.md` — intro, motivation, licensing
+  - `SPEC.md` — notation, grammar, semantics, seed vocabulary, open questions
+  - `LICENSE` — CC0 1.0 dedication (links to canonical legal text)
 
 ## B. Design decisions (locked)
 
@@ -55,7 +59,7 @@ Open design questions (in `../scrml-support/` context):
 - [ ][ ] Compiler API exposure (in scrmlTS)
 - [ ][ ] Performance + PWA architecture spec
 - [ ][ ] Editor scaffolding (CM6 + canvas overlay)
-- [ ][ ] Z-motion spec draft (open-source, separate dir)
+- [~][~] Z-motion spec — v0.1 draft landed in `z-motion-spec/`; §8 open questions unresolved (direction mapping, roll window, hold threshold, selection hold, operator composition, multi-cursor)
 - [ ][ ] 3 open design questions: live preview granularity, error display, real-time collab
 
 ### Cleanup (post-split)

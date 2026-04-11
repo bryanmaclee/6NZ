@@ -1,32 +1,34 @@
-# 6nz — Session 2 Hand-Off
+# 6nz — Session 3 Hand-Off
 
 **Date:** 2026-04-11
-**Next hand-off filename:** `handOffs/hand-off-2.md`
+**Next hand-off filename:** `handOffs/hand-off-3.md`
 
 ## Session start state
-- Prior session 1 rotated to `handOffs/hand-off-1.md`
-- Detached HEAD was 3 commits ahead of main — fast-forwarded main to `41bce06`
-- No `.claude/maps/` yet — first-session cold map pending
+- Session 2 rotated to `handOffs/hand-off-2.md`
+- Working tree clean on `main` @ `90d1b40`
+- `.claude/maps/` exists from session 2 cold run (8 maps, fresh as of `740a75b`)
+- No source code yet — design phase
 
-## Session work (DONE)
+## Session work
 
-1. **Repo hygiene** — fast-forwarded `main` from `021842a` → `41bce06`, rotated hand-off, fresh session hand-off created.
-2. **Cold project map** — ran `project-mapper` first-session. 8 maps written under `.claude/maps/` (primary, structure, dependencies, schema, config, build, error, test). 10 conditional maps skipped (no source yet — api/state/events/auth/domain/style/i18n/infra/migrations/jobs). Non-compliance report surfaced 2 findings against `editor-README.md`.
-3. **editor-README.md drift fixed:**
-   - Deep Dive section now points to `../scrml-support/docs/deep-dives/` and lists all 3 research docs (2026-03-30, 2026-04-02 ×2)
-   - "CM6 vs custom minimal: decision pending" → "CM6 + canvas overlay — locked" with cross-ref to `master-list.md` §B
-   - Removed aspirational 12-file `## Structure` tree; replaced with pointer to `master-list.md`
+1. **z-motion-spec v0.1 scaffold** — created `z-motion-spec/` with:
+   - `README.md` — intro, motivation, CC0 licensing statement, repo layout
+   - `SPEC.md` — formal notation (`[hold](roll)`), grammar (hold-down → roll → commit), semantics, seed vocabulary from user voice (§7), and an explicit Open Questions section (§8) covering: direction key mapping (jkl conflict with Vim `l=right`), roll window duration, hold threshold, selection hold key, operator composition, multi-cursor interaction
+   - `LICENSE` — CC0 1.0 dedication pointing to canonical legal text at creativecommons.org (full CC0 text not embedded — tripped an output content filter on first attempt)
+2. **master-list.md updated** — z-motion-spec moved from "not started" to "what exists" (with `[~]` partial marker for v0.1 + open questions); last-updated bumped to S3 2026-04-11.
 
-Commit: `740a75b` — "session 2: rotate hand-off, cold map, fix editor-README drift"
+### Notes
+- §8 open questions are the natural next session's work — they need user design input, not more drafting.
+- Content-filter block on the first LICENSE write is worth remembering: embedded long legal boilerplate (CC0 full text) tripped Anthropic's output filter. Short-dedication + link works around it.
 
-## Next up
+## Next up (carried from session 2)
 
-- [ ] Compiler API exposure (upstream in scrmlTS — blocks implementation; not this repo's work)
+- [ ] Compiler API exposure (upstream scrmlTS — blocks implementation; not this repo)
 - [ ] Z-motion spec draft (open-source dir — can start without scrmlTS being ready)
+- [ ] Decide on `README.md` stub (non-compliance flag from session 2, still open)
 - [ ] Set a git remote before pushing from another machine (user to handle)
 
-## Notes for next session
+## Notes
 
-- Maps are fresh as of `740a75b`. On re-entry, prompt about **incremental** map refresh (not cold) unless significant files changed.
-- `README.md` is a bare `# 6nz` stub — non-compliance report flagged as "uncertain, human judgment." Not fixed this session. Decide on re-entry: stub-by-intent or expand to brief design-phase summary.
-- Spec-drift rule from scrml session still applies: if compiler behavior diverges from assumptions, investigate drift before fixing source.
+- Maps are fresh as of `740a75b` — prompt user about **incremental** refresh only if significant files changed this session.
+- Per-repo PA rule holds: no cross-repo edits. Cross-repo coordination goes through user.
