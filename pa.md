@@ -71,7 +71,7 @@ when work is needed there. Cross-repo coordination happens through the user, not
 ### What this PA does NOT touch
 - Any file outside this repo (except the reads listed above from scrml-support)
 - `~/projects/scrml8/` — FROZEN, read-only archive
-- Other project repos (scrmlTS, scrml, giti, 6nz, scrml-support)
+- Other project repos (scrmlTS, scrml-support, giti) — **except** writing message files into their `handOffs/incoming/` (see Cross-repo messaging below)
 
 ### Session-start checklist (this repo only)
 1. Read `pa.md` (this file)
@@ -97,9 +97,64 @@ when work is needed there. Cross-repo coordination happens through the user, not
 - Session header: `## Session N — YYYY-MM-DD` (N is this repo's session count)
 
 ### What NOT to do
-- Do not edit files in other repos (the user will open a different Claude instance)
+- Do not edit files in other repos (the user will open a different Claude instance). The single exception is dropping message files into `<sibling>/handOffs/incoming/` — see Cross-repo messaging below.
 - Do not modify scrml8 (frozen)
 - Do not commit to main directly
 - Do not bypass pre-commit hooks without explicit user authorization
 - Do not run resource-mapper in write mode on scrml8 (frozen)
 - Do not treat stale sources as authoritative — check currency flags
+
+---
+
+## Cross-repo messaging (dropbox)
+
+**You are the PA for 6nz.** Your own inbox is `handOffs/incoming/` in this repo.
+
+The four ecosystem projects (scrmlTS, scrml-support, giti, 6nz) communicate asynchronously through file-based dropboxes. Each repo owns `handOffs/incoming/` — unread messages sit there; once this PA reads and acts on them, they move to `handOffs/incoming/read/`.
+
+**This is the ONE sanctioned exception** to "do not write into sibling repos." PAs may write message files into a sibling's `handOffs/incoming/` — nothing else in the sibling repo is touched.
+
+### Inbox (this PA reads)
+- `/home/bryan/scrmlMaster/6NZ/handOffs/incoming/` — unread
+- `/home/bryan/scrmlMaster/6NZ/handOffs/incoming/read/` — archive
+
+### Outbox targets (this PA may write into)
+- scrmlTS:       `/home/bryan/scrmlMaster/scrmlTS/handOffs/incoming/`
+- scrml-support: `/home/bryan/scrmlMaster/scrml-support/handOffs/incoming/`
+- giti:          `/home/bryan/scrmlMaster/giti/handOffs/incoming/`
+
+### Message file format
+
+Filename: `YYYY-MM-DD-HHMM-<from>-to-<to>-<slug>.md`
+Example: `2026-04-11-1432-6nz-to-scrmlTS-compiler-api-request.md`
+
+```markdown
+---
+from: 6nz
+to: scrmlTS
+date: 2026-04-11
+subject: <one-line subject>
+needs: reply | action | fyi
+status: unread
+---
+
+<body — what happened, what the recipient should know or do, file paths / repros / links>
+```
+
+### Session-start: check incoming
+
+Add to the session-start checklist (after reading `hand-off.md`):
+- List `handOffs/incoming/*.md` (ignore the `read/` subdir)
+- If any exist, surface them to the user at session start alongside "caught up / next priority"
+- After the user acknowledges or acts on a message, move it to `handOffs/incoming/read/` (preserve filename)
+
+### Sending a message
+
+When this PA needs to tell another project something (compiler API need, z-motion spec update, design decision locked):
+1. Confirm with the user what to send and to whom
+2. Write the message file directly into the target's `handOffs/incoming/` (absolute path above)
+3. Log the send in this repo's `hand-off.md` so there's a local trail
+
+### Scope of the exception
+- **Allowed:** creating new `.md` files inside `<sibling>/handOffs/incoming/`
+- **NOT allowed:** reading, editing, or deleting anything else in a sibling repo. Messages are a one-way write; the sibling's PA reads them in its own session.
