@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>z-motion feel test</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --fg: #e0e0e0;
+    --accent: #ffa500;
+    --ok: #88ff88;
+    --dim: #888;
+    --panel: #222;
+    --border: #333;
+  }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg); }
+  body { font: 13px system-ui, sans-serif; display: flex; flex-direction: column; }
+  header { padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  header h1 { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+  header p { margin: 0; color: var(--dim); font-size: 12px; }
+  header code { color: var(--accent); }
+  header button { font: 11px system-ui; padding: 3px 8px; margin-left: 8px; background: var(--panel); color: var(--fg); border: 1px solid var(--border); cursor: pointer; }
+  header button:hover { background: #333; }
+
+  #editor {
+    flex: 1; font: 14px ui-monospace, monospace; padding: 14px; border: 0; outline: 0;
+    resize: none; background: var(--bg); color: var(--fg); line-height: 1.5;
+  }
+
+  #inspector {
+    padding: 10px 14px; background: #0b0b0b; color: var(--fg); font: 11px ui-monospace, monospace;
+    border-top: 1px solid var(--border); min-height: 120px; white-space: pre-wrap;
+  }
+  #inspector .label { color: var(--dim); }
+  #inspector .value { color: var(--accent); }
+  #inspector .phase { color: var(--ok); }
+  #inspector .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  #inspector .bindings { margin-top: 8px; color: #666; font-size: 10px; }
+  #inspector .bindings b { color: #aaa; font-weight: normal; }
+</style>
+</head>
+<body>
+<header>
+  <h1>z-motion feel test — throwaway prototype</h1>
+  <p>
+    Release-order disambiguation. No hold threshold. A key becomes a <em>hold</em> if another key is pressed and released during its lifetime; otherwise it's a <em>tap</em> that types a character.
+    Hold <code>f</code> + tap <code>hjkl</code> for normal-mode moves.
+    <button id="toggle-bindings">Show bindings</button>
+  </p>
+</header>
+
+<textarea id="editor" spellcheck="false" autocomplete="off" wrap="off" autofocus>// z-motion feel test — type here
+//
+// No hold threshold. Release order disambiguates:
+//   type "he": release h first → both are taps → "he" typed
+//   [h](e):    release e first (while h still held) → h is a hold, e is a roll
+//
+// Hold a letter, tap/roll other keys, release the hold → gesture commits.
+//
+// Bindings loaded:
+//   [h](a|as|asd|asdf)    1..4 chars right      (left-hand rolls)
+//   [h](f|fd|fds|fdsa)    1..4 chars left
+//   [w](j|jk|jkl|jkl;)    1..4 words forward    (right-hand rolls)
+//   [w](l|lk|lkj)         1..3 words back
+//   [e](j|jk|jkl)         1..3 word-ends forward
+//   [e](l|lk|lkj)         1..3 word-ends back
+//   [j](a|as|asd|asdf)    1..4 lines down       (left-hand rolls)
+//   [k](a|as|asd|asdf)    1..4 lines up
+//   [a](l)                start of line
+//   [a](j)                end of line
+//   [a](lk)               first non-blank
+//
+//   [f] ..normal mode..   hold f past threshold → h/j/k/l act as vim
+//                         normal-mode moves, tap-repeatable. release f
+//                         to exit. releasing without any motion types 'f'
+//                         per §6.4; releasing after motions fired does not.
+//
+// Try holding [w] then rolling jkl to jump 3 words forward.
+// Try holding [j] then rolling as to drop 2 lines.
+// Try holding [f] and tapping jjjj to step 4 lines down one at a time.
+// Release without a roll → the held key types as a normal character (§6.4).
+</textarea>
+
+<div id="inspector">loading…</div>
+
+<script>
+// ============================================================================
+// z-motion feel test — release-order state machine
+// No hold threshold. A key is a hold iff another key is pressed AND released
+// during its lifetime. Otherwise it's a tap that types a character.
+// Not the real 6nz. Vanilla JS because scrmlTS compiler API isn't ready yet.
+// ============================================================================
+
+const editor = document.getElementById('editor');
+const inspector = document.getElementById('inspector');
+
+// Hold keys that, while held, activate a "normal-mode" where hjkl taps fire
+// vim moves directly (instead of accumulating as rolls). Eager promotion — the
+// first hjkl keydown while a normal-mode key is held commits the mode
+// immediately, no wait for release-order resolution.
+const NORMAL_MODE_HOLDS = new Set(['f']);
+const NORMAL_MODE_KEYS = new Set(['h', 'j', 'k', 'l']);
+
+// State model:
+//   candidates : ordered list of { key, role, pressedAt, upAt|null }
+//     role     : 'pending' | 'hold' | 'roll' | 'typed'
+//     pressedAt: performance.now() when keydown fired
+//     upAt     : performance.now() when keyup fired, or null if still down
+//   phase      : 'idle' | 'typing' | 'gesture' | 'normal-mode'
+const state = {
+  candidates: [],
+  phase: 'idle',
+  normalModeFired: false,
+  lastMessage: '',
+};
+
+function normKey(k) { return k.length === 1 ? k.toLowerCase() : k; }
+
+function insertText(t) {
+  editor.setRangeText(t, editor.selectionStart, editor.selectionEnd, 'end');
+}
+
+function candByKey(k) { return state.candidates.find(c => c.key === k); }
+
+function firstActiveEarlier(idx) {
+  // Find the earliest-pressed candidate strictly before idx that is still down.
+  for (let i = 0; i < idx; i++) {
+    const c = state.candidates[i];
+    if (c.upAt === null && (c.role === 'pending' || c.role === 'hold')) return c;
+  }
+  return null;
+}
+
+function resetGesture() {
+  state.candidates = [];
+  state.phase = 'idle';
+  state.normalModeFired = false;
+  renderInspector();
+}
+
+function renderInspector() {
+  const candStr = state.candidates.map(c => {
+    const tag = c.role === 'hold' ? 'H' : c.role === 'roll' ? 'r' : c.role === 'typed' ? 't' : '?';
+    const up = c.upAt === null ? '↓' : '↑';
+    return `${c.key}${up}${tag}`;
+  }).join(' ') || '—';
+  const holds = state.candidates.filter(c => c.role === 'hold').map(c => c.key).join('');
+  const rolls = state.candidates.filter(c => c.role === 'roll').map(c => c.key).join('');
+  inspector.innerHTML = `<div class="row">
+  <span><span class="label">phase:</span> <span class="phase">${state.phase}</span></span>
+  <span><span class="label">hold set:</span> <span class="value">[${holds}]</span></span>
+  <span><span class="label">rolls:</span> <span class="value">(${rolls})</span></span>
+</div><div class="row" style="margin-top:4px">
+  <span><span class="label">candidates:</span> ${candStr}</span>
+</div><div class="row" style="margin-top:4px">
+  <span><span class="label">last:</span> ${state.lastMessage || '—'}</span>
+</div>` + bindingsHTML();
+}
+
+let showBindings = false;
+document.getElementById('toggle-bindings').addEventListener('click', () => {
+  showBindings = !showBindings;
+  document.getElementById('toggle-bindings').textContent = showBindings ? 'Hide bindings' : 'Show bindings';
+  renderInspector();
+});
+function bindingsHTML() {
+  if (!showBindings) return '';
+  const rows = Object.keys(BINDINGS).sort().map(k => `  ${k}`).join('\n');
+  return `\n<div class="bindings"><b>bindings</b>\n${rows}</div>`;
+}
+
+function fireNormalMode(k) {
+  switch (k) {
+    case 'h': charLeft(1);  break;
+    case 'j': lineDown(1);  break;
+    case 'k': lineUp(1);    break;
+    case 'l': charRight(1); break;
+  }
+  state.normalModeFired = true;
+  state.lastMessage = `normal-mode: ${k}`;
+}
+
+editor.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key.length !== 1) return;
+  e.preventDefault();
+  const k = normKey(e.key);
+  const now = performance.now();
+
+  // Already in normal-mode: hjkl taps fire moves, other keys are ignored.
+  if (state.phase === 'normal-mode') {
+    if (NORMAL_MODE_KEYS.has(k)) {
+      fireNormalMode(k);
+      renderInspector();
+    }
+    return;
+  }
+
+  // Autorepeat suppression: same key already down → ignore.
+  const existing = candByKey(k);
+  if (existing && existing.upAt === null) return;
+
+  // Eager normal-mode promotion: if any currently-down candidate is a
+  // normal-mode toggle key AND the incoming key is an hjkl, promote that
+  // toggle to hold and fire the motion immediately.
+  if (NORMAL_MODE_KEYS.has(k)) {
+    const toggle = state.candidates.find(c => c.upAt === null && NORMAL_MODE_HOLDS.has(c.key));
+    if (toggle) {
+      // Any other still-pending candidates are abandoned.
+      state.candidates = state.candidates.filter(c => c === toggle);
+      toggle.role = 'hold';
+      state.phase = 'normal-mode';
+      state.normalModeFired = false;
+      fireNormalMode(k);
+      renderInspector();
+      return;
+    }
+  }
+
+  // Regular candidate.
+  state.candidates.push({ key: k, role: 'pending', pressedAt: now, upAt: null });
+  if (state.phase === 'idle') state.phase = 'typing';
+  renderInspector();
+});
+
+editor.addEventListener('keyup', (e) => {
+  if (e.key.length !== 1) return;
+  const k = normKey(e.key);
+  const now = performance.now();
+
+  const c = candByKey(k);
+  if (!c || c.upAt !== null) return;
+  c.upAt = now;
+
+  // Hold released → commit the gesture (or exit normal-mode).
+  if (c.role === 'hold') {
+    if (state.phase === 'normal-mode') {
+      if (!state.normalModeFired) {
+        // Held but never fired a motion — fall back to typing the letter (§6.4).
+        insertText(c.key);
+        state.lastMessage = `normal-mode no-op → typed "${c.key}"`;
+      } else {
+        state.lastMessage = `normal-mode off`;
+      }
+      resetGesture();
+      return;
+    }
+    commitGesture();
+    return;
+  }
+
+  // Roll already finalized → wait for its hold to release. Nothing to do here.
+  if (c.role === 'roll') return;
+
+  // Pending release: release-order decision time.
+  const idx = state.candidates.indexOf(c);
+  const earlier = firstActiveEarlier(idx);
+  if (earlier) {
+    // An earlier candidate is still down → it becomes (or stays) the hold,
+    // and this key is a roll under it.
+    if (earlier.role === 'pending') {
+      earlier.role = 'hold';
+      state.phase = 'gesture';
+    }
+    c.role = 'roll';
+    // Keys that sit between the hold and this roll are still pending; they'll
+    // resolve on their own releases (as more rolls) or be dropped at commit.
+    renderInspector();
+    return;
+  }
+
+  // No earlier candidate still down → this is a tap. Type the character.
+  // Any later candidates are still down; they will resolve on their own.
+  c.role = 'typed';
+  insertText(c.key);
+  state.candidates.splice(idx, 1);
+  if (state.candidates.length === 0) state.phase = 'idle';
+  renderInspector();
+});
+
+function commitGesture() {
+  const holdEntries = state.candidates.filter(c => c.role === 'hold');
+  const rollEntries = state.candidates.filter(c => c.role === 'roll');
+  const holdStr = holdEntries.map(c => c.key).join('');
+  const rollStr = rollEntries.map(c => c.key).join('');
+  if (holdStr && rollStr) {
+    const key = `[${holdStr}](${rollStr})`;
+    const binding = BINDINGS[key];
+    if (binding) {
+      binding();
+      state.lastMessage = `commit: ${key}`;
+    } else {
+      state.lastMessage = `unbound: ${key}`;
+    }
+  } else if (holdStr && !rollStr) {
+    // §6.4 release without roll — type the held keys as characters.
+    insertText(holdStr);
+    state.lastMessage = `no-roll: typed "${holdStr}"`;
+  }
+  resetGesture();
+}
+
+// ============================================================================
+// Motion implementations (textarea manipulation)
+// ============================================================================
+
+function setCursor(pos) {
+  const clamped = Math.max(0, Math.min(editor.value.length, pos));
+  editor.selectionStart = editor.selectionEnd = clamped;
+}
+
+function charRight(n) { setCursor(editor.selectionStart + n); }
+function charLeft(n)  { setCursor(editor.selectionStart - n); }
+
+function wordRight(n) {
+  const text = editor.value;
+  let p = editor.selectionStart;
+  for (let i = 0; i < n; i++) {
+    while (p < text.length && /\w/.test(text[p])) p++;
+    while (p < text.length && /\W/.test(text[p])) p++;
+  }
+  setCursor(p);
+}
+function wordLeft(n) {
+  const text = editor.value;
+  let p = editor.selectionStart;
+  for (let i = 0; i < n; i++) {
+    if (p > 0) p--;
+    while (p > 0 && /\W/.test(text[p])) p--;
+    while (p > 0 && /\w/.test(text[p - 1])) p--;
+  }
+  setCursor(p);
+}
+function wordEndRight(n) {
+  const text = editor.value;
+  let p = editor.selectionStart;
+  for (let i = 0; i < n; i++) {
+    if (p < text.length) p++;
+    while (p < text.length && /\W/.test(text[p])) p++;
+    while (p < text.length && /\w/.test(text[p])) p++;
+    if (p > 0) p--;
+  }
+  setCursor(p);
+}
+function wordEndLeft(n) {
+  const text = editor.value;
+  let p = editor.selectionStart;
+  for (let i = 0; i < n; i++) {
+    while (p > 0 && /\w/.test(text[p - 1])) p--;
+    while (p > 0 && /\W/.test(text[p - 1])) p--;
+    if (p > 0) p--;
+  }
+  setCursor(p);
+}
+
+function linePos() {
+  const text = editor.value;
+  const pos = editor.selectionStart;
+  const lineStart = text.lastIndexOf('\n', pos - 1) + 1;
+  let lineEnd = text.indexOf('\n', pos);
+  if (lineEnd === -1) lineEnd = text.length;
+  const col = pos - lineStart;
+  // row = number of \n before lineStart
+  let row = 0;
+  for (let i = 0; i < lineStart; i++) if (text[i] === '\n') row++;
+  return { text, pos, row, col, lineStart, lineEnd };
+}
+
+function lineOffset(rowIdx) {
+  const text = editor.value;
+  if (rowIdx <= 0) return 0;
+  let off = 0, row = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\n') {
+      row++;
+      if (row === rowIdx) return i + 1;
+    }
+  }
+  return text.length;
+}
+function rowLength(rowIdx) {
+  const text = editor.value;
+  const start = lineOffset(rowIdx);
+  let end = text.indexOf('\n', start);
+  if (end === -1) end = text.length;
+  return end - start;
+}
+function totalRows() {
+  let n = 1;
+  const t = editor.value;
+  for (let i = 0; i < t.length; i++) if (t[i] === '\n') n++;
+  return n;
+}
+function lineDown(n) {
+  const { row, col } = linePos();
+  const target = Math.min(totalRows() - 1, row + n);
+  setCursor(lineOffset(target) + Math.min(col, rowLength(target)));
+}
+function lineUp(n) {
+  const { row, col } = linePos();
+  const target = Math.max(0, row - n);
+  setCursor(lineOffset(target) + Math.min(col, rowLength(target)));
+}
+function lineStartMotion() {
+  const { lineStart } = linePos();
+  setCursor(lineStart);
+}
+function lineEndMotion() {
+  const { lineEnd } = linePos();
+  setCursor(lineEnd);
+}
+function lineFirstNonBlank() {
+  const { text, lineStart, lineEnd } = linePos();
+  let p = lineStart;
+  while (p < lineEnd && /\s/.test(text[p])) p++;
+  setCursor(p);
+}
+
+// ============================================================================
+// Bindings — SPEC v0.3 default-bindings.md v0.2, letter family, single-key holds.
+// Annotated (hold-hand / roll-hand). No multi-key holds, no latch, no shift.
+// ============================================================================
+
+const BINDINGS = {
+  // [h] character motion — right hold, left rolls
+  '[h](a)':    () => charRight(1),
+  '[h](as)':   () => charRight(2),
+  '[h](asd)':  () => charRight(3),
+  '[h](asdf)': () => charRight(4),
+  '[h](f)':    () => charLeft(1),
+  '[h](fd)':   () => charLeft(2),
+  '[h](fds)':  () => charLeft(3),
+  '[h](fdsa)': () => charLeft(4),
+
+  // [w] word-start motion — left hold, right rolls
+  '[w](j)':    () => wordRight(1),
+  '[w](jk)':   () => wordRight(2),
+  '[w](jkl)':  () => wordRight(3),
+  '[w](jkl;)': () => wordRight(4),
+  '[w](l)':    () => wordLeft(1),
+  '[w](lk)':   () => wordLeft(2),
+  '[w](lkj)':  () => wordLeft(3),
+
+  // [e] word-end motion — left hold, right rolls
+  '[e](j)':    () => wordEndRight(1),
+  '[e](jk)':   () => wordEndRight(2),
+  '[e](jkl)':  () => wordEndRight(3),
+  '[e](l)':    () => wordEndLeft(1),
+  '[e](lk)':   () => wordEndLeft(2),
+  '[e](lkj)':  () => wordEndLeft(3),
+
+  // [j] vertical down — right hold, left rolls
+  '[j](a)':    () => lineDown(1),
+  '[j](as)':   () => lineDown(2),
+  '[j](asd)':  () => lineDown(3),
+  '[j](asdf)': () => lineDown(4),
+
+  // [k] vertical up — right hold, left rolls
+  '[k](a)':    () => lineUp(1),
+  '[k](as)':   () => lineUp(2),
+  '[k](asd)':  () => lineUp(3),
+  '[k](asdf)': () => lineUp(4),
+
+  // [a] line anchors — left hold, right rolls, no compounding
+  '[a](l)':  () => lineStartMotion(),
+  '[a](lk)': () => lineFirstNonBlank(),
+  '[a](j)':  () => lineEndMotion(),
+};
+
+// ----- boot -----
+renderInspector();
+calInput.focus();
+</script>
+</body>
+</html>
