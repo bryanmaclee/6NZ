@@ -1,10 +1,11 @@
 # Z-Motion Specification
 
-**Version:** 0.3 (draft)
+**Version:** 0.4 (draft)
 **License:** CC0 1.0 Universal (public domain)
-**Status:** Core model locked. v0.3 adds multi-key hold sets, left-hand
-roll mirror, and hand-pairing rule. Default binding table drafted in
-`default-bindings.md` — recommendation, not requirement.
+**Status:** Major simplification. v0.4 replaces the v0.3 hold threshold +
+calibration model with **release-order classification** — no clocks, no
+calibration. Validated by a live prototype. Default binding table drafted
+in `default-bindings.md` — recommendation, not requirement.
 
 ---
 
@@ -16,13 +17,13 @@ in normal and visual modes. In a Z-motion editor, the user never has to
 leave insert mode to navigate, select, or reposition the cursor.
 
 The model is built on a specific editor behavior — **commit-on-release**
-— which lets any held key retroactively become a modifier. Combined with a
-short **hold threshold** and a physical **roll** gesture, the result is a
-dense, user-configurable motion grammar that lives inside insert mode
-without conflicting with normal typing.
+— which lets any held key retroactively become a modifier. Combined with
+**release-order classification** (§5) and a physical **roll** gesture,
+the result is a dense, user-configurable motion grammar that lives inside
+insert mode without conflicting with normal typing.
 
-This specification defines the input model, the grammar of a gesture, the
-semantics an implementation must provide, and the calibration requirement.
+This specification defines the input model, the classification rule, the
+grammar of a gesture, and the semantics an implementation must provide.
 It does not mandate default keybindings; a companion document provides a
 suggested default table.
 
@@ -46,26 +47,29 @@ an **addition**: the insert-mode motion layer Vim never had.
 
 - **Commit-on-release** — the editor behavior of committing a typed
   character on `KEYUP`, not `KEYDOWN`. See §4.
-- **Hold threshold** — the minimum time a key must be continuously
-  depressed before the editor considers it a candidate modifier (a
-  potential z-motion hold key). Editor- and user-configurable.
-- **Hold key** — a key that, during a z-motion gesture, is held down and
-  modifies the interpretation of subsequent keys.
-- **Roll** — a sequence of one or more keys pressed and released while a
-  hold key is depressed past the hold threshold.
-- **Roll key** — a single key inside a roll.
-- **Roll window** — the maximum idle time between successive roll keys
-  before the gesture commits.
-- **Gesture** — a complete `[hold](roll)` pair from the moment the hold
-  key passes the hold threshold until commit.
+- **Candidate** — a key that has been pressed and has not yet been
+  classified. A candidate becomes a tap, a hold, or a roll at its
+  keyup (see §5).
+- **Tap** — a candidate classified as an ordinary typed character. Its
+  character is inserted into the text at keyup.
+- **Hold** — a candidate classified as a gesture modifier. No character
+  is typed; the gesture's binding is looked up and executed at the
+  hold's keyup (its *commit*).
+- **Roll** — a candidate classified as a constituent of an active
+  gesture. No character is typed; the key's identity contributes to
+  the binding lookup.
+- **Release order** — the order in which keys are released relative to
+  the keys pressed during their lifetime. Release order is the sole
+  disambiguator between typing and gestures; see §5.
+- **Gesture** — the complete event sequence from the first keydown of a
+  hold to that hold's keyup, including any rolls that classified during
+  its lifetime.
 - **Binding** — a specific `[hold-set](roll-sequence)` pair mapped to a
-  specific motion command. Bindings are concrete, not generalized.
-- **Hold set** — the ordered sequence of hold-keys that have crossed
-  the hold threshold and remain depressed when the roll phase begins.
-  A hold set with one key is the common case; a set with N ≥ 2 keys is
-  a **multi-key hold**, and the order is significant (`[sd]` ≠ `[ds]`).
-- **Calibration** — the process of profiling a user's natural typing
-  speed to set initial hold-threshold and roll-window values.
+  motion command. Bindings are concrete, not generalized.
+- **Hold set** — the ordered sequence of hold keys in a gesture, in
+  press order. A hold set with one key is the common case; a set with
+  N ≥ 2 keys is a **multi-key hold**, and the order is significant
+  (`[sd]` ≠ `[ds]`).
 
 ## 4. The commit-on-release mechanism
 
@@ -87,105 +91,147 @@ decision until release.
 ### 4.1 Why this doesn't break typing
 
 Commit-on-release alone would break fast typing: natural touch typing
-overlaps keypresses (you press the next key before releasing the previous
-one), and any naive "if two keys overlap, the first is a modifier" rule
-would misfire constantly. The **hold threshold** (§5) solves this by
-requiring the first key to be depressed *past a configurable duration*
-before it can be interpreted as a hold. Fast rollover during typing
-stays under the threshold; deliberate holds cross it.
+overlaps keypresses (you press the next key before releasing the
+previous one). A naive "if two keys overlap, the first is a modifier"
+rule would misfire constantly on every rollover.
 
-## 5. Disambiguation: hold threshold + calibration
+The disambiguator is **release order**, not overlap. Typing and
+gestures have different release-order signatures:
 
-A key only becomes a z-motion hold when it has been continuously
-depressed for at least `holdThreshold` milliseconds *and* at least one
-other key is pressed while the first is still held. If either condition
-fails, the keystrokes commit as ordinary characters on release, with
-normal typing rollover.
+- **Typing `he`**: `h` is pressed, `e` is pressed (while `h` still
+  down), `h` is released first, then `e`. The first-pressed key is
+  also the first-released. No key was pressed *and released* during
+  `h`'s lifetime. Both are taps.
+- **Gesture `[h](e)`**: `h` is pressed, `e` is pressed (while `h`
+  still down), `e` is released first (while `h` still down), then
+  `h`. A key was pressed *and released* during `h`'s lifetime. `h`
+  is a hold, `e` is a roll.
 
-### 5.1 Calibration is mandatory
+This signature is robust: no matter how fast or slow the user types,
+natural rollover always releases in press order, so every candidate
+classifies as a tap. A deliberate gesture releases the inner keys
+before the outer key, classifying the outer key as a hold
+retroactively. The keyboard itself disambiguates; no clock is
+involved.
 
-A single global default for `holdThreshold` cannot serve all users: a
-fast typist's rollover intervals are shorter than a slow typist's
-deliberate holds, and vice versa. A conforming implementation MUST
-provide a **calibration tool** that profiles the user's typing speed and
-sets initial timing weights — at minimum `holdThreshold` and `rollWindow`
-— tuned to that user's hands.
+## 5. Classification via release order
 
-Calibration SHOULD:
+Each candidate (§3) is classified at its keyup into one of three roles:
 
-- Run on first launch and be re-runnable on demand
-- Measure the user's natural rollover intervals across common bigrams
-  and trigrams
-- Set `holdThreshold` at a safe margin above the user's observed maximum
-  rollover interval
-- Set `rollWindow` at a comfortable multiple of the user's observed
-  median roll speed
-- Expose the resulting weights for manual adjustment
+> **A candidate `K` is a HOLD iff at least one other key was pressed
+> AND released during `K`'s lifetime (between its keydown and its
+> keyup). Otherwise, `K` is a TAP, unless another key pressed before
+> `K` is still held at `K`'s keyup time, in which case `K` is a ROLL.**
 
-Calibration output is user state, not spec state. Implementations are
-free to choose the specific statistics and margins.
+Collapsed:
+
+- **HOLD** — another key came and went during my lifetime.
+- **ROLL** — an earlier key is still down when I'm released.
+- **TAP** — neither.
+
+Classification consequences at keyup:
+
+- TAP → the candidate's character is inserted into the text.
+- HOLD → the gesture commits (§6.2). No character is typed for this
+  key.
+- ROLL → no character is typed; the roll participates in an active
+  gesture that will commit when its hold releases.
+
+### 5.1 No timers, no calibration
+
+Release-order classification has no time dimension. There is no hold
+threshold, no roll window, and no user calibration — the v0.3 fields
+`holdThreshold` and `rollWindow` are removed. A conforming
+implementation MUST NOT introduce timers as part of the classification
+rule, because doing so reintroduces the tuning problem release-order
+was designed to eliminate.
+
+Implementations MAY still use short debounce or sanity timeouts for
+defensive reasons (e.g., discarding a pending gesture if the editor
+loses focus for longer than N seconds), but these are recovery
+mechanisms, not classification.
+
+### 5.2 Retroactive classification
+
+A candidate's role is not known at its keydown — only at its keyup,
+and only by looking at what has happened to earlier-pressed candidates
+since then. This is why §4's commit-on-release is required: if
+characters committed on keydown, a hold could never retroactively be
+classified as a hold (the character would already be in the text).
+
+In practice, an implementation tracks each in-flight candidate in
+press order. On every keyup, the releasing key's classification is
+determined by:
+
+1. Is any earlier candidate still down? → this key is a ROLL; that
+   earlier candidate becomes (or stays) a HOLD.
+2. Otherwise, was any key pressed-and-released during this key's
+   lifetime? → this key is a HOLD; commit the gesture.
+3. Otherwise → this key is a TAP; insert its character.
 
 ## 6. Grammar
 
-A gesture is a finite sequence of physical events:
+A gesture is derived from the classified candidates (§5):
 
 ```
-gesture       := hold-phase roll commit
-hold-phase    := hold-entry+
-hold-entry    := KEYDOWN(k) ∧ (held ≥ holdThreshold)
-hold-set      := ordered list of hold-entry keys, in threshold-cross order
-roll          := roll-key+
-roll-key      := KEYDOWN(k) KEYUP(k)   where k is not in hold-set
-commit        := KEYUP(any k in hold-set)
-              |  roll-window-timeout
+gesture       := hold-set roll-sequence commit
+hold-set      := ordered list of candidates classified as HOLD, in press order
+roll-sequence := ordered list of candidates classified as ROLL, in press order
+commit        := KEYUP of the final still-active HOLD candidate
 ```
+
+Classification (tap / hold / roll) happens at each candidate's keyup
+per §5. The gesture itself does not exist as a distinct construct
+until a candidate is classified as HOLD — at that moment, earlier
+ROLL candidates (which were classified when they released while that
+candidate was still down) are retroactively acknowledged as members
+of the gesture.
 
 ### 6.1 Hold set formation
 
-The hold set is built incrementally. Each key pressed and held past
-`holdThreshold` joins the hold set, in the order it crossed the
-threshold. A single-key hold set is the common case; a set of N ≥ 2
-keys is a **multi-key hold**, and the order of keys in the set is a
-**significant part of the binding identity** — `[sd]` and `[ds]` are
-two distinct bindings that MAY be mapped to unrelated motions.
+The hold set accumulates naturally out of release-order classification.
+Any candidate whose lifetime contained at least one key that was
+pressed and released becomes a HOLD. When multiple candidates overlap
+with rolls, all of them can become holds — a **multi-key hold**
+(`[sd]`, `[wG]`, etc.). Press order of the holds determines binding
+identity: `[sd]` and `[ds]` are two distinct bindings that MAY be
+mapped to unrelated motions.
 
-The hold set **freezes** the moment the first roll-key press arrives.
-From that point on, any new keypress is interpreted as a roll-key even
-if it is held long enough to cross the threshold. This keeps the
-grammar unambiguous: once a gesture enters the roll phase, it cannot
-transition back to collecting hold-keys.
+There is no "freeze" step in v0.4; it was an artifact of the v0.3
+timer-driven model. Under release-order rules, the hold set is
+whatever set of candidates satisfy the "something came and went during
+my lifetime" predicate, evaluated independently for each candidate at
+its own keyup.
 
 ### 6.2 Commit
 
-A gesture commits when **either**:
+A gesture commits when the **last still-active hold** is released —
+the outermost hold in the sense that no other hold key is still down
+at its keyup. On commit, the editor looks up the binding
+`[hold-set-in-press-order](roll-sequence-in-press-order)`, executes
+the bound motion as a single atomic operation (one undo step, one
+macro event), and discards all gesture state.
 
-1. Any key in the hold set is released (`KEYUP`), **or**
-2. The roll window expires after the last roll key.
-
-On commit, the editor executes the bound motion command as a single
-atomic operation (one undo step, one macro event). Remaining keys in
-the hold set, if any, are released without triggering further gestures.
+If the lookup is unbound, the gesture commits as a **no-op**: no
+character is typed, no motion is executed, and no partial state
+remains visible. Implementations SHOULD surface unbound gestures to
+the user in a non-intrusive way (e.g., a status indicator).
 
 ### 6.3 Abort
 
 A gesture aborts if any of the following happens before commit:
 
-- No key has crossed the hold threshold by the time any pending hold
-  key is released (fast rollover — the keys commit as ordinary typed
-  characters in press order; no motion executes)
-- A modifier key (`Ctrl`, `Alt`, `Meta`) is pressed mid-gesture, unless
-  the binding explicitly accepts modifiers
+- A modifier key (`Ctrl`, `Alt`, `Meta`) is pressed mid-gesture,
+  unless the binding explicitly accepts modifiers
 - The editor loses focus or changes context mid-gesture
 
 Aborted gestures MUST NOT leave partial state visible to the user.
 
-### 6.4 Release without roll
-
-If every key in the hold set is released without any roll-key having
-been pressed, the editor commits the held keys as ordinary typed
-characters in press order. No gesture occurred. Holding keys
-thoughtfully — or abandoning a half-formed gesture — does not destroy
-your text.
+Note: the v0.3 "release without roll" case (a hold key released with
+no rolls) is no longer a separate abort condition. Under §5 release-
+order classification, a candidate with no rolls in its lifetime is
+simply a TAP — its character is typed at keyup. No special handling
+is required.
 
 ## 7. Binding model
 
@@ -317,23 +363,24 @@ A draft default binding table is published alongside this spec in
 implementations are free to ship any default table they want, but
 SHOULD publish the one they use.
 
-The draft uses two orthogonal binding families layered on the same
-grammar:
+The default table uses a single binding family:
 
 - **Letter-hold / home-row-roll.** A letter whose mnemonic is the
   motion unit (e.g. `[w]` = word) holds, while the roll phase supplies
   magnitude and direction via §8 home-row rolls. Example: `[w](jk)` =
   2 words forward.
-- **Numeric count-hold / vim-letter roll.** A digit `1`–`9` holds, and
-  the roll phase is a single vim motion letter. `[3](w)` = 3 words
-  forward, equivalent to Vim's `3w`. Counts ≥ 10 are out of scope —
-  users who need larger counts SHOULD fall back to traditional Vim
-  normal mode (see §10).
 
-Both families coexist because every `[hold-set](roll)` pair is an
-independent binding (§7.2). A user with strong Vim muscle memory can
-live entirely in the count family; a user who prefers pure rolls can
-live entirely in the letter family; most will mix.
+Shifted-letter holds (`[W]`, `[F]`, `[$]`, `[G]`, etc.) extend the
+hold alphabet without changing the family structure — `[a]` and `[A]`
+are distinct bindings, per §7.2. Shift is a hold-identity modifier,
+not a roll-phase modifier; the roll phase remains pure lowercase
+home-row keys.
+
+(The v0.3 draft proposed a second "numeric count-hold" family where a
+digit `1`–`9` held and a vim motion letter rolled. That family was
+dropped in v0.4 as redundant — compound rolls already provide counts,
+and count-prefixing shifted vim letters would have required Shift
+inside the roll phase, which §5 and §8 keep clean.)
 
 ## 10. Composition with existing Vim features
 
@@ -343,7 +390,8 @@ MAY provide traditional Vim modes alongside z-motion, and the two MUST
 NOT interfere:
 
 - In insert mode: z-motion gestures are active; commit-on-release
-  applies; taps below the hold threshold are ordinary characters.
+  applies; candidates classified as TAP per §5 are ordinary typed
+  characters.
 - In normal/visual mode (if present): traditional Vim motions apply;
   z-motion is inactive; commit-on-release is moot (no characters are
   being typed).
@@ -355,39 +403,77 @@ Vim experience. Both MUST be supported.
 
 ### 10.1 Operators (d, c, y)
 
-Operator composition with z-motion is **deferred to v0.3.** The design
-space is:
+Operator composition with z-motion is **deferred to v0.5+**. The
+leading candidate is **operator-first multi-key hold**: the operator
+letter is the first key of a multi-key hold, and the remaining key(s)
+identify the motion. Examples:
 
-- `d` held, then a z-motion gesture completes → delete the range
-- Or: `[d](w)(jk)` as a compound gesture — hold d, tap w, roll jk
-- Or: a dedicated "operator hold" phase
+- `[dw](j)` — delete 1 word forward (= Vim `dw`)
+- `[dw](jk)` — delete 2 words forward (= Vim `d2w`)
+- `[d$](k)` — delete to end of line (= Vim `d$`)
+- `[dd](k)` — delete current line (= Vim `dd`)
+- `[yw](j)` — yank 1 word forward
 
-The right answer depends on calibration and ergonomics. v0.2
-implementations MAY experiment.
+This composes naturally with §6.1 multi-key holds and §8.3 press-order
+directionality. Letters `d`, `c`, `y`, `D`, `C`, `Y` are **reserved**
+for operator use and MUST NOT be claimed by default letter-hold
+bindings. Pre-v0.5 implementations MAY experiment with the form.
 
 ### 10.2 Text objects
 
-Text objects (`iw`, `a"`, `i(`, etc.) are untouched by z-motion in v0.2.
+Text objects (`iw`, `a"`, `i(`, etc.) are untouched by z-motion.
 They continue to work inside normal/visual mode as in Vim.
+
+### 10.3 Normal-mode toggle keys
+
+A conforming implementation MAY designate one or more hold keys as
+**normal-mode toggle keys**. While such a key is held, the editor
+interprets a specified subset of other keys as traditional Vim normal-
+mode commands — tap-repeatable, fired immediately, ignoring the
+z-motion classification rule.
+
+The canonical use case is keeping `h j k l` (and eventually more of
+the vim normal vocabulary) available for single-step navigation
+without paying the gesture overhead. Designated toggle keys SHOULD
+appear one per hand so that cross-hand tapping is always available.
+
+Semantics:
+
+- A normal-mode toggle key is promoted **eagerly** — the first
+  in-scope tap while it is held switches to normal-mode immediately,
+  rather than waiting for release-order classification. This
+  eliminates the keyup latency on the first move.
+- While the toggle is held, its subsequent in-scope key presses fire
+  on keydown (honoring OS key repeat).
+- Releasing the toggle exits the mode. If no in-scope key was fired
+  during the hold, the toggle key itself is typed as a character
+  (falling back to §5 TAP classification); otherwise it is consumed
+  silently.
+- A normal-mode toggle and a z-motion gesture MUST NOT overlap on
+  the same hold key — implementations choose one role per key.
+
+The exact in-scope vocabulary is implementation-defined; the
+`default-bindings.md` companion document proposes a starting set.
 
 ## 11. Conformance
 
 A conforming Z-motion implementation MUST:
 
 1. Provide commit-on-release for typed characters (§4)
-2. Implement the grammar in §6, including commit, abort, and
-   release-without-roll rules
-3. Provide a calibration tool that profiles the user and sets initial
-   `holdThreshold` and `rollWindow` (§5.1)
-4. Treat each `[hold-set](roll)` pair as an independent binding with no
-   pattern generalization (§7.2). Multi-key hold sets MUST be
+2. Classify every candidate at keyup per §5 release-order rules, with
+   no time-based thresholds in the classification path (§5.1)
+3. Implement the grammar in §6, including commit and abort rules
+4. Treat each `[hold-set](roll)` pair as an independent binding with
+   no pattern generalization (§7.2). Multi-key hold sets MUST be
    distinguished by press order (§6.1): `[sd]` and `[ds]` are distinct.
-5. Allow any key to be designated as a hold key (§7.1)
+5. Allow any key to be designated as a hold key (§7.1). Shift, when
+   applied to a hold key, produces a **distinct** hold (`[a]` ≠ `[A]`).
 6. Ship a default binding table and document it
 
 A conforming implementation MAY:
 
 - Provide traditional Vim normal/visual modes alongside z-motion
+- Provide normal-mode toggle keys (§10.3)
 - Add operator composition experimentally (§10.1)
 - Provide visual feedback for in-progress gestures
 - Extend the binding model with chords, modifiers, or macros, provided
@@ -395,6 +481,37 @@ A conforming implementation MAY:
 
 ## 12. Change log
 
+- **v0.4 (2026-04-11)** — Release-order classification. Major
+  simplification, validated by live prototype (`6nz/proto/z-motion-feel/`).
+  - §3: terminology reworked around candidate/tap/hold/roll and
+    release order. Removed hold threshold, roll window, calibration.
+  - §4.1: rewritten — typing vs gestures are disambiguated by release
+    order, not by a clock. `he` vs `[h](e)` differ only in which key
+    releases first.
+  - §5: replaced entirely. No timers, no calibration. A candidate is
+    a HOLD iff another key was pressed and released during its
+    lifetime; a ROLL iff an earlier candidate is still down at its
+    keyup; a TAP otherwise. Implementations MUST NOT introduce timers
+    into the classification rule.
+  - §6: grammar rewritten. Hold set is derived from classification,
+    not accumulated through a threshold. v0.3 "freeze rule" and
+    "release-without-roll" cases are gone — they were artifacts of
+    the timer model.
+  - §9: dropped the numeric count-hold family as redundant with
+    compound rolls and incompatible with "Shift stays out of the roll
+    phase." Default table is now single-family (letter-hold).
+  - §10.1: operator composition updated with operator-first multi-key
+    hold sketch; deferred to v0.5+. `d`, `c`, `y` and their shifted
+    siblings are reserved.
+  - §10.3: new — normal-mode toggle keys (hold-while-active, eager
+    promotion, one-per-hand). Validates the prototype's `[f]`+hjkl
+    implementation.
+  - §11: conformance simplified — no calibration requirement; shift
+    distinct-hold rule explicit.
+  - **Breaking:** v0.3's calibration conformance requirement is
+    removed. Any v0.3 implementation that depended on `holdThreshold`
+    or `rollWindow` will need rework. The binding identities (`[hold-set](roll)`)
+    are unchanged — existing bindings still apply.
 - **v0.3 (2026-04-11)** — Multi-key holds and left-hand mirror.
   - §3: added "hold set" and "multi-key hold" terms
   - §6: grammar extended to support hold sets; added §6.1 defining

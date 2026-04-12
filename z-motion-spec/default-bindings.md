@@ -1,8 +1,28 @@
 # Z-Motion Default Bindings
 
-**Companion to:** `SPEC.md` v0.3
-**Status:** Draft v0.2 — recommendation, not requirement
+**Companion to:** `SPEC.md` v0.4
+**Status:** Draft v0.2 — recommendation, not requirement.
+**Partially stale under v0.4** — see notice below.
 **License:** CC0 1.0 Universal
+
+---
+
+## ⚠ v0.4 status notice
+
+This draft was written against SPEC v0.3. Two changes in SPEC v0.4 make
+parts of this document obsolete:
+
+1. **FAMILY 2 (numeric count-hold) is dropped.** SPEC v0.4 §9 removes
+   the count family as redundant with compound rolls and incompatible
+   with keeping Shift out of the roll phase. The §2 section of this
+   document is retained for historical context only — do NOT ship it.
+2. **No calibration, no hold threshold, no roll window.** Any sentence
+   in this document that references timing disambiguation is stale.
+   The §5 classification rule (release order) replaces all of it.
+
+FAMILY 1 (letter-hold / home-row-roll) and its bindings are otherwise
+still valid under v0.4 and remain the default table. A clean rewrite
+(default-bindings.md v0.3) is a planned follow-up.
 
 ---
 
