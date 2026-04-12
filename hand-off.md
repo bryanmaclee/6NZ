@@ -29,3 +29,8 @@
 - **Sustained gestures** — hold key acts as a mode key; roll phase is a stream of events, not a single gesture. General grammar-level mechanic, not undo-specific.
 - **Undo granularity tiers** — granular (per-keystroke/word), motion-boundary (edits between cursor moves), undo-tree (full branching history). Motion boundary replaces vim's insert-mode-session as the natural undo group in z-motion.
 - **Specific key combos in undo examples are illustrative, not locked** — user explicitly noted these are example assignments.
+- **Redo is `[U]` (shifted undo hold)** — shift determines hold identity at keydown; shift is released immediately after. No ergonomic penalty. Mirrors undo family: `[U](g)` redo granular, `[U](b)` redo to boundary, `[U](t)` redo tree.
+- **Shift on hold keys is captured at keydown, releasable immediately** — clarification of SPEC §9/§11 "shift is a hold-identity modifier." The shifted identity is locked when the key goes down; shift does not need to be held throughout the gesture.
+
+## Cross-repo messages sent
+- `needs: push` to master PA — `2026-04-12-1600-6nz-to-master-needs-push.md`. 6nz + scrml-support affected.
