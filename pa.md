@@ -121,8 +121,10 @@ The four ecosystem projects (scrmlTS, scrml-support, giti, 6nz) communicate asyn
 
 ### Outbox targets (this PA may write into)
 - scrmlTS:       `/home/bryan/scrmlMaster/scrmlTS/handOffs/incoming/`
+- scrml:         `/home/bryan/scrmlMaster/scrml/handOffs/incoming/`
 - scrml-support: `/home/bryan/scrmlMaster/scrml-support/handOffs/incoming/`
 - giti:          `/home/bryan/scrmlMaster/giti/handOffs/incoming/`
+- master:        `/home/bryan/scrmlMaster/handOffs/incoming/`
 
 ### Message file format
 
@@ -155,6 +157,13 @@ When this PA needs to tell another project something (compiler API need, z-motio
 1. Confirm with the user what to send and to whom
 2. Write the message file directly into the target's `handOffs/incoming/` (absolute path above)
 3. Log the send in this repo's `hand-off.md` so there's a local trail
+
+### Push coordination via master
+
+When this repo is at a push point (especially if you sent messages to other repos):
+1. Send a `needs: push` message to master (`/home/bryan/scrmlMaster/handOffs/incoming/`)
+2. List which repos are affected (this repo + any repos you dropped messages into)
+3. The master PA will verify all affected repos are clean and push them together
 
 ### Scope of the exception
 - **Allowed:** creating new `.md` files inside `<sibling>/handOffs/incoming/`

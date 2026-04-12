@@ -1,11 +1,13 @@
 # Z-Motion Specification
 
-**Version:** 0.4 (draft)
+**Version:** 0.5 (draft)
 **License:** CC0 1.0 Universal (public domain)
-**Status:** Major simplification. v0.4 replaces the v0.3 hold threshold +
-calibration model with **release-order classification** — no clocks, no
-calibration. Validated by a live prototype. Default binding table drafted
-in `default-bindings.md` — recommendation, not requirement.
+**Status:** v0.5 introduces **sustained gestures** — while a hold is
+active, the roll phase is a stream of events, not a single shot. Each
+roll event fires its binding independently. This enables hold-as-mode
+patterns (undo, search, marks) where the user repeats or varies actions
+without releasing the hold key. Built on v0.4's release-order
+classification (no clocks, no calibration).
 
 ---
 
@@ -174,11 +176,18 @@ determined by:
 A gesture is derived from the classified candidates (§5):
 
 ```
-gesture       := hold-set roll-sequence commit
+gesture       := hold-set roll-phase commit
 hold-set      := ordered list of candidates classified as HOLD, in press order
-roll-sequence := ordered list of candidates classified as ROLL, in press order
+roll-phase    := roll-event+
+roll-event    := ordered list of candidates classified as ROLL, in press order
+                 (between the previous roll-event's last keyup and this one's last keyup)
 commit        := KEYUP of the final still-active HOLD candidate
 ```
+
+A gesture may contain **one or many roll events**. A single roll
+event followed by hold release is the common case (a **single-shot
+gesture**, the only form in v0.4). Multiple roll events before hold
+release form a **sustained gesture** (§6.4).
 
 Classification (tap / hold / roll) happens at each candidate's keyup
 per §5. The gesture itself does not exist as a distinct construct
@@ -207,15 +216,24 @@ its own keyup.
 
 A gesture commits when the **last still-active hold** is released —
 the outermost hold in the sense that no other hold key is still down
-at its keyup. On commit, the editor looks up the binding
-`[hold-set-in-press-order](roll-sequence-in-press-order)`, executes
-the bound motion as a single atomic operation (one undo step, one
-macro event), and discards all gesture state.
+at its keyup.
 
-If the lookup is unbound, the gesture commits as a **no-op**: no
-character is typed, no motion is executed, and no partial state
-remains visible. Implementations SHOULD surface unbound gestures to
-the user in a non-intrusive way (e.g., a status indicator).
+**Single-shot gestures** (one roll event): on commit, the editor
+looks up the binding `[hold-set](roll-event)`, executes the bound
+action as a single atomic operation (one undo step, one macro event),
+and discards all gesture state.
+
+**Sustained gestures** (multiple roll events, §6.4): each roll event
+fires its binding independently as it completes, *before* the hold
+releases. Commit (hold release) ends the sustained phase and discards
+gesture state. If no roll event occurred during the hold's lifetime,
+the hold key falls through to TAP classification per §5 — its
+character is typed.
+
+If a binding lookup is unbound, that roll event commits as a
+**no-op**: no action is executed, no partial state remains visible.
+Implementations SHOULD surface unbound gestures to the user in a
+non-intrusive way (e.g., a status indicator).
 
 ### 6.3 Abort
 
@@ -232,6 +250,107 @@ no rolls) is no longer a separate abort condition. Under §5 release-
 order classification, a candidate with no rolls in its lifetime is
 simply a TAP — its character is typed at keyup. No special handling
 is required.
+
+### 6.4 Sustained gestures
+
+In a sustained gesture, the hold key remains active after the first
+roll event completes, and the user may issue **additional roll events**
+before releasing the hold. Each roll event fires its binding
+independently as it completes — the user does not wait for hold
+release to see the effect.
+
+The sustained phase begins when the first roll event completes (the
+hold is now confirmed via §5 classification). It ends when the hold
+key is released (§6.2 commit). During the sustained phase:
+
+- **Repeated taps** — a single key pressed and released while the
+  hold is active constitutes one roll event. Each tap fires the
+  binding `[hold](key)` independently. Example: `[u](g,g,g)` fires
+  `[u](g)` three times in sequence.
+- **Repeated rolls** — a multi-key roll sequence pressed and released
+  while the hold is active constitutes one roll event. Each roll
+  fires the binding `[hold](roll-sequence)` independently. Example:
+  `[h](jkl,jkl,jkl)` fires `[h](jkl)` three times in sequence.
+- **Mixed events** — taps and rolls may be freely interspersed within
+  a single sustained gesture. Each roll event fires its own binding
+  lookup. Example: `[u](g,g,b)` fires `[u](g)` twice, then `[u](b)`
+  once.
+
+Roll events within a sustained phase are delimited by **quiescence**
+— the moment when no roll-phase key is down (only the hold key
+remains). The next keydown after quiescence begins a new roll event.
+
+#### 6.4.1 Why sustained gestures
+
+Single-shot gestures (v0.4) require the user to release and re-hold
+for every action. For motions like "3 characters right" this is fine
+— `[h](jkl)` is one fluid gesture. But for iterative operations
+(undo, search-next, mark cycling), re-holding per step is clumsy.
+Sustained gestures let the hold key act as a **mode key**: hold it
+down, tap or roll as many times as needed, release when done.
+
+This is analogous to how a Vim user holds Shift and taps a key
+repeatedly — the modifier stays down, the action repeats. The hold
+key is a z-motion modifier.
+
+#### 6.4.2 Undo as a motivating example
+
+The undo hold family illustrates sustained gestures naturally:
+
+| Gesture | Effect |
+|---|---|
+| `[u](g)` | Undo one granular step (finest grain the editor tracks) |
+| `[u](g,g,g)` | Undo three granular steps (three taps while holding) |
+| `[u](b)` | Undo to last motion boundary |
+| `[u](t)` | Open undo tree pane, enter undo-navigation mode |
+
+With sustained gestures, the user holds `[u]`, taps `g` until the
+edit is where they want it, and releases. No mode switch, no count
+prefix, no release-and-rehold. The hold key is the undo context;
+the taps are the repetitions.
+
+(These bindings are illustrative — the default binding table defines
+the actual assignments. The letters `u`, `g`, `b`, `t` are examples,
+not reserved by this section.)
+
+#### 6.4.3 Interaction with single-shot gestures
+
+Every single-shot gesture from v0.4 is a sustained gesture with
+exactly one roll event — the two models are **fully compatible**.
+An implementation that supports sustained gestures automatically
+supports single-shot gestures. No existing binding changes meaning.
+
+The distinction is behavioral, not syntactic: a sustained gesture
+is simply a gesture where the user does not release the hold key
+immediately after the first roll event.
+
+#### 6.4.4 Undo granularity in insert mode
+
+Traditional Vim defines an undo unit as the span between entering
+and leaving insert mode. In a z-motion editor where the user may
+remain in insert mode indefinitely, this boundary does not exist.
+
+Conforming implementations that support the undo hold family MUST
+track undo at a finer granularity than mode transitions. The
+recommended tiers are:
+
+1. **Granular** — the finest unit the editor tracks (individual
+   characters, words, or paste operations, at the implementation's
+   discretion)
+2. **Motion boundary** — the span of edits between cursor movements
+   (any z-motion gesture, mouse click, or arrow key that changes
+   cursor position closes the current undo group and opens a new one)
+3. **Undo tree** — the full history with branching, navigable via a
+   dedicated pane
+
+Implementations MAY define additional tiers. The undo hold family
+binds each tier to a distinct roll key within the sustained gesture,
+giving the user direct access to the granularity they want.
+
+In normal mode (entered via §10.3 toggle or traditional Esc), Vim's
+standard undo behavior (`u`, `Ctrl-R`, `:undolist`, etc.) MUST
+continue to work as expected. Z-motion undo is an **additional**
+insert-mode interface, not a replacement.
 
 ## 7. Binding model
 
@@ -481,6 +600,29 @@ A conforming implementation MAY:
 
 ## 12. Change log
 
+- **v0.5 (2026-04-12)** — Sustained gestures.
+  - §6 grammar: `roll-sequence` generalized to `roll-phase := roll-event+`.
+    A gesture may now contain multiple roll events before hold release.
+    Single-shot gestures (one roll event) remain the common case and are
+    fully backward compatible.
+  - §6.2 commit: rewritten for both single-shot and sustained cases.
+    Sustained gestures fire per-event; commit ends the sustained phase.
+  - §6.4 (new): sustained gestures — repeated taps, repeated rolls, and
+    mixed events within a single hold. Roll events delimited by
+    quiescence (no roll-phase key down).
+  - §6.4.1: motivation — hold-as-mode for iterative operations.
+  - §6.4.2: undo hold family as motivating example. Three tiers of undo
+    granularity (granular, motion boundary, undo tree) accessed via
+    different roll keys within one sustained `[u]` hold.
+  - §6.4.3: backward compatibility — every v0.4 single-shot gesture is
+    a sustained gesture with exactly one roll event.
+  - §6.4.4: undo granularity in insert mode. Because z-motion users may
+    never leave insert mode, undo boundaries cannot depend on mode
+    transitions. Motion-boundary undo groups and fine-grained undo tiers
+    defined as requirements for implementations supporting the undo hold
+    family. Normal-mode undo (Vim `u`) unchanged.
+  - **Non-breaking:** all v0.4 bindings and behavior are preserved.
+    Sustained gestures are a superset.
 - **v0.4 (2026-04-11)** — Release-order classification. Major
   simplification, validated by live prototype (`6nz/proto/z-motion-feel/`).
   - §3: terminology reworked around candidate/tap/hold/roll and
