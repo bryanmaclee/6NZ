@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>6nz playable prototype</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --fg: #e0e0e0;
+    --accent: #ffa500;
+    --ok: #88ff88;
+    --dim: #888;
+    --panel: #222;
+    --border: #333;
+    --mode-insert: #ffa500;
+    --mode-normal: #88ff88;
+    --mode-visual: #ff66ff;
+    --mode-normal-toggle: #66ccff;
+  }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden; }
+  body { font: 13px system-ui, sans-serif; display: flex; flex-direction: column; }
+
+  #toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  #toolbar button {
+    font: 12px system-ui; padding: 4px 10px;
+    background: #2a2a2a; color: var(--fg); border: 1px solid var(--border);
+    cursor: pointer; border-radius: 3px;
+  }
+  #toolbar button:hover { background: #333; }
+  #toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #toolbar .spacer { flex: 1; }
+  #toolbar #filename { color: var(--dim); font: 12px ui-monospace, monospace; }
+  #toolbar #filename.dirty::after { content: ' •'; color: var(--accent); }
+  #toolbar #help-btn { color: var(--accent); }
+
+  #editor-wrap { flex: 1; display: flex; position: relative; overflow: hidden; }
+  #editor {
+    flex: 1; font: 14px ui-monospace, monospace; padding: 14px 14px 14px 60px;
+    border: 0; outline: 0; resize: none;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
+    white-space: pre; overflow: auto; tab-size: 2;
+  }
+  /* gutter faked with padding; line numbers drawn via overlay */
+  #gutter {
+    position: absolute; top: 0; left: 0; width: 50px; height: 100%;
+    padding: 14px 6px 14px 10px; box-sizing: border-box;
+    font: 14px ui-monospace, monospace; color: var(--dim); line-height: 1.5;
+    text-align: right; pointer-events: none; overflow: hidden; user-select: none;
+    background: linear-gradient(to right, #151515, #1a1a1a);
+  }
+
+  #status {
+    display: flex; align-items: center; gap: 14px;
+    padding: 4px 10px; background: #0b0b0b;
+    border-top: 1px solid var(--border);
+    font: 11px ui-monospace, monospace; color: var(--fg);
+  }
+  #mode-indicator {
+    padding: 1px 8px; border-radius: 3px; font-weight: 600;
+    background: var(--mode-insert); color: #000;
+  }
+  #mode-indicator.normal { background: var(--mode-normal); }
+  #mode-indicator.visual { background: var(--mode-visual); }
+  #mode-indicator.normal-toggle { background: var(--mode-normal-toggle); }
+  #status .label { color: var(--dim); }
+  #status .value { color: var(--accent); }
+  #status .right { margin-left: auto; color: var(--dim); }
+
+  #cmdline {
+    display: none;
+    padding: 4px 10px; background: #000; color: var(--fg);
+    border-top: 1px solid var(--accent);
+    font: 13px ui-monospace, monospace;
+  }
+  #cmdline.active { display: flex; align-items: center; gap: 6px; }
+  #cmdline-prefix { color: var(--accent); }
+  #cmdline-input {
+    flex: 1; background: transparent; border: 0; outline: 0; color: var(--fg);
+    font: 13px ui-monospace, monospace;
+  }
+
+  #help {
+    display: none;
+    position: absolute; top: 40px; right: 10px; width: 420px; max-height: 70vh;
+    overflow: auto; z-index: 10;
+    background: #111; border: 1px solid var(--accent); border-radius: 4px;
+    padding: 14px; font: 12px ui-monospace, monospace; line-height: 1.55;
+    color: var(--fg);
+  }
+  #help.active { display: block; }
+  #help h3 { margin: 0 0 6px; color: var(--accent); font: 600 13px system-ui; }
+  #help h4 { margin: 10px 0 4px; color: var(--ok); font: 600 12px system-ui; }
+  #help code { color: var(--accent); }
+  #help .dim { color: var(--dim); }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button id="btn-new" title="New buffer">New</button>
+  <button id="btn-open" title="Open file (Ctrl+O)">Open…</button>
+  <button id="btn-save" title="Save (Ctrl+S)">Save</button>
+  <button id="btn-save-as" title="Save As">Save As…</button>
+  <span id="filename">[No Name]</span>
+  <span class="spacer"></span>
+  <button id="help-btn" title="Toggle help (F1)">Help</button>
+</div>
+
+<div id="editor-wrap">
+  <div id="gutter"></div>
+  <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off" autofocus></textarea>
+  <div id="help">
+    <h3>6nz playable prototype — quick help</h3>
+    <div class="dim">Throwaway demo. Not real 6nz. Vanilla JS + textarea.</div>
+
+    <h4>Modes</h4>
+    <div><code>Esc</code> → Normal mode &nbsp; <code>i</code>/<code>a</code>/<code>o</code>/<code>O</code>/<code>I</code>/<code>A</code> → Insert &nbsp; <code>v</code>/<code>V</code> → Visual</div>
+
+    <h4>Files</h4>
+    <div><code>Ctrl+O</code> open &nbsp; <code>Ctrl+S</code> save &nbsp; <code>:w</code> <code>:q</code> <code>:wq</code> <code>:e file</code></div>
+
+    <h4>Vim motions (normal/visual)</h4>
+    <div><code>h j k l</code> chars/lines &nbsp; <code>w b e</code> words &nbsp; <code>0 ^ $</code> line</div>
+    <div><code>gg G</code> doc &nbsp; <code>H M L</code> viewport &nbsp; <code>{ }</code> paragraph &nbsp; <code>% </code>match</div>
+    <div><code>f&lt;c&gt; F&lt;c&gt; t&lt;c&gt; T&lt;c&gt;</code> find char &nbsp; <code>; ,</code> repeat</div>
+    <div><code>/pat</code> search &nbsp; <code>n N</code> next/prev &nbsp; <code>*</code> search word</div>
+    <div>Counts: <code>3w</code> <code>5j</code> etc.</div>
+
+    <h4>Vim edits (normal)</h4>
+    <div><code>x X</code> &nbsp; <code>dd yy D Y C</code> &nbsp; <code>dw cw de d$ y$</code></div>
+    <div><code>p P</code> paste &nbsp; <code>u</code> undo &nbsp; <code>Ctrl+R</code> redo &nbsp; <code>r&lt;c&gt;</code> replace &nbsp; <code>J</code> join</div>
+    <div><code>&gt;&gt; &lt;&lt;</code> indent &nbsp; <code>~</code> toggle case</div>
+
+    <h4>Z-motions (insert mode, SPEC v0.5)</h4>
+    <div class="dim">Release-order: hold a key, roll on the other hand, release.</div>
+    <div><code>[h](a/as/asd/asdf)</code> 1–4 chars right &nbsp; <code>[h](f/fd/fds/fdsa)</code> left</div>
+    <div><code>[w](j/jk/jkl)</code> words forward &nbsp; <code>[w](l/lk/lkj)</code> back</div>
+    <div><code>[e](j…/l…)</code> word-ends &nbsp; <code>[sd](j…)</code> lines down &nbsp; <code>[ds](j…)</code> lines up</div>
+    <div><code>[a](l)</code>=0 &nbsp; <code>[a](lk)</code>=^ &nbsp; <code>[a](j)</code>=$</div>
+    <div><code>[g](l)</code>=gg &nbsp; <code>[g](j)</code>=G &nbsp; <code>[g](k)</code>=M</div>
+    <div><code>[p](a…)</code> para fwd &nbsp; <code>[p](f…)</code> back &nbsp; <code>[m](d)</code>=%</div>
+    <div><code>[u](g)</code> undo, sustained: <code>[u](g,g,g)</code></div>
+
+    <h4>Save/load note</h4>
+    <div class="dim">Uses File System Access API if available (Chromium). Otherwise falls back to download + upload.</div>
+  </div>
+</div>
+
+<div id="status">
+  <span id="mode-indicator">INSERT</span>
+  <span><span class="label">pos:</span> <span id="pos" class="value">1:1</span></span>
+  <span><span class="label">z:</span> <span id="zmotion-info" class="value">—</span></span>
+  <span class="right" id="msg"></span>
+</div>
+
+<div id="cmdline">
+  <span id="cmdline-prefix">:</span>
+  <input id="cmdline-input" type="text" autocomplete="off" spellcheck="false">
+</div>
+
+<script>
+// ============================================================================
+// 6nz playable prototype
+// Not real 6nz. This is throwaway vanilla JS on a <textarea>, built to give
+// early adopters something to actually type into that *feels* like 6nz:
+//   - vim normal/visual modes with the core motion + edit vocabulary
+//   - z-motion insert-mode input layer (SPEC v0.5)
+//   - open/edit/save plain-text files from disk
+// Real 6nz will be CM6 + scrml. This is for vibes.
+// ============================================================================
+
+const editor   = document.getElementById('editor');
+const gutter   = document.getElementById('gutter');
+const modeEl   = document.getElementById('mode-indicator');
+const posEl    = document.getElementById('pos');
+const zInfoEl  = document.getElementById('zmotion-info');
+const msgEl    = document.getElementById('msg');
+const fnEl     = document.getElementById('filename');
+const cmdline  = document.getElementById('cmdline');
+const cmdInput = document.getElementById('cmdline-input');
+const cmdPrefix = document.getElementById('cmdline-prefix');
+const helpEl   = document.getElementById('help');
+
+// ============================================================================
+// Mode state
+// ============================================================================
+const MODE = { INSERT: 'insert', NORMAL: 'normal', VISUAL: 'visual', VLINE: 'vline' };
+let mode = MODE.INSERT;
+let visualAnchor = 0;
+let visualActive = 0;  // the mobile end of the visual selection
+
+function setMode(m) {
+  mode = m;
+  modeEl.textContent = (
+    m === MODE.INSERT ? 'INSERT' :
+    m === MODE.NORMAL ? 'NORMAL' :
+    m === MODE.VLINE  ? 'V-LINE' :
+    'VISUAL'
+  );
+  modeEl.className = (
+    m === MODE.INSERT ? '' :
+    m === MODE.NORMAL ? 'normal' :
+    'visual'
+  );
+  clearPending();
+  renderStatus();
+}
+
+// ============================================================================
+// File I/O
+// ============================================================================
+let currentHandle = null;   // FileSystemFileHandle when supported
+let currentName = null;
+let savedText = '';
+const hasFSA = 'showOpenFilePicker' in window;
+
+function setFilename(name) {
+  currentName = name;
+  fnEl.textContent = name || '[No Name]';
+  updateDirty();
+}
+function updateDirty() {
+  if (editor.value !== savedText) fnEl.classList.add('dirty');
+  else fnEl.classList.remove('dirty');
+}
+
+async function fileOpen() {
+  if (hasFSA) {
+    try {
+      const [h] = await window.showOpenFilePicker({ multiple: false });
+      const f = await h.getFile();
+      const text = await f.text();
+      editor.value = text;
+      savedText = text;
+      currentHandle = h;
+      setFilename(f.name);
+      onTextChange();
+      flash('opened ' + f.name);
+    } catch (e) { if (e.name !== 'AbortError') flash('open failed: ' + e.message); }
+  } else {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.onchange = async () => {
+      const f = inp.files[0]; if (!f) return;
+      const text = await f.text();
+      editor.value = text;
+      savedText = text;
+      currentHandle = null;
+      setFilename(f.name);
+      onTextChange();
+      flash('opened ' + f.name + ' (download-only)');
+    };
+    inp.click();
+  }
+}
+
+async function fileSave() {
+  if (hasFSA && currentHandle) {
+    try {
+      const w = await currentHandle.createWritable();
+      await w.write(editor.value);
+      await w.close();
+      savedText = editor.value;
+      updateDirty();
+      flash('saved ' + currentName);
+    } catch (e) { flash('save failed: ' + e.message); }
+  } else {
+    return fileSaveAs();
+  }
+}
+
+async function fileSaveAs() {
+  if (hasFSA) {
+    try {
+      const h = await window.showSaveFilePicker({
+        suggestedName: currentName || 'untitled.txt',
+      });
+      const w = await h.getWritable ? await h.getWritable() : await h.createWritable();
+      await w.write(editor.value);
+      await w.close();
+      currentHandle = h;
+      const f = await h.getFile();
+      savedText = editor.value;
+      setFilename(f.name);
+      flash('saved as ' + f.name);
+    } catch (e) { if (e.name !== 'AbortError') flash('save failed: ' + e.message); }
+  } else {
+    const name = currentName || prompt('Filename:', 'untitled.txt') || 'untitled.txt';
+    const blob = new Blob([editor.value], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    savedText = editor.value;
+    setFilename(name);
+    flash('downloaded ' + name);
+  }
+}
+
+function fileNew() {
+  if (editor.value !== savedText && !confirm('Discard unsaved changes?')) return;
+  editor.value = '';
+  savedText = '';
+  currentHandle = null;
+  setFilename(null);
+  onTextChange();
+  flash('new buffer');
+}
+
+document.getElementById('btn-new').onclick = fileNew;
+document.getElementById('btn-open').onclick = fileOpen;
+document.getElementById('btn-save').onclick = fileSave;
+document.getElementById('btn-save-as').onclick = fileSaveAs;
+document.getElementById('help-btn').onclick = () => helpEl.classList.toggle('active');
+
+// ============================================================================
+// Status line + gutter
+// ============================================================================
+function renderStatus() {
+  const { row, col } = cursorRowCol(editor.selectionStart);
+  posEl.textContent = (row + 1) + ':' + (col + 1);
+}
+
+let flashTimer = null;
+function flash(s) {
+  msgEl.textContent = s;
+  if (flashTimer) clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { msgEl.textContent = ''; }, 2500);
+}
+
+function renderGutter() {
+  const lines = editor.value.split('\n').length;
+  const rows = [];
+  for (let i = 1; i <= lines; i++) rows.push(i);
+  gutter.textContent = rows.join('\n');
+  gutter.style.transform = `translateY(${-editor.scrollTop}px)`;
+}
+
+editor.addEventListener('scroll', renderGutter);
+editor.addEventListener('click', renderStatus);
+editor.addEventListener('select', renderStatus);
+
+function onTextChange() {
+  updateDirty();
+  renderGutter();
+  renderStatus();
+}
+editor.addEventListener('input', onTextChange);
+
+// ============================================================================
+// Cursor helpers
+// ============================================================================
+function setCursor(pos) {
+  const clamped = Math.max(0, Math.min(editor.value.length, pos));
+  if (mode === MODE.VISUAL || mode === MODE.VLINE) {
+    visualActive = clamped;
+    const [a, b] = mode === MODE.VLINE
+      ? lineRangeSpan(visualAnchor, clamped)
+      : [Math.min(visualAnchor, clamped), Math.max(visualAnchor, clamped) + 1];
+    editor.selectionStart = a;
+    editor.selectionEnd   = Math.min(editor.value.length, b);
+  } else {
+    editor.selectionStart = editor.selectionEnd = clamped;
+  }
+  renderStatus();
+}
+// Active cursor position regardless of mode (visual uses active end, not sel start)
+function activePos() {
+  if (mode === MODE.VISUAL || mode === MODE.VLINE) return visualActive;
+  return editor.selectionStart;
+}
+function cursorRowCol(pos) {
+  const t = editor.value;
+  let row = 0, lineStart = 0;
+  for (let i = 0; i < pos; i++) if (t[i] === '\n') { row++; lineStart = i + 1; }
+  return { row, col: pos - lineStart };
+}
+function rowStartOffset(rowIdx) {
+  if (rowIdx <= 0) return 0;
+  const t = editor.value;
+  let row = 0;
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] === '\n') { row++; if (row === rowIdx) return i + 1; }
+  }
+  return t.length;
+}
+function rowLength(rowIdx) {
+  const s = rowStartOffset(rowIdx);
+  let e = editor.value.indexOf('\n', s);
+  if (e === -1) e = editor.value.length;
+  return e - s;
+}
+function totalRows() {
+  let n = 1;
+  const t = editor.value;
+  for (let i = 0; i < t.length; i++) if (t[i] === '\n') n++;
+  return n;
+}
+function lineRangeSpan(a, b) {
+  // inclusive of full lines between two positions
+  const ra = cursorRowCol(a).row, rb = cursorRowCol(b).row;
+  const lo = Math.min(ra, rb), hi = Math.max(ra, rb);
+  const start = rowStartOffset(lo);
+  let end = rowStartOffset(hi) + rowLength(hi);
+  if (end < editor.value.length) end++; // include trailing \n
+  return [start, end];
+}
+
+// ============================================================================
+// Undo/redo — own stack so we can sync with vim-style undo
+// ============================================================================
+const undoStack = [];
+const redoStack = [];
+let lastSnapshotText = '';
+
+function snapshot() {
+  // Push the CURRENT editor state onto the undo stack BEFORE a mutation.
+  // (lastSnapshotText is just a dedupe hint for rapid same-state snapshots.)
+  undoStack.push({ text: editor.value, pos: editor.selectionStart });
+  redoStack.length = 0;
+  lastSnapshotText = editor.value;
+  if (undoStack.length > 500) undoStack.shift();
+}
+function doUndo() {
+  if (!undoStack.length) { flash('already at oldest'); return; }
+  const cur = { text: editor.value, pos: editor.selectionStart };
+  const e = undoStack.pop();
+  redoStack.push(cur);
+  editor.value = e.text;
+  lastSnapshotText = e.text;
+  setCursor(e.pos);
+  onTextChange();
+}
+function doRedo() {
+  if (!redoStack.length) { flash('already at newest'); return; }
+  const cur = { text: editor.value, pos: editor.selectionStart };
+  const e = redoStack.pop();
+  undoStack.push(cur);
+  editor.value = e.text;
+  lastSnapshotText = e.text;
+  setCursor(e.pos);
+  onTextChange();
+}
+
+// ============================================================================
+// Text ops
+// ============================================================================
+function replaceRange(a, b, s) {
+  snapshot();
+  editor.setRangeText(s, a, b, 'end');
+  lastSnapshotText = editor.value;
+  onTextChange();
+}
+function insertAt(pos, s) { replaceRange(pos, pos, s); }
+function deleteRange(a, b) {
+  const text = editor.value.slice(a, b);
+  replaceRange(a, b, '');
+  return text;
+}
+
+// ============================================================================
+// Motions — shared between vim normal mode and z-motion insert gestures
+// ============================================================================
+function mCharL(pos, n=1) { return Math.max(0, pos - n); }
+function mCharR(pos, n=1) { return Math.min(editor.value.length, pos + n); }
+
+function mWordR(pos, n=1) {
+  const t = editor.value;
+  let p = pos;
+  for (let i = 0; i < n; i++) {
+    while (p < t.length && /\w/.test(t[p])) p++;
+    while (p < t.length && /\W/.test(t[p]) && t[p] !== '\n') p++;
+    if (t[p] === '\n') p++;
+    while (p < t.length && /\s/.test(t[p])) p++;
+  }
+  return p;
+}
+function mWordL(pos, n=1) {
+  const t = editor.value;
+  let p = pos;
+  for (let i = 0; i < n; i++) {
+    if (p > 0) p--;
+    while (p > 0 && /\s/.test(t[p])) p--;
+    while (p > 0 && /\w/.test(t[p - 1])) p--;
+  }
+  return p;
+}
+function mWordEndR(pos, n=1) {
+  const t = editor.value;
+  let p = pos;
+  for (let i = 0; i < n; i++) {
+    if (p < t.length) p++;
+    while (p < t.length && /\s/.test(t[p])) p++;
+    while (p < t.length && /\w/.test(t[p])) p++;
+    if (p > 0) p--;
+  }
+  return p;
+}
+function mWordEndL(pos, n=1) {
+  const t = editor.value;
+  let p = pos;
+  for (let i = 0; i < n; i++) {
+    while (p > 0 && /\w/.test(t[p - 1])) p--;
+    while (p > 0 && /\s/.test(t[p - 1])) p--;
+    if (p > 0) p--;
+  }
+  return p;
+}
+
+function mLineStart(pos) {
+  const t = editor.value;
+  return t.lastIndexOf('\n', pos - 1) + 1;
+}
+function mLineEnd(pos) {
+  const t = editor.value;
+  const e = t.indexOf('\n', pos);
+  return e === -1 ? t.length : e;
+}
+function mFirstNonBlank(pos) {
+  const t = editor.value;
+  let p = mLineStart(pos);
+  while (p < t.length && t[p] !== '\n' && /\s/.test(t[p])) p++;
+  return p;
+}
+
+let desiredCol = -1;
+function mLineDown(pos, n=1) {
+  const { row, col } = cursorRowCol(pos);
+  const wantCol = desiredCol >= 0 ? desiredCol : col;
+  desiredCol = wantCol;
+  const target = Math.min(totalRows() - 1, row + n);
+  return rowStartOffset(target) + Math.min(wantCol, rowLength(target));
+}
+function mLineUp(pos, n=1) {
+  const { row, col } = cursorRowCol(pos);
+  const wantCol = desiredCol >= 0 ? desiredCol : col;
+  desiredCol = wantCol;
+  const target = Math.max(0, row - n);
+  return rowStartOffset(target) + Math.min(wantCol, rowLength(target));
+}
+
+function mParaR(pos, n=1) {
+  const t = editor.value;
+  let p = pos;
+  for (let i = 0; i < n; i++) {
+    // move past current content then past blank lines
+    while (p < t.length && t[p] !== '\n') p++;
+    while (p < t.length && t[p] === '\n') p++;
+    while (p < t.length) {
+      const end = t.indexOf('\n', p);
+      const line = end === -1 ? t.slice(p) : t.slice(p, end);
+      if (line.trim() === '') break;
+      p = end === -1 ? t.length : end + 1;
+    }
+  }
+  return p;
+}
+function mParaL(pos, n=1) {
+  const t = editor.value;
+  let p = pos;
+  for (let i = 0; i < n; i++) {
+    if (p > 0) p--;
+    while (p > 0) {
+      const ls = t.lastIndexOf('\n', p - 1) + 1;
+      const le = t.indexOf('\n', p);
+      const line = t.slice(ls, le === -1 ? t.length : le);
+      if (line.trim() === '' && ls !== mLineStart(pos)) { p = ls; break; }
+      if (ls === 0) { p = 0; break; }
+      p = ls - 1;
+    }
+  }
+  return p;
+}
+
+function mMatch(pos) {
+  const t = editor.value;
+  const pairs = { '(': ')', '[': ']', '{': '}', ')': '(', ']': '[', '}': '{' };
+  let p = pos;
+  // find first bracket at/after pos on this line
+  const le = mLineEnd(pos);
+  while (p < le && !pairs[t[p]]) p++;
+  if (!pairs[t[p]]) return pos;
+  const open = t[p];
+  const close = pairs[open];
+  const fwd = '([{'.includes(open);
+  let depth = 1;
+  let i = p;
+  while (fwd ? i < t.length - 1 : i > 0) {
+    i += fwd ? 1 : -1;
+    if (t[i] === open) depth++;
+    else if (t[i] === close) { depth--; if (!depth) return i; }
+  }
+  return pos;
+}
+
+function docTop() { return 0; }
+function docBottom() { return rowStartOffset(totalRows() - 1); }
+function viewTop() { return editor.scrollTop; }
+function approxRowFromY(y) {
+  const lh = 14 * 1.5;
+  return Math.floor((editor.scrollTop + y) / lh);
+}
+function viewportRow(frac) {
+  const lh = 14 * 1.5;
+  const topRow = Math.floor(editor.scrollTop / lh);
+  const h = editor.clientHeight;
+  const visible = Math.floor(h / lh);
+  const r = Math.min(totalRows() - 1, topRow + Math.floor(visible * frac));
+  return rowStartOffset(r);
+}
+
+// ============================================================================
+// Z-motion — SPEC v0.5 release-order classifier (lifted from z-motion-feel)
+// Active only in INSERT mode.
+// ============================================================================
+const NORMAL_MODE_HOLDS = new Set(['f']); // kept disabled in playable — conflicts with find-char intent
+const NORMAL_MODE_KEYS = new Set(['h', 'j', 'k', 'l']);
+const ZMOTION_TOGGLE = false; // disabled: prefer explicit Esc for modes in this proto
+
+const zstate = {
+  candidates: [],
+  phase: 'idle',
+  normalModeFired: false,
+  sustainedEvents: 0,
+};
+function zcandByKey(k) {
+  for (let i = zstate.candidates.length - 1; i >= 0; i--)
+    if (zstate.candidates[i].key === k && zstate.candidates[i].upAt === null) return zstate.candidates[i];
+  return null;
+}
+function zFirstActiveEarlier(idx) {
+  for (let i = 0; i < idx; i++) {
+    const c = zstate.candidates[i];
+    if (c.upAt === null && (c.role === 'pending' || c.role === 'hold')) return c;
+  }
+  return null;
+}
+function zPromoteEarlierStillDownPending(rollIdx) {
+  // When candidate at rollIdx releases as a ROLL, every *earlier* still-down
+  // pending candidate had rollIdx's full press-and-release within its lifetime,
+  // so each qualifies as a HOLD. (Later still-down candidates don't — they
+  // were pressed after rollIdx, so rollIdx's press was before their lifetime.)
+  for (let i = 0; i < rollIdx; i++) {
+    const c = zstate.candidates[i];
+    if (c.upAt === null && c.role === 'pending') c.role = 'hold';
+  }
+}
+function zHolds() { return zstate.candidates.filter(c => c.role === 'hold'); }
+function zRolls() { return zstate.candidates.filter(c => c.role === 'roll'); }
+function zQuiescent() { return !zstate.candidates.some(c => c.role !== 'hold' && c.upAt === null); }
+function zReset() {
+  zstate.candidates = [];
+  zstate.phase = 'idle';
+  zstate.normalModeFired = false;
+  zstate.sustainedEvents = 0;
+  zInfoEl.textContent = '—';
+}
+function zRender() {
+  const holds = zHolds().map(c => c.key).join('');
+  const rolls = zRolls().map(c => c.key).join('');
+  zInfoEl.textContent = holds || rolls ? `[${holds}](${rolls})` : '—';
+}
+function zFireRollEvent() {
+  const holds = zHolds(), rolls = zRolls();
+  const holdStr = holds.map(c => c.key).join('');
+  const rollStr = rolls.map(c => c.key).join('');
+  if (!holdStr || !rollStr) return;
+  const key = `[${holdStr}](${rollStr})`;
+  const b = ZBIND[key];
+  if (b) { b(); flash('z: ' + key); }
+  else flash('z: ' + key + ' (unbound)');
+  zstate.sustainedEvents++;
+  zstate.candidates = zstate.candidates.filter(c => c.role === 'hold');
+  zRender();
+}
+function zCommit() {
+  if (zRolls().length) zFireRollEvent();
+  const holds = zHolds();
+  if (zstate.sustainedEvents === 0) {
+    const s = holds.map(c => c.key).join('');
+    if (s) rawTypeInsert(s);
+  }
+  zReset();
+}
+
+function normKey(e) {
+  if (e.key.length !== 1) return null;
+  return e.shiftKey ? e.key : e.key.toLowerCase();
+}
+function baseKey(k) { return k.toLowerCase(); }
+
+// z-motion command wrappers
+function zMove(fn) { setCursor(fn(editor.selectionStart)); }
+const ZBIND = {
+  '[h](a)':    () => zMove(p => mCharR(p, 1)),
+  '[h](as)':   () => zMove(p => mCharR(p, 2)),
+  '[h](asd)':  () => zMove(p => mCharR(p, 3)),
+  '[h](asdf)': () => zMove(p => mCharR(p, 4)),
+  '[h](f)':    () => zMove(p => mCharL(p, 1)),
+  '[h](fd)':   () => zMove(p => mCharL(p, 2)),
+  '[h](fds)':  () => zMove(p => mCharL(p, 3)),
+  '[h](fdsa)': () => zMove(p => mCharL(p, 4)),
+
+  '[w](j)':    () => zMove(p => mWordR(p, 1)),
+  '[w](jk)':   () => zMove(p => mWordR(p, 2)),
+  '[w](jkl)':  () => zMove(p => mWordR(p, 3)),
+  '[w](jkl;)': () => zMove(p => mWordR(p, 4)),
+  '[w](l)':    () => zMove(p => mWordL(p, 1)),
+  '[w](lk)':   () => zMove(p => mWordL(p, 2)),
+  '[w](lkj)':  () => zMove(p => mWordL(p, 3)),
+
+  '[e](j)':    () => zMove(p => mWordEndR(p, 1)),
+  '[e](jk)':   () => zMove(p => mWordEndR(p, 2)),
+  '[e](jkl)':  () => zMove(p => mWordEndR(p, 3)),
+  '[e](l)':    () => zMove(p => mWordEndL(p, 1)),
+  '[e](lk)':   () => zMove(p => mWordEndL(p, 2)),
+
+  // vertical via multi-key holds (SPEC §1.5)
+  '[sd](j)':    () => zMove(p => mLineDown(p, 1)),
+  '[sd](jk)':   () => zMove(p => mLineDown(p, 2)),
+  '[sd](jkl)':  () => zMove(p => mLineDown(p, 3)),
+  '[sd](jkl;)': () => zMove(p => mLineDown(p, 4)),
+  '[ds](j)':    () => zMove(p => mLineUp(p, 1)),
+  '[ds](jk)':   () => zMove(p => mLineUp(p, 2)),
+  '[ds](jkl)':  () => zMove(p => mLineUp(p, 3)),
+  '[ds](jkl;)': () => zMove(p => mLineUp(p, 4)),
+
+  '[a](l)':  () => zMove(p => mLineStart(p)),
+  '[a](lk)': () => zMove(p => mFirstNonBlank(p)),
+  '[a](j)':  () => zMove(p => mLineEnd(p)),
+
+  '[g](l)':  () => zMove(_ => docTop()),
+  '[g](j)':  () => zMove(_ => docBottom()),
+  '[g](k)':  () => zMove(_ => viewportRow(0.5)),
+  '[g](lk)': () => zMove(_ => viewportRow(0)),
+  '[g](jk)': () => zMove(_ => viewportRow(0.95)),
+
+  '[p](a)':   () => zMove(p => mParaR(p, 1)),
+  '[p](as)':  () => zMove(p => mParaR(p, 2)),
+  '[p](asd)': () => zMove(p => mParaR(p, 3)),
+  '[p](f)':   () => zMove(p => mParaL(p, 1)),
+  '[p](fd)':  () => zMove(p => mParaL(p, 2)),
+  '[p](fds)': () => zMove(p => mParaL(p, 3)),
+
+  '[m](d)': () => zMove(p => mMatch(p)),
+
+  '[u](g)': () => doUndo(),
+  '[u](b)': () => doUndo(),
+  '[U](g)': () => doRedo(),
+};
+
+function rawTypeInsert(s) {
+  snapshot();
+  const a = editor.selectionStart, b = editor.selectionEnd;
+  editor.setRangeText(s, a, b, 'end');
+  lastSnapshotText = editor.value;
+  onTextChange();
+}
+
+// ============================================================================
+// Vim normal mode — pending command buffer
+// ============================================================================
+let pending = '';         // e.g. "3", "d", "3d", "d3w"
+let lastSearch = null;    // { pat, dir }
+let lastFindChar = null;  // { ch, dir, till }
+let lastChange = null;    // for '.', not implemented fully
+let registerUnnamed = ''; // yank register
+let registerLinewise = false;
+
+function clearPending() { pending = ''; }
+function parseCount(s) {
+  // A leading '0' is NOT a count — it's the line-start motion. Count is only
+  // 1-9 followed by digits.
+  const m = s.match(/^([1-9]\d*)/);
+  return m ? { count: parseInt(m[1], 10), rest: s.slice(m[0].length) } : { count: 1, rest: s };
+}
+
+function motionToPos(cmd, startPos, count) {
+  switch (cmd) {
+    case 'h': return mCharL(startPos, count);
+    case 'l': return mCharR(startPos, count);
+    case 'j': return mLineDown(startPos, count);
+    case 'k': return mLineUp(startPos, count);
+    case 'w': return mWordR(startPos, count);
+    case 'b': return mWordL(startPos, count);
+    case 'e': return mWordEndR(startPos, count);
+    case '0': return mLineStart(startPos);
+    case '^': return mFirstNonBlank(startPos);
+    case '$': {
+      let p = startPos;
+      for (let i = 0; i < count; i++) p = mLineEnd(p);
+      return p;
+    }
+    case 'G': return rowStartOffset(totalRows() - 1);
+    case 'H': return viewportRow(0);
+    case 'M': return viewportRow(0.5);
+    case 'L': return viewportRow(0.95);
+    case '{': return mParaL(startPos, count);
+    case '}': return mParaR(startPos, count);
+    case '%': return mMatch(startPos);
+  }
+  return null;
+}
+
+// Parse a vim normal-mode key sequence. Returns:
+//   { type: 'incomplete' }
+//   { type: 'move', pos }
+//   { type: 'op', op, range: [a,b], linewise }
+//   { type: 'action', fn }
+//   { type: 'invalid' }
+function parseNormal(buf) {
+  let s = buf;
+  const { count: c1, rest: r1 } = parseCount(s);
+  s = r1;
+  if (!s) return { type: 'incomplete' };
+
+  // Pure action keys (no operator, no motion)
+  const actions = {
+    'i': () => setMode(MODE.INSERT),
+    'I': () => { setCursor(mFirstNonBlank(editor.selectionStart)); setMode(MODE.INSERT); },
+    'a': () => { setCursor(editor.selectionStart + 1); setMode(MODE.INSERT); },
+    'A': () => { setCursor(mLineEnd(editor.selectionStart)); setMode(MODE.INSERT); },
+    'o': () => {
+      const le = mLineEnd(editor.selectionStart);
+      insertAt(le, '\n');
+      setCursor(le + 1);
+      setMode(MODE.INSERT);
+    },
+    'O': () => {
+      const ls = mLineStart(editor.selectionStart);
+      insertAt(ls, '\n');
+      setCursor(ls);
+      setMode(MODE.INSERT);
+    },
+    'x': () => {
+      const p = editor.selectionStart;
+      if (editor.value[p] && editor.value[p] !== '\n') {
+        registerUnnamed = deleteRange(p, p + c1);
+        registerLinewise = false;
+      }
+    },
+    'X': () => {
+      const p = editor.selectionStart;
+      if (p > 0) {
+        registerUnnamed = deleteRange(p - c1, p);
+        registerLinewise = false;
+        setCursor(p - c1);
+      }
+    },
+    'D': () => {
+      const p = editor.selectionStart;
+      registerUnnamed = deleteRange(p, mLineEnd(p));
+      registerLinewise = false;
+    },
+    'C': () => {
+      const p = editor.selectionStart;
+      registerUnnamed = deleteRange(p, mLineEnd(p));
+      registerLinewise = false;
+      setMode(MODE.INSERT);
+    },
+    'Y': () => {
+      const p = editor.selectionStart;
+      registerUnnamed = editor.value.slice(mLineStart(p), mLineEnd(p)) + '\n';
+      registerLinewise = true;
+      flash('yanked line');
+    },
+    'p': () => {
+      const p = editor.selectionStart;
+      if (registerLinewise) {
+        const le = mLineEnd(p);
+        insertAt(le, le === editor.value.length ? '\n' + registerUnnamed.replace(/\n$/, '') : '\n' + registerUnnamed.replace(/\n$/, ''));
+        setCursor(le + 1);
+      } else {
+        insertAt(p + 1, registerUnnamed);
+        setCursor(p + registerUnnamed.length);
+      }
+    },
+    'P': () => {
+      const p = editor.selectionStart;
+      if (registerLinewise) {
+        const ls = mLineStart(p);
+        insertAt(ls, registerUnnamed);
+        setCursor(ls);
+      } else {
+        insertAt(p, registerUnnamed);
+        setCursor(p + registerUnnamed.length - 1);
+      }
+    },
+    'u': () => doUndo(),
+    'v': () => { visualAnchor = visualActive = editor.selectionStart; setMode(MODE.VISUAL); setCursor(editor.selectionStart); },
+    'V': () => { visualAnchor = visualActive = editor.selectionStart; setMode(MODE.VLINE); setCursor(editor.selectionStart); },
+    'J': () => {
+      const le = mLineEnd(editor.selectionStart);
+      if (le < editor.value.length) {
+        // replace \n + spaces with single space
+        let e = le + 1;
+        while (e < editor.value.length && /\s/.test(editor.value[e]) && editor.value[e] !== '\n') e++;
+        replaceRange(le, e, ' ');
+        setCursor(le);
+      }
+    },
+    '~': () => {
+      const p = editor.selectionStart;
+      const ch = editor.value[p];
+      if (!ch || ch === '\n') return;
+      const flipped = ch === ch.toLowerCase() ? ch.toUpperCase() : ch.toLowerCase();
+      replaceRange(p, p + 1, flipped);
+      setCursor(p + 1);
+    },
+    'n': () => searchNext(1),
+    'N': () => searchNext(-1),
+    '*': () => {
+      const p = editor.selectionStart;
+      const t = editor.value;
+      let a = p; while (a > 0 && /\w/.test(t[a - 1])) a--;
+      let b = p; while (b < t.length && /\w/.test(t[b])) b++;
+      if (a !== b) { lastSearch = { pat: t.slice(a, b), dir: 1 }; searchNext(1); }
+    },
+    ';': () => repeatFindChar(1),
+    ',': () => repeatFindChar(-1),
+  };
+
+  if (actions[s[0]] && s.length === 1) {
+    return { type: 'action', fn: () => { for (let i = 0; i < c1; i++) actions[s[0]](); } };
+  }
+
+  // gg
+  if (s === 'g') return { type: 'incomplete' };
+  if (s === 'gg') return { type: 'move', pos: rowStartOffset(0) };
+
+  // r<char>
+  if (s === 'r') return { type: 'incomplete' };
+  if (s.startsWith('r') && s.length === 2) {
+    const p = editor.selectionStart;
+    if (editor.value[p] && editor.value[p] !== '\n') replaceRange(p, p + 1, s[1]);
+    return { type: 'action', fn: () => {} };
+  }
+
+  // f/F/t/T<char>
+  if (/^[fFtT]$/.test(s)) return { type: 'incomplete' };
+  if (/^[fFtT]./.test(s)) {
+    const cmd = s[0], ch = s[1];
+    lastFindChar = { ch, dir: (cmd === 'f' || cmd === 't') ? 1 : -1, till: cmd === 't' || cmd === 'T' };
+    const pos = doFindChar(editor.selectionStart, lastFindChar, c1);
+    if (pos !== null) return { type: 'move', pos };
+    return { type: 'action', fn: () => flash('not found: ' + ch) };
+  }
+
+  // Operators: d, c, y, >, <
+  if (/^[dcy><]$/.test(s)) return { type: 'incomplete' };
+
+  if (s[0] === 'd' || s[0] === 'c' || s[0] === 'y' || s[0] === '>' || s[0] === '<') {
+    const op = s[0];
+    const rest = s.slice(1);
+    // doubled: dd, cc, yy, >>, <<
+    if (rest[0] === op) {
+      // linewise: for 'dd' with count>1, span N lines forward.
+      const p = editor.selectionStart;
+      const startRow = cursorRowCol(p).row;
+      const endRow = Math.min(totalRows() - 1, startRow + c1 - 1);
+      const a = rowStartOffset(startRow);
+      const b = rowStartOffset(endRow) + rowLength(endRow);
+      // include trailing newline if not at EOF
+      const bInc = b < editor.value.length ? b + 1 : b;
+      return {
+        type: 'op',
+        op,
+        linewise: true,
+        range: [a, bInc],
+        preExpanded: true,
+      };
+    }
+    const { count: c2, rest: r2 } = parseCount(rest);
+    const totalCount = c1 * c2;
+    if (!r2) return { type: 'incomplete' };
+    // text-object subset: iw, aw
+    if (r2 === 'i' || r2 === 'a') return { type: 'incomplete' };
+    if (r2 === 'iw' || r2 === 'aw') {
+      const p = editor.selectionStart;
+      const t = editor.value;
+      let a = p; while (a > 0 && /\w/.test(t[a - 1])) a--;
+      let b = p; while (b < t.length && /\w/.test(t[b])) b++;
+      if (r2 === 'aw') while (b < t.length && /\s/.test(t[b]) && t[b] !== '\n') b++;
+      return { type: 'op', op, range: [a, b], linewise: false };
+    }
+    // motion
+    const mpos = motionToPos(r2[0], editor.selectionStart, totalCount);
+    if (mpos === null) {
+      // two-char motions
+      if (r2 === 'gg') {
+        const a = Math.min(editor.selectionStart, 0), b = Math.max(editor.selectionStart, 0);
+        return { type: 'op', op, range: [a, b], linewise: false };
+      }
+      if (r2[0] === 'g') return { type: 'incomplete' };
+      if (/^[fFtT]$/.test(r2)) return { type: 'incomplete' };
+      if (/^[fFtT]./.test(r2)) {
+        const fc = { ch: r2[1], dir: (r2[0] === 'f' || r2[0] === 't') ? 1 : -1, till: r2[0] === 't' || r2[0] === 'T' };
+        const pos = doFindChar(editor.selectionStart, fc, totalCount);
+        if (pos === null) return { type: 'invalid' };
+        const inc = fc.dir === 1 ? 1 : 0;
+        const a = Math.min(editor.selectionStart, pos + (fc.dir === 1 ? 1 : 0));
+        const b = Math.max(editor.selectionStart, pos + (fc.dir === 1 ? 1 : 0));
+        return { type: 'op', op, range: [a, b], linewise: false };
+      }
+      return { type: 'invalid' };
+    }
+    const a = Math.min(editor.selectionStart, mpos);
+    const b = Math.max(editor.selectionStart, mpos);
+    const linewise = 'jk'.includes(r2[0]);
+    return { type: 'op', op, range: [a, b], linewise };
+  }
+
+  // Pure motion
+  const mpos = motionToPos(s[0], editor.selectionStart, c1);
+  if (mpos !== null && s.length === 1) return { type: 'move', pos: mpos };
+  if (mpos !== null) return { type: 'invalid' };
+
+  return { type: 'invalid' };
+}
+
+function doFindChar(pos, fc, count) {
+  const t = editor.value;
+  const le = mLineEnd(pos), ls = mLineStart(pos);
+  let p = pos;
+  for (let i = 0; i < count; i++) {
+    if (fc.dir === 1) {
+      p = t.indexOf(fc.ch, p + 1);
+      if (p === -1 || p > le) return null;
+    } else {
+      p = t.lastIndexOf(fc.ch, p - 1);
+      if (p === -1 || p < ls) return null;
+    }
+  }
+  return fc.till ? (fc.dir === 1 ? p - 1 : p + 1) : p;
+}
+function repeatFindChar(dirMul) {
+  if (!lastFindChar) return;
+  const fc = { ...lastFindChar, dir: lastFindChar.dir * dirMul };
+  const p = doFindChar(editor.selectionStart, fc, 1);
+  if (p !== null) setCursor(p);
+  else flash('not found');
+}
+
+function applyOp(op, range, linewise, preExpanded) {
+  let [a, b] = range;
+  if (linewise && !preExpanded) [a, b] = lineRangeSpan(a, b);
+  const text = editor.value.slice(a, b);
+  registerUnnamed = text;
+  registerLinewise = linewise;
+  if (op === 'd') {
+    deleteRange(a, b);
+    setCursor(a);
+  } else if (op === 'c') {
+    deleteRange(a, b);
+    setCursor(a);
+    setMode(MODE.INSERT);
+  } else if (op === 'y') {
+    flash('yanked ' + text.length + ' chars');
+    setCursor(a);
+  } else if (op === '>') {
+    const lines = text.split('\n');
+    const pad = linewise ? '  ' : '';
+    const out = lines.map((l, i) => (i < lines.length - 1 || linewise) && l.length ? pad + l : l).join('\n');
+    replaceRange(a, b, out);
+    setCursor(a);
+  } else if (op === '<') {
+    const lines = text.split('\n');
+    const out = lines.map(l => l.replace(/^ {1,2}/, '')).join('\n');
+    replaceRange(a, b, out);
+    setCursor(a);
+  }
+}
+
+function executeNormal(result) {
+  if (result.type === 'incomplete') return false;
+  if (result.type === 'invalid') { clearPending(); flash('invalid: ' + pending); return true; }
+  if (result.type === 'move') { setCursor(result.pos); desiredCol = -1; clearPending(); return true; }
+  if (result.type === 'action') { result.fn(); desiredCol = -1; clearPending(); return true; }
+  if (result.type === 'op') {
+    applyOp(result.op, result.range, result.linewise, result.preExpanded);
+    desiredCol = -1;
+    clearPending();
+    return true;
+  }
+  clearPending();
+  return true;
+}
+
+// ============================================================================
+// Search (/, n, N)
+// ============================================================================
+function searchNext(dir) {
+  if (!lastSearch) { flash('no prior search'); return; }
+  const t = editor.value;
+  const d = dir * (lastSearch.dir || 1);
+  let p = editor.selectionStart;
+  if (d === 1) {
+    let idx = t.indexOf(lastSearch.pat, p + 1);
+    if (idx === -1) { idx = t.indexOf(lastSearch.pat, 0); flash('search wrapped'); }
+    if (idx === -1) flash('not found'); else setCursor(idx);
+  } else {
+    let idx = t.lastIndexOf(lastSearch.pat, Math.max(0, p - 1));
+    if (idx === -1) { idx = t.lastIndexOf(lastSearch.pat); flash('search wrapped'); }
+    if (idx === -1) flash('not found'); else setCursor(idx);
+  }
+}
+
+// ============================================================================
+// Ex command line
+// ============================================================================
+let cmdlineMode = null;  // ':' or '/' or '?'
+function openCmdline(prefix) {
+  cmdlineMode = prefix;
+  cmdPrefix.textContent = prefix;
+  cmdline.classList.add('active');
+  cmdInput.value = '';
+  cmdInput.focus();
+}
+function closeCmdline() {
+  cmdline.classList.remove('active');
+  cmdlineMode = null;
+  editor.focus();
+}
+cmdInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { e.preventDefault(); closeCmdline(); return; }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const v = cmdInput.value;
+    const m = cmdlineMode;
+    closeCmdline();
+    if (m === ':') runEx(v);
+    else if (m === '/') { lastSearch = { pat: v, dir: 1 }; searchNext(1); }
+    else if (m === '?') { lastSearch = { pat: v, dir: -1 }; searchNext(1); }
+  }
+});
+
+function runEx(cmd) {
+  cmd = cmd.trim();
+  if (cmd === 'w')   return fileSave();
+  if (cmd === 'wa' || cmd === 'w!') return fileSave();
+  if (cmd === 'q')   return (editor.value === savedText) ? flash('nothing to quit to — close tab') : flash('unsaved changes (use :q! to force)');
+  if (cmd === 'q!')  return flash('close the tab to quit');
+  if (cmd === 'wq' || cmd === 'x')  return fileSave().then(() => flash('saved; close tab to quit'));
+  if (cmd === 'e')   return fileOpen();
+  if (cmd.startsWith('e '))  return fileOpen(); // ignore path, use picker
+  if (cmd.startsWith('w '))  return fileSaveAs();
+  if (cmd === 'help' || cmd === 'h') { helpEl.classList.add('active'); return; }
+  if (cmd === 'set nu' || cmd === 'set number') return flash('line numbers: always on');
+  if (/^\d+$/.test(cmd)) {
+    const row = Math.min(totalRows() - 1, parseInt(cmd, 10) - 1);
+    setCursor(rowStartOffset(row));
+    return;
+  }
+  flash('unknown: :' + cmd);
+}
+
+// ============================================================================
+// Key dispatch
+// ============================================================================
+editor.addEventListener('keydown', (e) => {
+  // Global shortcuts (any mode)
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    if (e.key === 's') { e.preventDefault(); fileSave(); return; }
+    if (e.key === 'o') { e.preventDefault(); fileOpen(); return; }
+    if (e.key === 'r' && mode === MODE.NORMAL) { e.preventDefault(); doRedo(); return; }
+    return; // let other ctrl combos pass
+  }
+  if (e.key === 'F1') { e.preventDefault(); helpEl.classList.toggle('active'); return; }
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (helpEl.classList.contains('active')) { helpEl.classList.remove('active'); return; }
+    if (mode === MODE.INSERT) {
+      // leave insert: move cursor back one like vim (unless at line start)
+      const p = editor.selectionStart;
+      const ls = mLineStart(p);
+      if (p > ls) setCursor(p - 1);
+      setMode(MODE.NORMAL);
+    } else {
+      setMode(MODE.NORMAL);
+    }
+    zReset();
+    return;
+  }
+
+  if (mode === MODE.NORMAL) { handleNormalKeydown(e); return; }
+  if (mode === MODE.VISUAL || mode === MODE.VLINE) { handleVisualKeydown(e); return; }
+  // INSERT mode — route to z-motion handler
+  handleInsertKeydown(e);
+});
+
+editor.addEventListener('keyup', (e) => {
+  if (mode !== MODE.INSERT) return;
+  handleInsertKeyup(e);
+});
+
+// ----- Insert mode (z-motion) -----
+function handleInsertKeydown(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  // Let backspace, arrows, enter, tab, etc. fall through to the browser
+  if (e.key.length !== 1) return;
+  const k = normKey(e);
+  if (!k) return;
+  e.preventDefault();
+
+  // autorepeat suppression
+  if (zcandByKey(k)) return;
+
+  zstate.candidates.push({ key: k, role: 'pending', upAt: null });
+  if (zstate.phase === 'idle') zstate.phase = 'typing';
+  zRender();
+}
+function handleInsertKeyup(e) {
+  const k = normKey(e);
+  if (!k) return;
+  const c = zcandByKey(k);
+  if (!c) return;
+  c.upAt = performance.now();
+
+  if (c.role === 'hold') { zCommit(); return; }
+  if (c.role === 'roll') {
+    if (zQuiescent()) zFireRollEvent();
+    return;
+  }
+  const idx = zstate.candidates.indexOf(c);
+  const earlier = zFirstActiveEarlier(idx);
+  if (earlier) {
+    zPromoteEarlierStillDownPending(idx);
+    zstate.phase = 'gesture';
+    c.role = 'roll';
+    if (zQuiescent()) zFireRollEvent();
+    else zRender();
+    return;
+  }
+  // tap → type
+  c.role = 'typed';
+  rawTypeInsert(c.key);
+  zstate.candidates.splice(idx, 1);
+  if (zstate.candidates.length === 0) zstate.phase = 'idle';
+  zRender();
+}
+
+// ----- Normal mode -----
+function handleNormalKeydown(e) {
+  // Special: :, /, ?
+  if (e.key === ':') { e.preventDefault(); openCmdline(':'); return; }
+  if (e.key === '/') { e.preventDefault(); openCmdline('/'); return; }
+  if (e.key === '?') { e.preventDefault(); openCmdline('?'); return; }
+
+  // Block default text entry in normal mode
+  if (e.key.length === 1 || ['Backspace', 'Enter', 'Tab'].includes(e.key)) {
+    e.preventDefault();
+  }
+
+  // Arrow keys still navigate
+  if (e.key === 'ArrowLeft')  { setCursor(mCharL(editor.selectionStart)); return; }
+  if (e.key === 'ArrowRight') { setCursor(mCharR(editor.selectionStart)); return; }
+  if (e.key === 'ArrowUp')    { setCursor(mLineUp(editor.selectionStart)); return; }
+  if (e.key === 'ArrowDown')  { setCursor(mLineDown(editor.selectionStart)); return; }
+  if (e.key === 'Enter')      { setCursor(mLineDown(mFirstNonBlank(editor.selectionStart))); return; }
+
+  if (e.key.length !== 1) return;
+
+  pending += e.key;
+  const result = parseNormal(pending);
+  executeNormal(result);
+}
+
+// ----- Visual mode -----
+function handleVisualKeydown(e) {
+  if (e.key.length === 1 || ['Backspace', 'Enter', 'Tab'].includes(e.key)) e.preventDefault();
+  if (e.key === 'ArrowLeft')  { setCursor(mCharL(visualActive)); return; }
+  if (e.key === 'ArrowRight') { setCursor(mCharR(visualActive)); return; }
+  if (e.key === 'ArrowUp')    { setCursor(mLineUp(visualActive)); return; }
+  if (e.key === 'ArrowDown')  { setCursor(mLineDown(visualActive)); return; }
+  if (e.key.length !== 1) return;
+
+  const k = e.key;
+  // Motions in visual = move selection end from the current active end
+  const mpos = motionToPos(k, visualActive, 1);
+  if (mpos !== null) { setCursor(mpos); return; }
+  if (k === 'v') { setMode(MODE.NORMAL); return; }
+  if (k === 'V') {
+    if (mode === MODE.VLINE) setMode(MODE.NORMAL);
+    else { setMode(MODE.VLINE); setCursor(editor.selectionStart); }
+    return;
+  }
+  // Operators in visual: act on current selection
+  if ('dcyx'.includes(k)) {
+    const op = k === 'x' ? 'd' : k;
+    const a = editor.selectionStart, b = editor.selectionEnd;
+    const linewise = mode === MODE.VLINE;
+    applyOp(op, [a, b], linewise);
+    if (op !== 'c') setMode(MODE.NORMAL);
+    return;
+  }
+  if (k === '>' || k === '<') {
+    applyOp(k, [editor.selectionStart, editor.selectionEnd], true);
+    setMode(MODE.NORMAL);
+    return;
+  }
+  if (k === 'y') {
+    registerUnnamed = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+    registerLinewise = mode === MODE.VLINE;
+    flash('yanked ' + registerUnnamed.length + ' chars');
+    setMode(MODE.NORMAL);
+    return;
+  }
+  if (k === '~') {
+    const a = editor.selectionStart, b = editor.selectionEnd;
+    const seg = editor.value.slice(a, b);
+    const out = seg.split('').map(c => c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()).join('');
+    replaceRange(a, b, out);
+    setMode(MODE.NORMAL);
+    return;
+  }
+}
+
+// ============================================================================
+// Boot
+// ============================================================================
+editor.value =
+`// 6nz playable prototype
+// Throwaway demo of 6nz concepts. Real 6nz will be scrml-native.
+//
+// Try it:
+//   • Type freely in INSERT mode (the default).
+//   • Press Esc for NORMAL mode — full vim vocabulary (hjkl, wbe, dd, yy, p, u…).
+//   • Back to INSERT with i/a/o/I/A/O.
+//   • In INSERT mode, try z-motions:
+//       hold h, tap a → cursor right 1
+//       hold h, roll as → cursor right 2
+//       hold w, roll jk → 2 words forward
+//       hold sd, roll j → line down
+//   • Ctrl+O to open a file, Ctrl+S to save, F1 for help.
+//
+// Everything here is a playground — no real scrml compiler is hooked up yet.
+
+function greet(name) {
+  const msg = \`hello, \${name}!\`;
+  console.log(msg);
+  return msg;
+}
+
+greet('6nz');
+`;
+savedText = editor.value;
+lastSnapshotText = editor.value;
+setMode(MODE.INSERT);
+onTextChange();
+editor.focus();
+
+// --- Test hook: reset state cleanly between scenarios ---
+window.__6nz_reset = function(text, pos) {
+  editor.value = text;
+  editor.selectionStart = editor.selectionEnd = pos;
+  savedText = text;
+  lastSnapshotText = text;
+  undoStack.length = 0;
+  redoStack.length = 0;
+  pending = '';
+  registerUnnamed = '';
+  registerLinewise = false;
+  lastSearch = null;
+  lastFindChar = null;
+  desiredCol = -1;
+  visualAnchor = pos;
+  visualActive = pos;
+  zReset();
+  setMode(MODE.NORMAL);
+  editor.selectionStart = editor.selectionEnd = pos;
+  onTextChange();
+};
+</script>
+</body>
+</html>

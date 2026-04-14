@@ -1,0 +1,15 @@
+{
+  "name": "6nz-playable",
+  "version": "1.0.0",
+  "description": "**Throwaway. Not real 6nz.** Vanilla HTML/JS on a `<textarea>`. Real 6nz will be CM6 + scrml once the compiler API is exposed.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^24.40.0"
+  }
+}
