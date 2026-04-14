@@ -25,6 +25,19 @@
 - **Decision recorded** (README.md): stayed on textarea vs CM6 because existing z-motion-feel proto proved the classifier works there — doubling surface area for CM6 wins nothing prototype-wise
 - **Intentionally deferred**: syntax highlighting, registers, macros, marks, multi-cursor, relevance view / inline expansion (compiler-gated), LSP, dot-repeat
 - **Puppeteer test harness added** (`test.js`, 54 scenarios): drives the page with real key events, reads back textarea value/cursor/mode. Run `node test.js`. Uses `window.__6nz_reset(text, pos)` hook for per-scenario state isolation.
+- **Playground v2 features landed** (10 from the proposed slate, all mockable without compiler):
+  1. Syntax highlighting — tokenizer + underlay `<pre>`, JS/scrml/JSON/MD
+  2. Spatial side-panel dock — Refs/Eval/JS Out/Deps/Files tabs (5th tab for workspace)
+  3. Command palette (`Ctrl+P`) — commands, files, z-motion bindings
+  4. Focus-centered viewport (`Ctrl+L`)
+  5. Normal-mode toggle hold (SPEC §10.3) — configurable, default OFF
+  6. Multi-file virtual workspace — localStorage, `:new :ls :rm :ww :e`
+  7. Settings modal (`F2`) — appearance/editor/z-motion, JSON export/import, layer-stack view
+  8. Status extras — gesture-in-flight hint overlay while a z-motion hold is down
+  9. `:km@<name>` overlay mock — loads stored JSON config
+  10. Relevance region (refs panel) + inline-expansion ghost (`Ctrl+Enter`) — heuristic text scans
+- **GitHub Pages deploy** added at `.github/workflows/pages.yml` — triggers on push to `main` for `proto/6nz-playable/**`, publishes `index.html` to Pages. Requires one-time repo setting: Settings → Pages → Source = "GitHub Actions".
+- **Test harness extended** to 62 scenarios (54 core + 8 feature smokes); all passing.
 - **Bugs surfaced by tests → fixed**:
   1. `parseCount` matched lone `0` as count → broke `0` line-start motion. Restricted count regex to `[1-9]\d*`.
   2. `applyOp` double-expanded linewise ranges for `dd`/`yy`. Added `preExpanded` flag from `parseNormal`.

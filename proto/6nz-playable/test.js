@@ -278,6 +278,136 @@ const scenarios = [
     steps: ['h', 'e', 'l', 'l', 'o'], expect: { text: 'hello', pos: 5 } },
 ];
 
+// ----- feature tests (DOM-level, not keystroke-driven) -----
+const featureTests = [
+  {
+    name: 'feature: palette opens on Ctrl+P',
+    run: async (page) => {
+      await page.evaluate(() => window.__6nz_reset('', 0));
+      await page.focus('#editor');
+      await page.keyboard.down('Control');
+      await page.keyboard.press('p');
+      await page.keyboard.up('Control');
+      await new Promise(r => setTimeout(r, 30));
+      const active = await page.evaluate(() => document.getElementById('palette').classList.contains('active'));
+      // close it again for cleanup
+      await page.keyboard.press('Escape');
+      return active;
+    },
+  },
+  {
+    name: 'feature: syntax highlighter renders tokens',
+    run: async (page) => {
+      await page.evaluate(() => {
+        window.__6nz_reset('const x = 1;', 0);
+      });
+      await new Promise(r => setTimeout(r, 60));
+      const html = await page.evaluate(() => document.getElementById('hl-layer').innerHTML);
+      return html.includes('tok-kw') && html.includes('tok-num');
+    },
+  },
+  {
+    name: 'feature: Ctrl+B toggles side panel visibility',
+    run: async (page) => {
+      await page.evaluate(() => window.__6nz_reset('', 0));
+      await page.focus('#editor');
+      const before = await page.evaluate(() => document.getElementById('panels').classList.contains('hidden'));
+      await page.keyboard.down('Control');
+      await page.keyboard.press('b');
+      await page.keyboard.up('Control');
+      await new Promise(r => setTimeout(r, 30));
+      const after = await page.evaluate(() => document.getElementById('panels').classList.contains('hidden'));
+      // toggle back
+      await page.keyboard.down('Control');
+      await page.keyboard.press('b');
+      await page.keyboard.up('Control');
+      return before !== after;
+    },
+  },
+  {
+    name: 'feature: F2 opens settings modal',
+    run: async (page) => {
+      await page.evaluate(() => window.__6nz_reset('', 0));
+      await page.focus('#editor');
+      await page.keyboard.press('F2');
+      await new Promise(r => setTimeout(r, 30));
+      const active = await page.evaluate(() => document.getElementById('settings').classList.contains('active'));
+      await page.keyboard.press('Escape');
+      return active;
+    },
+  },
+  {
+    name: 'feature: refs panel lists occurrences of word at cursor',
+    run: async (page) => {
+      await page.evaluate(() => {
+        window.__6nz_reset('function foo() {}\nfoo();\nfoo();', 10);  // on "foo" def
+      });
+      await new Promise(r => setTimeout(r, 250));
+      const count = await page.evaluate(() => {
+        return document.querySelectorAll('#panel-body .panel-ref').length;
+      });
+      return count >= 2;  // at least two other foo occurrences
+    },
+  },
+  {
+    name: 'feature: inline expand shows ghost panel for defined symbol',
+    run: async (page) => {
+      await page.evaluate(() => {
+        window.__6nz_reset('function greet(x) {\n  return x;\n}\ngreet(42);', 36);  // cursor on "greet" call
+      });
+      await page.focus('#editor');
+      await page.keyboard.down('Control');
+      await page.keyboard.press('Enter');
+      await page.keyboard.up('Control');
+      await new Promise(r => setTimeout(r, 60));
+      const active = await page.evaluate(() => document.getElementById('inline-ghost').classList.contains('active'));
+      const sym = await page.evaluate(() => document.getElementById('gh-sym').textContent);
+      await page.keyboard.press('Escape');
+      return active && sym === 'greet';
+    },
+  },
+  {
+    name: 'feature: workspace :new creates a file',
+    run: async (page) => {
+      await page.evaluate(() => {
+        localStorage.removeItem('$6nz:workspace');
+        window.__6nz_reset('', 0);
+      });
+      await page.focus('#editor');
+      // open cmdline
+      await page.keyboard.press(':');
+      await new Promise(r => setTimeout(r, 20));
+      await page.type('#cmdline-input', 'new scratch.js');
+      await page.keyboard.press('Enter');
+      await new Promise(r => setTimeout(r, 30));
+      const fname = await page.evaluate(() => document.getElementById('filename').textContent);
+      const inWs = await page.evaluate(() => {
+        const ws = JSON.parse(localStorage.getItem('$6nz:workspace') || '{}');
+        return ws.files && 'scratch.js' in ws.files;
+      });
+      return fname === 'scratch.js' && inWs;
+    },
+  },
+  {
+    name: 'feature: settings persist across reset',
+    run: async (page) => {
+      await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('$6nz:settings') || '{}');
+        s.fontSize = 18;
+        localStorage.setItem('$6nz:settings', JSON.stringify(s));
+      });
+      // reload to pick up
+      await page.reload();
+      await page.waitForSelector('#editor');
+      await new Promise(r => setTimeout(r, 80));
+      const fs = await page.evaluate(() => document.getElementById('editor').style.fontSize);
+      // cleanup
+      await page.evaluate(() => localStorage.removeItem('$6nz:settings'));
+      return fs === '18px';
+    },
+  },
+];
+
 // ----- runner -----
 (async () => {
   console.log('launching puppeteer...');
@@ -299,6 +429,15 @@ const scenarios = [
       results.push({ name: sc.name, ...r });
     } catch (e) {
       results.push({ name: sc.name, pass: false, error: e.message });
+    }
+  }
+  // feature tests
+  for (const ft of featureTests) {
+    try {
+      const ok = await ft.run(page);
+      results.push({ name: ft.name, pass: !!ok });
+    } catch (e) {
+      results.push({ name: ft.name, pass: false, error: e.message });
     }
   }
 

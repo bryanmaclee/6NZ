@@ -37,6 +37,7 @@
   #toolbar #help-btn { color: var(--accent); }
 
   #editor-wrap { flex: 1; display: flex; position: relative; overflow: hidden; }
+  #editor-area { flex: 1; position: relative; display: flex; overflow: hidden; }
   #editor {
     flex: 1; font: 14px ui-monospace, monospace; padding: 14px 14px 14px 60px;
     border: 0; outline: 0; resize: none;
@@ -95,6 +96,213 @@
   #help h4 { margin: 10px 0 4px; color: var(--ok); font: 600 12px system-ui; }
   #help code { color: var(--accent); }
   #help .dim { color: var(--dim); }
+
+  /* ====== syntax highlighting underlay ====== */
+  #hl-layer {
+    position: absolute;
+    top: 0; left: 50px; right: 0; bottom: 0;
+    margin: 0; padding: 14px 14px 14px 10px;
+    box-sizing: border-box;
+    font: 14px ui-monospace, monospace;
+    line-height: 1.5;
+    color: var(--fg);
+    background: transparent;
+    white-space: pre;
+    overflow: hidden;
+    pointer-events: none;
+    tab-size: 2;
+  }
+  /* Only dim textarea text when highlighting is active */
+  #editor.highlighted {
+    color: transparent;
+    caret-color: var(--fg);
+    background: transparent;
+  }
+  #editor-wrap.highlighted { background: var(--bg); }
+  .tok-kw  { color: #c792ea; }
+  .tok-str { color: #c3e88d; }
+  .tok-num { color: #f78c6c; }
+  .tok-com { color: #546e7a; font-style: italic; }
+  .tok-fn  { color: #82aaff; }
+  .tok-typ { color: #ffcb6b; }
+  .tok-op  { color: #89ddff; }
+  .tok-pun { color: #89ddff; }
+  .tok-reg { color: #ff5370; }
+
+  /* ====== right-side panel dock ====== */
+  #panels {
+    width: 320px; flex-shrink: 0;
+    display: flex; flex-direction: column;
+    background: #141414; border-left: 1px solid var(--border);
+    font: 12px ui-monospace, monospace;
+  }
+  #panels.hidden { display: none; }
+  #panel-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: #0e0e0e;
+  }
+  #panel-tabs button {
+    flex: 1; padding: 6px 4px; font: 11px system-ui;
+    background: transparent; color: var(--dim); border: 0;
+    border-right: 1px solid var(--border); cursor: pointer;
+  }
+  #panel-tabs button:last-child { border-right: 0; }
+  #panel-tabs button.active { color: var(--accent); background: #1a1a1a; }
+  #panel-body {
+    flex: 1; overflow: auto; padding: 10px 12px;
+    color: var(--fg); line-height: 1.5;
+  }
+  .panel-note { color: var(--dim); font-style: italic; font-size: 11px; }
+  .panel-section { margin-top: 10px; }
+  .panel-section h5 { margin: 0 0 4px; color: var(--ok); font: 600 11px system-ui; }
+  .panel-ref {
+    cursor: pointer; padding: 3px 6px; margin: 2px 0;
+    background: #1a1a1a; border-radius: 2px; font-size: 11px;
+  }
+  .panel-ref:hover { background: #242424; color: var(--accent); }
+  .panel-ref .line-no { color: var(--dim); margin-right: 6px; }
+  .panel-ref .match { color: var(--accent); }
+  .panel-ref.def { border-left: 2px solid var(--ok); }
+  #panel-resizer {
+    width: 4px; cursor: ew-resize; background: transparent;
+  }
+  #panel-resizer:hover { background: var(--accent); }
+
+  /* ====== command palette overlay ====== */
+  #palette {
+    display: none;
+    position: fixed; top: 15%; left: 50%; transform: translateX(-50%);
+    width: 540px; max-height: 60vh;
+    background: #0e0e0e; border: 1px solid var(--accent); border-radius: 4px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+    z-index: 100;
+    display: none; flex-direction: column;
+  }
+  #palette.active { display: flex; }
+  #palette-input {
+    padding: 10px 14px; background: #000; color: var(--fg);
+    border: 0; outline: 0; border-bottom: 1px solid var(--border);
+    font: 14px ui-monospace, monospace;
+  }
+  #palette-list {
+    flex: 1; overflow: auto; max-height: 50vh;
+  }
+  .palette-item {
+    padding: 6px 14px; font: 12px ui-monospace, monospace;
+    cursor: pointer; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid #181818;
+  }
+  .palette-item.active { background: #2a2a00; color: var(--accent); }
+  .palette-item .kind {
+    display: inline-block; min-width: 60px; font-size: 10px;
+    color: var(--dim); text-transform: uppercase;
+  }
+  .palette-item .key {
+    margin-left: auto; color: var(--dim); font-size: 11px;
+  }
+
+  /* ====== settings modal ====== */
+  #settings {
+    display: none;
+    position: fixed; top: 10%; left: 50%; transform: translateX(-50%);
+    width: 640px; max-height: 80vh; overflow: auto;
+    background: #0e0e0e; border: 1px solid var(--accent); border-radius: 4px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+    z-index: 100; padding: 16px;
+  }
+  #settings.active { display: block; }
+  #settings h3 { margin: 0 0 12px; color: var(--accent); font: 600 14px system-ui; }
+  #settings h4 { margin: 14px 0 6px; color: var(--ok); font: 600 12px system-ui; }
+  #settings label {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 0; font: 12px system-ui;
+  }
+  #settings label input[type=checkbox] { accent-color: var(--accent); }
+  #settings label input[type=number], #settings label input[type=text], #settings label select {
+    background: #1a1a1a; color: var(--fg); border: 1px solid var(--border);
+    padding: 3px 6px; border-radius: 2px; font: 12px ui-monospace, monospace;
+  }
+  #settings label .hint { color: var(--dim); font-size: 11px; margin-left: auto; }
+  #settings .btn-row { margin-top: 14px; display: flex; gap: 8px; }
+  #settings button {
+    padding: 4px 10px; font: 12px system-ui;
+    background: #1a1a1a; color: var(--fg); border: 1px solid var(--border);
+    border-radius: 3px; cursor: pointer;
+  }
+  #settings button:hover { background: #2a2a2a; }
+  #settings .layer-stack {
+    font: 11px ui-monospace, monospace; color: var(--dim);
+    background: #080808; padding: 8px; border-radius: 3px;
+    border: 1px solid #181818; white-space: pre;
+  }
+
+  /* ====== focus-center viewport helper ====== */
+  #editor.focus-center { scroll-padding: 40vh 0; }
+
+  /* ====== gesture overlay hint ====== */
+  #gesture-hint {
+    position: absolute; bottom: 48px; left: 60px;
+    background: rgba(0,0,0,0.9); border: 1px solid var(--accent);
+    color: var(--fg); padding: 6px 10px; border-radius: 3px;
+    font: 11px ui-monospace, monospace; pointer-events: none;
+    display: none; z-index: 20;
+    max-width: 400px;
+  }
+  #gesture-hint.active { display: block; }
+  #gesture-hint .gh-hold { color: var(--accent); }
+  #gesture-hint .gh-roll { color: var(--ok); }
+
+  /* ====== inline-expansion ghost panel ====== */
+  #inline-ghost {
+    display: none;
+    position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+    width: 70%; max-width: 800px; max-height: 60vh;
+    background: #0e0e0e; border: 1px solid var(--ok); border-radius: 4px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+    z-index: 50;
+    font: 12px ui-monospace, monospace;
+    overflow: auto;
+  }
+  #inline-ghost.active { display: block; }
+  #inline-ghost .gh-head {
+    padding: 8px 12px; background: #1a1a1a;
+    border-bottom: 1px solid var(--border);
+    color: var(--ok); display: flex; align-items: center;
+  }
+  #inline-ghost .gh-head .spacer { flex: 1; }
+  #inline-ghost .gh-head button {
+    font: 11px system-ui; background: #2a2a2a; color: var(--fg);
+    border: 1px solid var(--border); padding: 2px 8px; border-radius: 2px;
+    cursor: pointer;
+  }
+  #inline-ghost pre {
+    margin: 0; padding: 12px 14px; color: var(--fg);
+    font: 13px ui-monospace, monospace; line-height: 1.5;
+  }
+  #inline-ghost .gh-crumb {
+    color: var(--dim); padding: 4px 12px; background: #080808;
+    font-size: 11px; border-bottom: 1px solid #181818;
+  }
+
+  /* ====== toast notifications ====== */
+  #toast-layer {
+    position: fixed; bottom: 40px; right: 16px; z-index: 200;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none;
+  }
+  .toast {
+    background: #1a1a1a; color: var(--fg);
+    border: 1px solid var(--accent); padding: 6px 12px;
+    border-radius: 3px; font: 11px ui-monospace, monospace;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    animation: fade 3s forwards;
+  }
+  @keyframes fade {
+    0% { opacity: 0; transform: translateY(8px); }
+    10% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
 </style>
 </head>
 <body>
@@ -104,14 +312,21 @@
   <button id="btn-open" title="Open file (Ctrl+O)">Open…</button>
   <button id="btn-save" title="Save (Ctrl+S)">Save</button>
   <button id="btn-save-as" title="Save As">Save As…</button>
+  <button id="btn-palette" title="Command palette (Ctrl+P)">⌘P</button>
   <span id="filename">[No Name]</span>
+  <span id="lang-tag" class="spacer" style="flex:0; color: var(--dim); font: 11px ui-monospace, monospace;"></span>
   <span class="spacer"></span>
+  <button id="btn-panels" title="Toggle side panel">Panels</button>
+  <button id="btn-settings" title="Settings (F2)">Settings</button>
   <button id="help-btn" title="Toggle help (F1)">Help</button>
 </div>
 
 <div id="editor-wrap">
+  <div id="editor-area">
   <div id="gutter"></div>
+  <pre id="hl-layer" aria-hidden="true"></pre>
   <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off" autofocus></textarea>
+  <div id="gesture-hint"></div>
   <div id="help">
     <h3>6nz playable prototype — quick help</h3>
     <div class="dim">Throwaway demo. Not real 6nz. Vanilla JS + textarea.</div>
@@ -144,10 +359,29 @@
     <div><code>[p](a…)</code> para fwd &nbsp; <code>[p](f…)</code> back &nbsp; <code>[m](d)</code>=%</div>
     <div><code>[u](g)</code> undo, sustained: <code>[u](g,g,g)</code></div>
 
+    <h4>Playground features</h4>
+    <div><code>Ctrl+P</code> palette &nbsp; <code>F2</code> settings &nbsp; <code>Ctrl+Enter</code> inline expand (on an identifier)</div>
+    <div><code>Ctrl+B</code> toggle side panel &nbsp; <code>Ctrl+L</code> toggle focus-center viewport</div>
+
+    <h4>Workspace (virtual, localStorage)</h4>
+    <div><code>:new name.js</code> &nbsp; <code>:e name.js</code> &nbsp; <code>:ls</code> &nbsp; <code>:rm name.js</code> &nbsp; <code>:ww</code> (save to workspace)</div>
+
     <h4>Save/load note</h4>
-    <div class="dim">Uses File System Access API if available (Chromium). Otherwise falls back to download + upload.</div>
+    <div class="dim">Uses File System Access API if available (Chromium). Otherwise falls back to download + upload. Side panel "Eval/JS Out" are placeholder mocks until the compiler API is exposed.</div>
   </div>
-</div>
+  </div> <!-- /#editor-area -->
+
+<aside id="panels">
+  <div id="panel-tabs">
+    <button data-tab="refs" class="active">Refs</button>
+    <button data-tab="eval">Eval</button>
+    <button data-tab="jsout">JS Out</button>
+    <button data-tab="deps">Deps</button>
+    <button data-tab="workspace">Files</button>
+  </div>
+  <div id="panel-body">loading…</div>
+</aside>
+</div> <!-- /#editor-wrap -->
 
 <div id="status">
   <span id="mode-indicator">INSERT</span>
@@ -160,6 +394,35 @@
   <span id="cmdline-prefix">:</span>
   <input id="cmdline-input" type="text" autocomplete="off" spellcheck="false">
 </div>
+
+<div id="palette">
+  <input id="palette-input" type="text" autocomplete="off" spellcheck="false" placeholder="search commands, files, motions…">
+  <div id="palette-list"></div>
+</div>
+
+<div id="settings">
+  <h3>Settings</h3>
+  <div id="settings-body"></div>
+  <div class="btn-row">
+    <button id="settings-export">Export JSON</button>
+    <button id="settings-import">Import JSON…</button>
+    <button id="settings-reset">Reset to defaults</button>
+    <span style="flex:1"></span>
+    <button id="settings-close">Close</button>
+  </div>
+</div>
+
+<div id="inline-ghost">
+  <div class="gh-head">
+    <span>Inline expansion mock — <span id="gh-sym" style="color: var(--accent);"></span></span>
+    <span class="spacer"></span>
+    <button id="gh-close">Step out (Esc)</button>
+  </div>
+  <div class="gh-crumb" id="gh-crumb"></div>
+  <pre id="gh-body"></pre>
+</div>
+
+<div id="toast-layer"></div>
 
 <script>
 // ============================================================================
@@ -1354,6 +1617,832 @@ setMode(MODE.INSERT);
 onTextChange();
 editor.focus();
 
+// ============================================================================
+// ░░░ FEATURE LAYER — playground extensions                               ░░░
+// Everything below is mocked until the compiler API exists. Each section is
+// self-contained and uses the core editor API defined above.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// 1. Settings + localStorage persistence
+// ---------------------------------------------------------------------------
+const DEFAULT_SETTINGS = {
+  theme: 'dark',
+  fontSize: 14,
+  tabWidth: 2,
+  lineNumbersRelative: false,
+  syntaxHighlight: true,
+  focusCenter: false,                  // §1 viewport centering
+  language: 'auto',                    // auto | scrml | js | json | md | none
+  showPanels: true,
+  normalToggleKey: 'none',             // 'none' | 'CapsLock' | 'Tab' | letter
+  zmotionEnabled: true,
+  relevanceEnabled: true,
+  showGestureHint: true,
+};
+const SETTINGS_KEY = '$6nz:settings';
+let settings = loadSettings();
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    return Object.assign({}, DEFAULT_SETTINGS, s);
+  } catch { return { ...DEFAULT_SETTINGS }; }
+}
+function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+function applySettings() {
+  // font size
+  editor.style.fontSize = settings.fontSize + 'px';
+  const hl = document.getElementById('hl-layer');
+  hl.style.fontSize = settings.fontSize + 'px';
+  gutter.style.fontSize = settings.fontSize + 'px';
+  // tab width
+  editor.style.tabSize = settings.tabWidth;
+  hl.style.tabSize = settings.tabWidth;
+  // highlight toggle
+  if (settings.syntaxHighlight) {
+    editor.classList.add('highlighted');
+    hl.style.display = '';
+    renderHighlight();
+  } else {
+    editor.classList.remove('highlighted');
+    hl.style.display = 'none';
+  }
+  // focus center viewport
+  if (settings.focusCenter) editor.classList.add('focus-center');
+  else editor.classList.remove('focus-center');
+  // panels
+  document.getElementById('panels').classList.toggle('hidden', !settings.showPanels);
+  // gutter rerender for relative line numbers
+  renderGutter();
+}
+
+// ---------------------------------------------------------------------------
+// 2. Syntax highlighter (tiny tokenizer, one pass per text change)
+// ---------------------------------------------------------------------------
+const HL_LANGS = {
+  js: {
+    kw: new Set(('break case catch class const continue debugger default delete do else export extends finally for function if import in instanceof let new of return super switch this throw try typeof var void while with yield async await static get set'+' null true false undefined').split(' ')),
+    fn: /([A-Za-z_$][\w$]*)\s*\(/g,
+  },
+  scrml: {
+    kw: new Set(('component prop @var lin let fn if else for in import export return true false null'+' server client').split(' ')),
+    fn: /([A-Za-z_$][\w$]*)\s*\(/g,
+  },
+  json: { kw: new Set(['true','false','null']), fn: null },
+  md:   { kw: new Set([]), fn: null },
+  none: { kw: new Set([]), fn: null },
+};
+function detectLanguage() {
+  if (settings.language !== 'auto') return settings.language;
+  if (!currentName) return 'js';
+  if (currentName.endsWith('.scrml')) return 'scrml';
+  if (currentName.endsWith('.json')) return 'json';
+  if (currentName.endsWith('.md')) return 'md';
+  if (/\.(jsx?|tsx?|mjs)$/.test(currentName)) return 'js';
+  return 'js';
+}
+function escHTML(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function tokenize(text, langName) {
+  const L = HL_LANGS[langName] || HL_LANGS.none;
+  const out = [];
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    // line comment
+    if (c === '/' && text[i+1] === '/') {
+      let j = text.indexOf('\n', i);
+      if (j === -1) j = text.length;
+      out.push(['com', text.slice(i, j)]);
+      i = j; continue;
+    }
+    // block comment
+    if (c === '/' && text[i+1] === '*') {
+      let j = text.indexOf('*/', i + 2);
+      j = j === -1 ? text.length : j + 2;
+      out.push(['com', text.slice(i, j)]);
+      i = j; continue;
+    }
+    // string
+    if (c === '"' || c === "'" || c === '`') {
+      const q = c;
+      let j = i + 1;
+      while (j < text.length) {
+        if (text[j] === '\\') { j += 2; continue; }
+        if (text[j] === q) { j++; break; }
+        j++;
+      }
+      out.push(['str', text.slice(i, j)]);
+      i = j; continue;
+    }
+    // number
+    if (/\d/.test(c)) {
+      let j = i;
+      while (j < text.length && /[\d._xXa-fA-F]/.test(text[j])) j++;
+      out.push(['num', text.slice(i, j)]);
+      i = j; continue;
+    }
+    // identifier / keyword
+    if (/[A-Za-z_$]/.test(c)) {
+      let j = i;
+      while (j < text.length && /[\w$]/.test(text[j])) j++;
+      const w = text.slice(i, j);
+      if (L.kw.has(w)) out.push(['kw', w]);
+      else if (text[j] === '(' && /^[A-Za-z_$]/.test(w)) out.push(['fn', w]);
+      else if (/^[A-Z]/.test(w)) out.push(['typ', w]);
+      else out.push(['txt', w]);
+      i = j; continue;
+    }
+    // punctuation/operators
+    if (/[{}()\[\];,]/.test(c)) { out.push(['pun', c]); i++; continue; }
+    if (/[+\-*/%=<>!&|^~?:.]/.test(c)) { out.push(['op', c]); i++; continue; }
+    // default
+    out.push(['txt', c]);
+    i++;
+  }
+  return out;
+}
+function renderHighlight() {
+  if (!settings.syntaxHighlight) return;
+  const hl = document.getElementById('hl-layer');
+  const lang = detectLanguage();
+  const toks = tokenize(editor.value, lang);
+  const parts = [];
+  for (const [kind, text] of toks) {
+    const esc = escHTML(text);
+    if (kind === 'txt') parts.push(esc);
+    else parts.push(`<span class="tok-${kind}">${esc}</span>`);
+  }
+  hl.innerHTML = parts.join('') + '\n';
+  // sync scroll
+  hl.style.transform = `translate(${-editor.scrollLeft}px, ${-editor.scrollTop}px)`;
+  // update language tag
+  const lt = document.getElementById('lang-tag');
+  if (lt) { lt.textContent = lang; lt.style.flex = '0'; }
+}
+
+editor.addEventListener('scroll', () => {
+  if (settings.syntaxHighlight) {
+    const hl = document.getElementById('hl-layer');
+    hl.style.transform = `translate(${-editor.scrollLeft}px, ${-editor.scrollTop}px)`;
+  }
+});
+
+// hook into onTextChange by wrapping
+const _origOnTextChange = onTextChange;
+onTextChange = function() {
+  _origOnTextChange();
+  if (settings.syntaxHighlight) renderHighlight();
+  scheduleRelevance();
+};
+editor.removeEventListener('input', _origOnTextChange);
+editor.addEventListener('input', onTextChange);
+
+// ---------------------------------------------------------------------------
+// 3. Relative/absolute line numbers — patch renderGutter
+// ---------------------------------------------------------------------------
+const _origRenderGutter = renderGutter;
+renderGutter = function() {
+  const lines = editor.value.split('\n').length;
+  const { row: curRow } = cursorRowCol(editor.selectionStart);
+  const out = [];
+  for (let i = 0; i < lines; i++) {
+    if (settings.lineNumbersRelative && i !== curRow) {
+      out.push(Math.abs(i - curRow));
+    } else {
+      out.push(i + 1);
+    }
+  }
+  gutter.textContent = out.join('\n');
+  gutter.style.transform = `translateY(${-editor.scrollTop}px)`;
+};
+
+// ---------------------------------------------------------------------------
+// 4. Focus-centered viewport — after every cursor move
+// ---------------------------------------------------------------------------
+function centerCursor() {
+  if (!settings.focusCenter) return;
+  const lh = settings.fontSize * 1.5;
+  const { row } = cursorRowCol(activePos());
+  const target = Math.max(0, row * lh - editor.clientHeight / 2 + lh / 2);
+  editor.scrollTop = target;
+}
+const _origSetCursor = setCursor;
+setCursor = function(pos) {
+  _origSetCursor(pos);
+  centerCursor();
+  renderGutter();
+};
+
+// ---------------------------------------------------------------------------
+// 5. Toast + status extras
+// ---------------------------------------------------------------------------
+const toastLayer = document.getElementById('toast-layer');
+function toast(msg, ms=2500) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  toastLayer.appendChild(t);
+  setTimeout(() => t.remove(), ms + 200);
+}
+
+// gesture-in-flight hint (available rolls given current hold)
+const gestureHintEl = document.getElementById('gesture-hint');
+function renderGestureHint() {
+  if (!settings.showGestureHint) { gestureHintEl.classList.remove('active'); return; }
+  const holds = zHolds().map(c => c.key).join('');
+  const rolls = zRolls().map(c => c.key).join('');
+  if (!holds && !rolls) { gestureHintEl.classList.remove('active'); return; }
+  // find bindings matching the current hold prefix
+  const prefix = `[${holds}](`;
+  const rest = rolls ? rolls : '';
+  const matches = Object.keys(ZBIND).filter(k => k.startsWith(prefix));
+  const options = matches
+    .map(k => k.slice(prefix.length, k.lastIndexOf(')')))
+    .filter(r => r.startsWith(rest));
+  const list = options.slice(0, 18).map(r =>
+    `<span class="gh-roll">${escHTML(r)}</span>`
+  ).join('  ');
+  gestureHintEl.innerHTML =
+    `<span class="gh-hold">[${escHTML(holds)}]</span>(${escHTML(rolls)}<em style="color:#666">|</em>)  ` +
+    (list || '<span style="color:#666">no matches</span>');
+  gestureHintEl.classList.add('active');
+}
+const _origZRender = zRender;
+zRender = function() { _origZRender(); renderGestureHint(); };
+
+// ---------------------------------------------------------------------------
+// 6. Workspace — virtual files in localStorage
+// ---------------------------------------------------------------------------
+const WS_KEY = '$6nz:workspace';
+function loadWorkspace() {
+  try {
+    const ws = JSON.parse(localStorage.getItem(WS_KEY) || '{}');
+    return { files: ws.files || {}, recent: ws.recent || [] };
+  } catch { return { files: {}, recent: [] }; }
+}
+function saveWorkspace(ws) { localStorage.setItem(WS_KEY, JSON.stringify(ws)); }
+function wsTouch(name) {
+  const ws = loadWorkspace();
+  ws.recent = [name, ...ws.recent.filter(n => n !== name)].slice(0, 20);
+  saveWorkspace(ws);
+}
+function wsSave(name, content) {
+  const ws = loadWorkspace();
+  ws.files[name] = content;
+  ws.recent = [name, ...ws.recent.filter(n => n !== name)].slice(0, 20);
+  saveWorkspace(ws);
+}
+function wsOpen(name) {
+  const ws = loadWorkspace();
+  if (!(name in ws.files)) { toast('not in workspace: ' + name); return false; }
+  if (editor.value !== savedText && !confirm('Discard unsaved changes?')) return false;
+  editor.value = ws.files[name];
+  savedText = ws.files[name];
+  lastSnapshotText = ws.files[name];
+  currentHandle = null;
+  setFilename(name);
+  wsTouch(name);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  onTextChange();
+  toast('opened ' + name + ' (workspace)');
+  return true;
+}
+function wsDelete(name) {
+  const ws = loadWorkspace();
+  delete ws.files[name];
+  ws.recent = ws.recent.filter(n => n !== name);
+  saveWorkspace(ws);
+}
+
+// ---------------------------------------------------------------------------
+// 7. Side panels (refs / eval / jsout / deps / workspace)
+// ---------------------------------------------------------------------------
+const panelBody = document.getElementById('panel-body');
+let activeTab = 'refs';
+
+document.querySelectorAll('#panel-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll('#panel-tabs button').forEach(b => b.classList.toggle('active', b === btn));
+    renderPanel();
+  });
+});
+function renderPanel() {
+  if (activeTab === 'refs') renderRefsPanel();
+  else if (activeTab === 'eval') renderEvalPanel();
+  else if (activeTab === 'jsout') renderJsOutPanel();
+  else if (activeTab === 'deps') renderDepsPanel();
+  else if (activeTab === 'workspace') renderWorkspacePanel();
+}
+
+// Refs panel — §1 relevance mock. Heuristic: find word under cursor + list
+// other occurrences with line context. Flag likely definitions.
+let relevanceTimer = null;
+function scheduleRelevance() {
+  if (relevanceTimer) clearTimeout(relevanceTimer);
+  relevanceTimer = setTimeout(() => {
+    if (activeTab === 'refs' && settings.relevanceEnabled) renderRefsPanel();
+  }, 180);
+}
+function wordAtCursor() {
+  const t = editor.value, p = editor.selectionStart;
+  let a = p; while (a > 0 && /\w/.test(t[a-1])) a--;
+  let b = p; while (b < t.length && /\w/.test(t[b])) b++;
+  return { word: t.slice(a, b), start: a, end: b };
+}
+function findOccurrences(word) {
+  if (!word || word.length < 2) return [];
+  const t = editor.value;
+  const re = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+  const out = [];
+  let m;
+  while ((m = re.exec(t)) !== null) {
+    const lineStart = t.lastIndexOf('\n', m.index - 1) + 1;
+    let lineEnd = t.indexOf('\n', m.index);
+    if (lineEnd === -1) lineEnd = t.length;
+    const line = t.slice(lineStart, lineEnd);
+    const row = t.slice(0, lineStart).split('\n').length;
+    const col = m.index - lineStart;
+    const isDef =
+      /\b(function|const|let|var|class|component|fn)\s+$/.test(t.slice(lineStart, m.index)) ||
+      /^\s*(function|const|let|var|class|component|fn)\s+/.test(line);
+    out.push({ row, col, line, pos: m.index, isDef });
+  }
+  return out;
+}
+function renderRefsPanel() {
+  if (!settings.relevanceEnabled) {
+    panelBody.innerHTML = '<div class="panel-note">Relevance disabled in settings.</div>';
+    return;
+  }
+  const { word, start } = wordAtCursor();
+  if (!word) {
+    panelBody.innerHTML = '<div class="panel-note">Move cursor to a symbol to see its references here.</div>';
+    return;
+  }
+  const occ = findOccurrences(word);
+  const curIdx = occ.findIndex(o => o.pos === start);
+  const others = occ.filter((_, i) => i !== curIdx);
+  const defs = others.filter(o => o.isDef);
+  const refs = others.filter(o => !o.isDef);
+  const fmt = o => {
+    const col = Math.max(0, o.col);
+    const line = escHTML(o.line);
+    const hl = line.slice(0, col) + `<span class="match">${escHTML(o.line.slice(col, col + word.length))}</span>` + line.slice(col + word.length);
+    return `<div class="panel-ref${o.isDef ? ' def':''}" data-pos="${o.pos}">
+      <span class="line-no">${o.row}</span>${hl}
+    </div>`;
+  };
+  panelBody.innerHTML = `
+    <div><b style="color:var(--accent)">${escHTML(word)}</b> — ${occ.length} occurrence${occ.length===1?'':'s'} in buffer</div>
+    <div class="panel-note">Heuristic text search. Real 6nz would use compiler AST.</div>
+    ${defs.length ? `<div class="panel-section"><h5>Likely definitions (${defs.length})</h5>${defs.map(fmt).join('')}</div>` : ''}
+    ${refs.length ? `<div class="panel-section"><h5>References (${refs.length})</h5>${refs.map(fmt).join('')}</div>` : ''}
+  `;
+  panelBody.querySelectorAll('.panel-ref').forEach(el => {
+    el.addEventListener('click', () => {
+      const pos = parseInt(el.dataset.pos, 10);
+      editor.focus();
+      setCursor(pos);
+    });
+  });
+}
+
+function renderEvalPanel() {
+  panelBody.innerHTML = `
+    <div class="panel-note">Eval preview — mocked.</div>
+    <div class="panel-section">
+      <p>In real 6nz: this would show the runtime value of the expression under the cursor, computed by running the compiled JS in a sandboxed iframe with source maps back to scrml source.</p>
+      <p>Today this panel is a placeholder until the scrmlTS compiler API is exposed.</p>
+      <div style="margin-top:10px; padding:8px; background:#080808; border-left:2px solid var(--accent); font-size:11px;">
+        <div style="color: var(--dim)">cursor word:</div>
+        <div><code style="color: var(--accent)">${escHTML(wordAtCursor().word || '—')}</code></div>
+        <div style="color: var(--dim); margin-top:6px">→ would evaluate and display last value</div>
+      </div>
+    </div>`;
+}
+function renderJsOutPanel() {
+  const lang = detectLanguage();
+  panelBody.innerHTML = `
+    <div class="panel-note">Compiled JS output — mocked.</div>
+    <div class="panel-section">
+      <p>Real 6nz shows the JS that the scrml compiler emits for the cursor's scope, updated on every keystroke (compiler is ~42ms per file).</p>
+      <p>Current buffer language: <code style="color: var(--accent)">${lang}</code></p>
+      ${lang === 'js'
+        ? '<p class="panel-note">This buffer is already JavaScript — no compile step.</p>'
+        : '<p class="panel-note">Awaiting compiler API to compile scrml → JS live.</p>'}
+    </div>`;
+}
+function renderDepsPanel() {
+  // Extract imports, exports, function/class declarations as a rough dependency sketch.
+  const t = editor.value;
+  const imports = [...t.matchAll(/import\s+(?:.*?from\s+)?['"]([^'"]+)['"]/g)].map(m => m[1]);
+  const exportsOut = [...t.matchAll(/export\s+(?:default\s+)?(?:function|const|class|let|var)\s+([A-Za-z_$][\w$]*)/g)].map(m => m[1]);
+  const defs = [...t.matchAll(/(?:function|class|const|let|var|component|fn)\s+([A-Za-z_$][\w$]*)/g)].map(m => m[1]);
+  panelBody.innerHTML = `
+    <div class="panel-note">Dependency chain — heuristic regex. Real 6nz: full scrml import graph.</div>
+    <div class="panel-section">
+      <h5>Imports (${imports.length})</h5>
+      ${imports.length
+        ? imports.map(i => `<div class="panel-ref">${escHTML(i)}</div>`).join('')
+        : '<div class="panel-note">none</div>'}
+    </div>
+    <div class="panel-section">
+      <h5>Exports (${exportsOut.length})</h5>
+      ${exportsOut.length
+        ? exportsOut.map(i => `<div class="panel-ref">${escHTML(i)}</div>`).join('')
+        : '<div class="panel-note">none</div>'}
+    </div>
+    <div class="panel-section">
+      <h5>Top-level symbols (${defs.length})</h5>
+      ${defs.slice(0, 40).map(i => `<div class="panel-ref">${escHTML(i)}</div>`).join('')}
+    </div>`;
+}
+function renderWorkspacePanel() {
+  const ws = loadWorkspace();
+  const names = Object.keys(ws.files).sort();
+  panelBody.innerHTML = `
+    <div class="panel-note">Virtual workspace — localStorage-backed.</div>
+    <div class="panel-section">
+      <h5>Recent (${ws.recent.length})</h5>
+      ${ws.recent.length
+        ? ws.recent.map(n => `<div class="panel-ref" data-name="${escHTML(n)}">${escHTML(n)}</div>`).join('')
+        : '<div class="panel-note">none — open files via Ctrl+P or :new name.js</div>'}
+    </div>
+    <div class="panel-section">
+      <h5>All files (${names.length})</h5>
+      ${names.map(n => `<div class="panel-ref" data-name="${escHTML(n)}">
+          <span>${escHTML(n)}</span>
+          <span style="float:right; color: var(--dim); font-size:10px">${ws.files[n].length}b</span>
+        </div>`).join('')}
+    </div>
+    <div class="panel-section">
+      <button id="ws-save-current" style="font:11px system-ui; padding: 4px 10px; background: #2a2a2a; color: var(--fg); border: 1px solid var(--border); cursor: pointer;">Save current buffer to workspace</button>
+    </div>`;
+  panelBody.querySelectorAll('.panel-ref[data-name]').forEach(el => {
+    el.addEventListener('click', () => wsOpen(el.dataset.name));
+  });
+  const sb = document.getElementById('ws-save-current');
+  if (sb) sb.addEventListener('click', () => {
+    const name = currentName || prompt('Name in workspace:', 'scratch.js');
+    if (!name) return;
+    wsSave(name, editor.value);
+    setFilename(name);
+    savedText = editor.value;
+    renderPanel();
+    toast('workspace: saved ' + name);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 8. Command palette (Ctrl+P)
+// ---------------------------------------------------------------------------
+const paletteEl = document.getElementById('palette');
+const paletteInput = document.getElementById('palette-input');
+const paletteList = document.getElementById('palette-list');
+let paletteActive = 0;
+let paletteItems = [];
+
+function buildPaletteItems(query) {
+  const q = query.toLowerCase();
+  const items = [];
+  // commands
+  const cmds = [
+    { kind: 'cmd', label: 'New buffer', key: 'Ctrl+N', run: fileNew },
+    { kind: 'cmd', label: 'Open file from disk', key: 'Ctrl+O', run: fileOpen },
+    { kind: 'cmd', label: 'Save to disk', key: 'Ctrl+S', run: fileSave },
+    { kind: 'cmd', label: 'Save As…', key: '', run: fileSaveAs },
+    { kind: 'cmd', label: 'Save to workspace', key: ':ww', run: () => {
+        const name = currentName || prompt('Name in workspace:','scratch.js');
+        if (!name) return; wsSave(name, editor.value); setFilename(name); savedText = editor.value;
+        toast('workspace: saved '+name);
+    }},
+    { kind: 'cmd', label: 'Toggle side panel', key: 'Ctrl+B', run: () => {
+      settings.showPanels = !settings.showPanels; saveSettings(); applySettings();
+    }},
+    { kind: 'cmd', label: 'Toggle focus-center viewport', key: 'Ctrl+L', run: () => {
+      settings.focusCenter = !settings.focusCenter; saveSettings(); applySettings();
+      toast('focus-center: ' + (settings.focusCenter ? 'on' : 'off'));
+    }},
+    { kind: 'cmd', label: 'Toggle syntax highlight', key: '', run: () => {
+      settings.syntaxHighlight = !settings.syntaxHighlight; saveSettings(); applySettings();
+    }},
+    { kind: 'cmd', label: 'Toggle relative line numbers', key: '', run: () => {
+      settings.lineNumbersRelative = !settings.lineNumbersRelative; saveSettings(); renderGutter();
+    }},
+    { kind: 'cmd', label: 'Settings', key: 'F2', run: openSettings },
+    { kind: 'cmd', label: 'Help', key: 'F1', run: () => helpEl.classList.toggle('active') },
+    { kind: 'cmd', label: 'Inline expand symbol at cursor', key: 'Ctrl+Enter', run: inlineExpand },
+  ];
+  for (const c of cmds) {
+    if (!q || c.label.toLowerCase().includes(q)) items.push(c);
+  }
+  // workspace files
+  const ws = loadWorkspace();
+  for (const name of Object.keys(ws.files)) {
+    if (!q || name.toLowerCase().includes(q)) {
+      items.push({ kind: 'file', label: name, key: '', run: () => wsOpen(name) });
+    }
+  }
+  // z-motion bindings
+  for (const key of Object.keys(ZBIND)) {
+    if (!q || key.toLowerCase().includes(q)) {
+      items.push({ kind: 'z-motion', label: key, key: '', run: () => { ZBIND[key](); toast('fired ' + key); } });
+    }
+  }
+  return items.slice(0, 50);
+}
+function openPalette() {
+  paletteEl.classList.add('active');
+  paletteInput.value = '';
+  paletteActive = 0;
+  refreshPalette();
+  paletteInput.focus();
+}
+function closePalette() {
+  paletteEl.classList.remove('active');
+  editor.focus();
+}
+function refreshPalette() {
+  paletteItems = buildPaletteItems(paletteInput.value);
+  paletteActive = Math.min(paletteActive, Math.max(0, paletteItems.length - 1));
+  paletteList.innerHTML = paletteItems.map((it, i) => `
+    <div class="palette-item ${i === paletteActive ? 'active':''}" data-i="${i}">
+      <span class="kind">${it.kind}</span>
+      <span class="label">${escHTML(it.label)}</span>
+      <span class="key">${escHTML(it.key||'')}</span>
+    </div>
+  `).join('') || '<div class="palette-item"><span class="kind">—</span>no matches</div>';
+  paletteList.querySelectorAll('.palette-item[data-i]').forEach(el => {
+    el.addEventListener('click', () => {
+      paletteActive = parseInt(el.dataset.i, 10);
+      runPaletteActive();
+    });
+  });
+}
+function runPaletteActive() {
+  const it = paletteItems[paletteActive];
+  if (!it) return;
+  closePalette();
+  try { it.run(); } catch(e) { toast('err: ' + e.message); }
+}
+paletteInput.addEventListener('input', refreshPalette);
+paletteInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { e.preventDefault(); closePalette(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); runPaletteActive(); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); paletteActive = Math.min(paletteItems.length - 1, paletteActive + 1); refreshPalette(); return; }
+  if (e.key === 'ArrowUp')   { e.preventDefault(); paletteActive = Math.max(0, paletteActive - 1); refreshPalette(); return; }
+});
+document.getElementById('btn-palette').addEventListener('click', openPalette);
+
+// ---------------------------------------------------------------------------
+// 9. Settings modal
+// ---------------------------------------------------------------------------
+const settingsEl = document.getElementById('settings');
+const settingsBody = document.getElementById('settings-body');
+function openSettings() {
+  renderSettings();
+  settingsEl.classList.add('active');
+}
+function closeSettings() { settingsEl.classList.remove('active'); editor.focus(); }
+function renderSettings() {
+  settingsBody.innerHTML = `
+    <h4>Appearance</h4>
+    <label><input type="number" id="s-font" min="10" max="28" value="${settings.fontSize}"> Font size <span class="hint">px</span></label>
+    <label><input type="checkbox" id="s-hl" ${settings.syntaxHighlight?'checked':''}> Syntax highlighting</label>
+    <label><select id="s-lang">
+      <option value="auto"${settings.language==='auto'?' selected':''}>auto (by extension)</option>
+      <option value="js"${settings.language==='js'?' selected':''}>JavaScript</option>
+      <option value="scrml"${settings.language==='scrml'?' selected':''}>scrml</option>
+      <option value="json"${settings.language==='json'?' selected':''}>JSON</option>
+      <option value="md"${settings.language==='md'?' selected':''}>Markdown</option>
+      <option value="none"${settings.language==='none'?' selected':''}>none</option>
+    </select> Language</label>
+
+    <h4>Editor</h4>
+    <label><input type="number" id="s-tab" min="1" max="8" value="${settings.tabWidth}"> Tab width</label>
+    <label><input type="checkbox" id="s-rel" ${settings.lineNumbersRelative?'checked':''}> Relative line numbers</label>
+    <label><input type="checkbox" id="s-fc" ${settings.focusCenter?'checked':''}> Focus-centered viewport <span class="hint">§1</span></label>
+    <label><input type="checkbox" id="s-panels" ${settings.showPanels?'checked':''}> Show side panels</label>
+
+    <h4>Z-motion &amp; input</h4>
+    <label><input type="checkbox" id="s-zm" ${settings.zmotionEnabled?'checked':''}> Enable z-motion in insert mode</label>
+    <label><input type="checkbox" id="s-gh" ${settings.showGestureHint?'checked':''}> Show gesture-in-flight hint</label>
+    <label><input type="checkbox" id="s-rel2" ${settings.relevanceEnabled?'checked':''}> Relevance region (refs panel)</label>
+    <label><select id="s-toggle">
+      <option value="none"${settings.normalToggleKey==='none'?' selected':''}>none</option>
+      <option value="CapsLock"${settings.normalToggleKey==='CapsLock'?' selected':''}>CapsLock</option>
+      <option value="Tab"${settings.normalToggleKey==='Tab'?' selected':''}>Tab</option>
+      <option value="\\"${settings.normalToggleKey==='\\'?' selected':''}>\\</option>
+    </select> Normal-mode toggle hold <span class="hint">SPEC §10.3</span></label>
+
+    <h4>Config layers</h4>
+    <div class="layer-stack">Layer 0: defaults
+Layer 1: user settings (localStorage)
+Layer 2: :km@&lt;name&gt; overlay (if loaded)
+Layer 3: scripting API (not implemented)</div>
+
+    <h4>:km@username mock</h4>
+    <label><input type="text" id="s-km" value="" placeholder="paste JSON here…" style="flex:1"><button id="s-km-apply" style="padding: 2px 8px; font: 11px system-ui; background:#2a2a2a; color:var(--fg); border:1px solid var(--border); cursor:pointer;">Apply</button></label>
+    <div class="panel-note" style="margin-top:4px;">In real 6nz, <code>:km@bryan</code> pulls published config from a registry. Here you can paste raw JSON to simulate.</div>
+  `;
+  const bind = (id, field, type='value') => {
+    const el = document.getElementById(id);
+    el.addEventListener('change', () => {
+      let v = type === 'checked' ? el.checked : el.value;
+      if (type === 'value' && typeof DEFAULT_SETTINGS[field] === 'number') v = parseInt(v, 10);
+      settings[field] = v;
+      saveSettings(); applySettings();
+    });
+  };
+  bind('s-font','fontSize'); bind('s-tab','tabWidth');
+  bind('s-hl','syntaxHighlight','checked');
+  bind('s-rel','lineNumbersRelative','checked');
+  bind('s-fc','focusCenter','checked');
+  bind('s-panels','showPanels','checked');
+  bind('s-zm','zmotionEnabled','checked');
+  bind('s-gh','showGestureHint','checked');
+  bind('s-rel2','relevanceEnabled','checked');
+  bind('s-lang','language');
+  bind('s-toggle','normalToggleKey');
+  document.getElementById('s-km-apply').addEventListener('click', () => {
+    const v = document.getElementById('s-km').value.trim();
+    if (!v) return;
+    try {
+      const overlay = JSON.parse(v);
+      Object.assign(settings, overlay);
+      saveSettings(); applySettings(); renderSettings();
+      toast('km overlay applied');
+    } catch(e) { toast('km: invalid JSON: ' + e.message); }
+  });
+}
+document.getElementById('settings-close').addEventListener('click', closeSettings);
+document.getElementById('settings-reset').addEventListener('click', () => {
+  if (!confirm('Reset all settings to defaults?')) return;
+  settings = { ...DEFAULT_SETTINGS };
+  saveSettings(); applySettings(); renderSettings();
+});
+document.getElementById('settings-export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '6nz-settings.json';
+  a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById('settings-import').addEventListener('click', () => {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json';
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    try { Object.assign(settings, JSON.parse(await f.text())); saveSettings(); applySettings(); renderSettings(); toast('imported'); }
+    catch(e) { toast('import failed: ' + e.message); }
+  };
+  inp.click();
+});
+document.getElementById('btn-settings').addEventListener('click', openSettings);
+document.getElementById('btn-panels').addEventListener('click', () => {
+  settings.showPanels = !settings.showPanels; saveSettings(); applySettings();
+});
+
+// ---------------------------------------------------------------------------
+// 10. Inline expansion ghost panel
+// ---------------------------------------------------------------------------
+const ghost = document.getElementById('inline-ghost');
+const ghostSym = document.getElementById('gh-sym');
+const ghostBody = document.getElementById('gh-body');
+const ghostCrumb = document.getElementById('gh-crumb');
+function inlineExpand() {
+  const { word } = wordAtCursor();
+  if (!word) { toast('no symbol at cursor'); return; }
+  const occ = findOccurrences(word);
+  const defs = occ.filter(o => o.isDef);
+  if (!defs.length) { toast('no definition found for: ' + word); return; }
+  const def = defs[0];
+  // Extract the block: from the def line to a matching brace or paragraph break
+  const t = editor.value;
+  const startLine = t.lastIndexOf('\n', def.pos) + 1;
+  let i = t.indexOf('{', def.pos);
+  let block;
+  if (i !== -1 && i < def.pos + def.line.length + 3) {
+    // brace-scope: match closing
+    let depth = 1; let j = i + 1;
+    while (j < t.length && depth > 0) {
+      if (t[j] === '{') depth++;
+      else if (t[j] === '}') depth--;
+      j++;
+    }
+    block = t.slice(startLine, j);
+  } else {
+    // no brace — one line
+    let le = t.indexOf('\n', def.pos); if (le === -1) le = t.length;
+    block = t.slice(startLine, le);
+  }
+  ghostSym.textContent = word;
+  ghostCrumb.textContent = `line ${def.row} — this is a mock. Real 6nz would inline the definition into the flow.`;
+  ghostBody.innerHTML = highlightBlock(block);
+  ghost.classList.add('active');
+}
+function highlightBlock(src) {
+  const lang = detectLanguage();
+  const toks = tokenize(src, lang);
+  return toks.map(([k,v]) => k === 'txt' ? escHTML(v) : `<span class="tok-${k}">${escHTML(v)}</span>`).join('');
+}
+function closeGhost() { ghost.classList.remove('active'); editor.focus(); }
+document.getElementById('gh-close').addEventListener('click', closeGhost);
+
+// ---------------------------------------------------------------------------
+// 11. Global keybinds (palette, panels, settings, inline expand)
+// ---------------------------------------------------------------------------
+document.addEventListener('keydown', (e) => {
+  // palette
+  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+    e.preventDefault(); openPalette(); return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+    e.preventDefault();
+    settings.showPanels = !settings.showPanels; saveSettings(); applySettings(); return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+    e.preventDefault();
+    settings.focusCenter = !settings.focusCenter; saveSettings(); applySettings();
+    toast('focus-center: ' + (settings.focusCenter ? 'on' : 'off')); return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault(); inlineExpand(); return;
+  }
+  if (e.key === 'F2') { e.preventDefault(); openSettings(); return; }
+  if (e.key === 'Escape') {
+    if (ghost.classList.contains('active')) { closeGhost(); e.preventDefault(); return; }
+    if (settingsEl.classList.contains('active')) { closeSettings(); e.preventDefault(); return; }
+    if (paletteEl.classList.contains('active')) { closePalette(); e.preventDefault(); return; }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 12. Z-motion gating + Ex command extensions for workspace
+// ---------------------------------------------------------------------------
+const _origHandleInsertKeydown = handleInsertKeydown;
+handleInsertKeydown = function(e) {
+  if (!settings.zmotionEnabled) {
+    // fall back to raw typing — let the browser handle the keystroke normally
+    return;
+  }
+  return _origHandleInsertKeydown(e);
+};
+
+const _origRunEx = runEx;
+runEx = function(cmd) {
+  cmd = cmd.trim();
+  if (cmd === 'ls') {
+    const ws = loadWorkspace();
+    toast('workspace files: ' + (Object.keys(ws.files).join(', ') || '(none)'));
+    return;
+  }
+  if (cmd.startsWith('new ')) {
+    const name = cmd.slice(4).trim();
+    if (!name) { toast('usage: :new <name>'); return; }
+    wsSave(name, '');
+    wsOpen(name);
+    return;
+  }
+  if (cmd.startsWith('rm ')) {
+    const name = cmd.slice(3).trim();
+    if (!confirm('Delete workspace file: ' + name + '?')) return;
+    wsDelete(name); toast('removed ' + name); renderPanel(); return;
+  }
+  if (cmd === 'ww') {
+    const name = currentName || prompt('Name in workspace:', 'scratch.js');
+    if (!name) return;
+    wsSave(name, editor.value); setFilename(name); savedText = editor.value;
+    toast('workspace: saved ' + name); return;
+  }
+  if (cmd.startsWith('e ')) {
+    const name = cmd.slice(2).trim();
+    if (wsOpen(name)) return;
+    // fall through to file picker if not in workspace
+  }
+  if (cmd.startsWith('km@')) {
+    const name = cmd.slice(3);
+    // for the demo, look in localStorage under $6nz:km:<name>
+    const raw = localStorage.getItem('$6nz:km:' + name);
+    if (!raw) { toast('no saved config for :km@' + name); return; }
+    try { Object.assign(settings, JSON.parse(raw)); saveSettings(); applySettings(); toast('loaded :km@' + name); }
+    catch(e) { toast('km: bad JSON for ' + name); }
+    return;
+  }
+  return _origRunEx(cmd);
+};
+
+// ---------------------------------------------------------------------------
+// Boot feature layer
+// ---------------------------------------------------------------------------
+applySettings();
+renderPanel();
+// Re-render relevance panel when cursor moves (even without edits)
+editor.addEventListener('click', scheduleRelevance);
+editor.addEventListener('select', scheduleRelevance);
+editor.addEventListener('keyup', () => scheduleRelevance());
+
 // --- Test hook: reset state cleanly between scenarios ---
 window.__6nz_reset = function(text, pos) {
   editor.value = text;
@@ -1374,6 +2463,11 @@ window.__6nz_reset = function(text, pos) {
   setMode(MODE.NORMAL);
   editor.selectionStart = editor.selectionEnd = pos;
   onTextChange();
+  // Close all UI overlays so key events reach the editor.
+  if (typeof paletteEl !== 'undefined') paletteEl.classList.remove('active');
+  if (typeof settingsEl !== 'undefined') settingsEl.classList.remove('active');
+  if (typeof ghost !== 'undefined') ghost.classList.remove('active');
+  helpEl.classList.remove('active');
 };
 </script>
 </body>

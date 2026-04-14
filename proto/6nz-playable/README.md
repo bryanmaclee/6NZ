@@ -10,6 +10,7 @@ Open `index.html` in a browser. No build. No server needed (File System Access A
 
 ## What works
 
+**Editor core:**
 - Open / Save / Save As via File System Access API (Chromium) or download+upload fallback
 - Vim modes: `Esc` → normal, `i`/`a`/`o`/`I`/`A`/`O` → insert, `v`/`V` → visual
 - Core vim motions: `h j k l`, `w b e`, `0 ^ $`, `gg G`, `H M L`, `{ }`, `%`, `f/F/t/T<char>`, `; ,`, `n N`, `*`, counts (`3w` etc.)
@@ -27,6 +28,20 @@ Open `index.html` in a browser. No build. No server needed (File System Access A
   - `[p]` paragraph forward/back
   - `[m](d)` match `%`
   - `[u](g)` undo (sustained: `[u](g,g,g)` undoes three steps)
+
+**Playground features** (all mockups — no compiler hooked up):
+- Syntax highlighting — tiny tokenizer, JS/scrml/JSON/MD, language-by-extension
+- Spatial side panel with 5 tabs (`Ctrl+B` to toggle): **Refs** (relevance mock, §1), **Eval**, **JS Out**, **Deps**, **Files**
+- Relevance region — on cursor move, heuristic text-scan for the word at cursor; flags likely definitions
+- Inline expansion (`Ctrl+Enter` or from palette) — finds a definition in the buffer, renders it in a ghost panel
+- Focus-centered viewport (`Ctrl+L`) — editor §1 behavior, keeps cursor line at screen center
+- Command palette (`Ctrl+P`) — commands, workspace files, z-motion bindings
+- Settings modal (`F2`) — appearance, editor, z-motion toggles, `:km@` overlay paste, layer-stack display, JSON export/import
+- Virtual workspace — `:new <name>`, `:e <name>`, `:ls`, `:rm <name>`, `:ww` (save current buffer), backed by localStorage
+- `:km@<name>` — loads a stored JSON config overlay (mock — demonstrates SPEC config layering)
+- Gesture-in-flight hint — while a z-motion hold is down, shows available roll bindings
+- Relative line numbers — togglable in settings
+- Toast notifications
 
 ## What's intentionally missing
 
@@ -55,9 +70,17 @@ Open `index.html` in a browser. No build. No server needed (File System Access A
 
 ## Testing
 
-`node test.js` runs a puppeteer harness against `index.html` — 54 scenarios covering normal motions, edits, operators, visual mode, z-motions, and plain typing. Each scenario resets state via `window.__6nz_reset(text, pos)`, enters the target mode, dispatches key events, and asserts `{ text, pos, mode }`.
+`node test.js` runs a puppeteer harness against `index.html` — 62 scenarios: motions, edits, operators, visual mode, z-motions, plain typing, and feature smoke tests (palette, highlighting, panels, settings, refs, inline expand, workspace, settings persistence).
 
-Currently: **54 passed, 0 failed.**
+Each scenario resets state via `window.__6nz_reset(text, pos)`, enters the target mode, dispatches key events, and asserts `{ text, pos, mode }`. Feature tests poke the DOM directly.
+
+Currently: **62 passed, 0 failed.**
+
+## Deployment
+
+Pushed to `main` with any change under `proto/6nz-playable/**` — the GitHub Actions workflow at `.github/workflows/pages.yml` copies `index.html` (+ README) into a Pages artifact and deploys to GitHub Pages.
+
+To enable Pages the first time: repo **Settings → Pages → Source: "GitHub Actions"**. The workflow's `deploy` job will then publish, and the URL appears in the deployment log.
 
 ## Why textarea, not CM6
 
