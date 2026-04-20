@@ -3,6 +3,9 @@
 **Companion to:** `SPEC.md` v0.4
 **Status:** Draft v0.2 — recommendation, not requirement.
 **Partially stale under v0.4** — see notice below.
+**All bindings below are provisional.** Specific key assignments are a working
+draft. Expect revision once implementation experience tells us what actually
+feels good under the fingers. The spec mechanism is stable; the key map is not.
 **License:** CC0 1.0 Universal
 
 ---

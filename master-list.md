@@ -24,7 +24,7 @@
 
 - CM6 + canvas overlay (rendering architecture)
 - DOM text (not canvas-rendered text)
-- NeoVim superset — everything that works in nvim works in 6nz
+- NeoVim-inspired modal model (aspirational target: cover what a NeoVim power user expects — specific key assignments remain provisional)
 - Z-motions: `[hold](roll)` model with release-order classification (no clocks)
 - Sustained gestures: hold key as mode key, roll phase is a stream (v0.5)
 - Multi-cursor
@@ -47,16 +47,23 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 - Sustained gestures: hold stays active, roll phase is a stream of events. Repeated taps `(g,g,g)` and repeated rolls `(jkl,jkl,jkl)` fire independently.
 - Commit-on-release: characters commit on KEYUP, not KEYDOWN.
 
-**Locked binding families:**
+**Provisional binding families (illustrative, NOT locked):**
+
+> The specific key assignments below are placeholders — SPEC v0.5 defines the
+> *grammar* (hold+roll, release-order classification, sustained gestures), not
+> the key map. Every concrete binding in this repo is subject to revision once
+> implementation experience tells us what works under the fingers. Treat these
+> as "what we're playing with right now," not "what 6nz will ship."
+
 - `[h]` — char motion, left-hand rolls
 - `[w]` — word motion
 - `[e]` — word-end motion
 - `[a]` — line anchor hold
 - `[j]`/`[k]` — vertical motion (down/up), left-hand roll for count (caps at 4)
 - `[A]`/`[H]` etc — shifted-letter holds are distinct bindings
-- Operators `[dw]`, `[yw]`, `[cw]` etc — deferred to spec but form is locked (operator-first multi-key hold)
+- Operators `[dw]`, `[yw]`, `[cw]` etc — form is provisional (operator-first multi-key hold)
 
-**Designed but bindings not locked:**
+**Designed, bindings even looser:**
 - Undo hold family (`[u]` illustrative) — granular, motion-boundary, undo-tree tiers
 - Semantic landmark motions — blank line, matching indent, `{`, fold boundary (seed list, no assignments)
 - Latch keys — concept locked, key assignments TBD

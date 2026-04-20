@@ -11,7 +11,8 @@ in scrmlTS.
 - [`editor-README.md`](./editor-README.md) — design principles (focus-centered
   viewport, NeoVim superset + mouse, CM6 + canvas overlay, offline-first PWA).
 - [`z-motion-spec/`](./z-motion-spec/) — the Z-motion input specification.
-  Open source (CC0), free for anyone to adopt.
+  Open source (CC0), free for anyone to adopt. The grammar is stable; the
+  default key bindings are a working draft and open to change.
 - [`master-list.md`](./master-list.md) — live inventory and locked decisions.
 
 ## Licensing

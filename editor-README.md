@@ -20,6 +20,10 @@ Keyboard-first UX (modes, motions, composable commands), but the mouse is a firs
 Both input methods must feel native. The goal is to help devs break mouse dependency while never
 gate-keeping them.
 
+**Specific keybindings are provisional.** What's in `z-motion-spec/default-bindings.md` and
+the `master-list.md` binding tables is a working draft — the grammar is stable, but every
+concrete key assignment is open to change.
+
 ### 4. Spatial Intelligence Panels
 Every type of contextual information has a fixed, predictable screen location — never a popup
 that obscures the code behind it. The dev's eyes learn where to look:

@@ -12,10 +12,14 @@ including the 6NZ editor, are developed separately.
 
 ## Status
 
-**v0.1 — draft.** The notation, grammar, and core concepts are stable enough
-to discuss and implement against. Timing thresholds, direction mapping, and
-composition with existing Vim text objects are **open questions** — see
-`SPEC.md` §8.
+**SPEC v0.5 — draft.** The grammar (hold+roll, release-order classification,
+sustained gestures) is stable enough to discuss and implement against.
+
+**Key assignments are loose.** `default-bindings.md` is a *suggested* table
+and every specific binding — which letter holds what, which rolls mean which
+direction, which operators compose how — is open to change. The spec defines
+the mechanism; the default key map is a working draft we expect to revise
+as implementation experience accumulates.
 
 ## Why another motion system?
 

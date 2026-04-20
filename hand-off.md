@@ -20,6 +20,7 @@
 - **Audited scrmlTS blurb about 6nz** (5 claims: focus-centered viewport / NeoVim-superset + mouse / CM6 + canvas overlay / offline-first PWA / Z-motion CC0) — all accurate against locked decisions here. No correction message sent.
 - **Tightened `pa.md:16`** — "MIT or CC0" → "CC0 1.0 Universal (locked in `z-motion-spec/LICENSE`)". Decision has been locked since session 3; pa.md was stale.
 - **Dropped "NeoVim can adopt" predictions** from pa.md, README.md, z-motion-spec/README.md — framing sounded too confident. Kept factual lineage references (Z-motion extends Vim/NeoVim motion grammar; 6nz is a NeoVim-inspired superset).
+- **Softened keybinding framing across repo** to make explicit that specific key assignments are provisional (grammar is stable, key map is a working draft). Updated: `master-list.md` §B + §C (replaced "Locked binding families" with "Provisional binding families" + prominent note; reframed "NeoVim superset" as aspirational), `z-motion-spec/README.md` (Status section rewritten from stale v0.1 text), `z-motion-spec/default-bindings.md` (strengthened header disclaimer), `editor-README.md` §3 (added provisional-bindings note), `README.md` (one-liner in z-motion-spec bullet).
 
 ## Key decisions captured
 
