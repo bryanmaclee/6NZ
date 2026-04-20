@@ -13,7 +13,7 @@
 ## Licensing split (user decision)
 
 - **6nz editor implementation**: proprietary / commercial (the product)
-- **Z-motion spec**: free + open source (MIT or CC0), so NeoVim and others can adopt
+- **Z-motion spec**: free + open source (CC0 1.0 Universal — locked in `z-motion-spec/LICENSE`), so NeoVim and others can adopt
 
 ## Scope principle
 
