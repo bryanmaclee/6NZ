@@ -33,6 +33,9 @@
   - Combination of A+E currently means there is NO way to write a scrml app that reads keyboard event properties.
 - **Bug report filed** to scrmlTS at `../scrmlTS/handOffs/incoming/2026-04-20-1251-6nz-to-scrmlTS-compiler-bugs-playground-zero.md` — 6 bugs with minimal repros + full attempted source inline (so scrmlTS can verify scrml grammar).
 - **playground-zero kept** as evidence: `app.idiomatic-blocked.scrml` (canonical tutorial-following attempt, blocked on A/B/C/D), `app.workaround-broken.scrml` (^{} escape-hatch attempt, produces invalid JS via E/F), `README.md` documenting state. Both files will be unblocked / cleaned up when scrmlTS fixes the codegen bugs.
+- **All 6 bugs fixed same day by scrmlTS** (inbound reply `2026-04-20-1700-scrmlTS-to-6nz-all-6-bugs-fixed.md`, commits eb86d31 / 70190a7 / 127d35a / 27ed6fe / aa92070; 51 new tests; zero regressions across 9 commits). Recompiled idiomatic version — valid JS, all runtime behavior correct. Smoke test via puppeteer (headless Chrome, real keyboard events): 7/7 functional tests pass — TAP(a), ROLL(j) under f/h, HOLD(f/h) after roll, clear→reset, clear→empty down. Workaround version also loads cleanly at runtime (^{} meta block fix confirmed end-to-end).
+- **playground-zero cleaned up**: `app.idiomatic-blocked.scrml` → `app.scrml` (canonical), `app.workaround-broken.scrml` deleted, README rewritten. Inbound moved to `handOffs/incoming/read/`. Reply sent to scrmlTS at `2026-04-20-1609-6nz-to-scrmlTS-all-6-bugs-verified.md` with per-bug verification + smoke-test results.
+- **Status: playground-zero works.** scrml is now confirmed viable for 6nz's input layer. Buffer/mode/Z-motion/config systems can be built on this foundation without further compiler-side asks for now.
 
 ## Key decisions captured
 

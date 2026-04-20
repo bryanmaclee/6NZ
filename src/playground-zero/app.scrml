@@ -1,108 +1,91 @@
-// playground-zero — first 6nz scrml experiment (workaround edition).
+// playground-zero — first 6nz scrml experiment (working).
 //
-// Goal: prove the scrml stack can drive 6nz's input layer end-to-end.
 // Implements the Z-motion release-order classifier (SPEC v0.4 §5).
-//
-// This file uses workarounds for four compiler bugs documented in
-// ../../handOffs/hand-off.md (and reported to scrmlTS 2026-04-20):
-//   Bug 1 — onkeydown/onkeyup attribute bindings drop the `event` arg
-//           -> workaround: attach listeners directly in a ^{} block
-//   Bug 2 — `let x = A; if (cond) x = B` emits shadow `const x = B`
-//           -> workaround: compute the value as a single expression
-//   Bug 3 — multi-statement arrow bodies inside `.map()` are dropped
-//           -> workaround: use a for-loop that appends to a fresh array
-//   Bug 4 — name-mangling bleeds onto DOM method calls when a user
-//           function shares the name
-//           -> workaround: avoid naming user functions after DOM methods
-//
-// The idiomatic version (what we'd LIKE to write) is in
-// app.idiomatic-blocked.scrml alongside. When the bugs land, that
-// file should compile and run identically to this one.
+// Proves the scrml stack can drive 6nz's input layer end-to-end:
+// keyboard event streams, reactive state, list rendering, scoped styles.
 //
 // Run: scrml dev src/playground-zero/app.scrml
+//
+// Classification rule (per SPEC v0.4 §5):
+//   When key K goes UP:
+//     - If an earlier-pressed key is STILL down  -> K is a ROLL
+//     - Else if keys were released during K's lifetime -> K is a HOLD
+//     - Else                                     -> K is a TAP
 
 <program>
 
 ${
+    // Currently-down keys, in the order they were pressed.
+    // Each entry: { key: string, releasedDuringLifetime: number }
     @pressed = []
+
+    // Last classification result (displayed prominently).
     @lastEvent = "press keys to begin"
+
+    // Short history of recent classifications (newest first).
     @log = []
 
     function classifyKeyup(key) {
-        let idx = -1
-        for (let i = 0; i < @pressed.length; i = i + 1) {
-            if (@pressed[i].key == key) { idx = i }
-        }
+        const idx = @pressed.findIndex(e => e.key == key)
         if (idx < 0) { return }
 
         const entry = @pressed[idx]
         const hasEarlierStillDown = idx > 0
 
-        // Single-expression classification (Bug 2 workaround).
-        const classification = hasEarlierStillDown
-            ? "ROLL"
-            : (entry.releasedDuringLifetime > 0 ? "HOLD" : "TAP")
-
-        // For-loop array rebuild (Bug 3 workaround for .map + filter).
-        let next = []
-        for (let i = 0; i < @pressed.length; i = i + 1) {
-            if (i == idx) {
-                // skip released
-            } else if (i < idx) {
-                next = [...next, { key: @pressed[i].key, releasedDuringLifetime: @pressed[i].releasedDuringLifetime + 1 }]
-            } else {
-                next = [...next, @pressed[i]]
-            }
+        let classification = "TAP"
+        if (hasEarlierStillDown) {
+            classification = "ROLL"
+        } else if (entry.releasedDuringLifetime > 0) {
+            classification = "HOLD"
         }
-        @pressed = next
+
+        // Every still-down earlier key gets its released-during-lifetime count bumped,
+        // so when THAT key eventually releases it knows things happened during its window.
+        const bumped = @pressed.map((e, i) => {
+            if (i < idx) {
+                return { key: e.key, releasedDuringLifetime: e.releasedDuringLifetime + 1 }
+            }
+            return e
+        })
+
+        // Remove the released key.
+        @pressed = bumped.filter((_, i) => i != idx)
 
         @lastEvent = classification + "(" + key + ")"
         @log = [@lastEvent, ...@log].slice(0, 12)
     }
 
-    function pressKey(key) {
-        let already = false
-        for (let i = 0; i < @pressed.length; i = i + 1) {
-            if (@pressed[i].key == key) { already = true }
-        }
+    function handleKeyDown(e) {
+        // Ignore repeats (held key auto-firing keydown).
+        if (e.repeat) { return }
+
+        const already = @pressed.some(entry => entry.key == e.key)
         if (already) { return }
-        @pressed = [...@pressed, { key: key, releasedDuringLifetime: 0 }]
+
+        @pressed = [...@pressed, { key: e.key, releasedDuringLifetime: 0 }]
     }
 
-    function clearAll() {
+    function handleKeyUp(e) {
+        classifyKeyup(e.key)
+    }
+
+    function reset() {
         @pressed = []
         @lastEvent = "reset"
         @log = []
-    }
-
-    // Bug 1 workaround — attach keydown/keyup in a runtime ^{} block
-    // rather than via onkeydown= / onkeyup= attribute bindings. This
-    // also lets us call preventDefault() to keep the textarea from
-    // actually consuming the keystrokes during classification.
-    ^{
-        const surface = document.querySelector(".surface")
-        if (surface) {
-            surface.addEventListener("keydown", (e) => {
-                if (e.repeat) { return }
-                pressKey(e.key)
-                e.preventDefault()
-            })
-            surface.addEventListener("keyup", (e) => {
-                classifyKeyup(e.key)
-                e.preventDefault()
-            })
-        }
     }
 }
 
 <div class="app">
     <h1>playground-zero</>
-    <p class="subtitle">Z-motion release-order classifier — first scrml-native 6nz experiment.</>
+    <p class="subtitle">Z-motion release-order classifier — the first scrml-native 6nz experiment.</>
 
     <div class="panel">
-        <label>Input surface (click to focus, then press keys):</>
+        <label>Input surface (focus + press keys):</>
         <textarea
             class="surface"
+            onkeydown=handleKeyDown()
+            onkeyup=handleKeyUp()
             placeholder="Click here, then roll your fingers across the home row."
             rows="4"
         ></textarea>
@@ -110,21 +93,21 @@ ${
 
     <div class="panel status">
         <div class="row">
-            <span class="slabel">Last classification:</>
+            <span class="label">Last classification:</>
             <span class="value">${@lastEvent}</>
         </>
         <div class="row">
-            <span class="slabel">Currently down:</>
+            <span class="label">Currently down:</>
             <span class="value">${@pressed.map(e => e.key).join(" ")}</>
         </>
     </>
 
     <div class="panel">
         <div class="row">
-            <span class="slabel">Event log:</>
-            <button class="reset-btn" onclick=clearAll()>Clear</>
+            <span class="label">Event log:</>
+            <button class="reset-btn" onclick=reset()>Clear</>
         </>
-        <ol class="loglist">
+        <ol class="log">
             ${
                 for (let line of @log) {
                     lift <li>${line}</>
@@ -207,7 +190,7 @@ ${
         align-items: center;
     }
 
-    .slabel {
+    .label {
         color: #888;
         font-size: 0.8rem;
     }
@@ -231,7 +214,7 @@ ${
 
     .reset-btn:hover { background: #444; }
 
-    .loglist {
+    .log {
         margin: 0.5rem 0 0;
         padding-left: 1.2rem;
         color: #ccc;
@@ -240,7 +223,7 @@ ${
         overflow-y: auto;
     }
 
-    .loglist li { padding: 0.1rem 0; }
+    .log li { padding: 0.1rem 0; }
 
     .notes {
         color: #aaa;
