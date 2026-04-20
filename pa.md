@@ -7,13 +7,13 @@
 ## Current state
 
 - **Design decisions made** (see `editor-README.md` + scrml-support deep-dives)
-- **Z-motion spec** planned (will be open source — give back to NeoVim)
+- **Z-motion spec** planned (will be open source)
 - **No source code yet** — compiler API exposure is a prerequisite
 
 ## Licensing split (user decision)
 
 - **6nz editor implementation**: proprietary / commercial (the product)
-- **Z-motion spec**: free + open source (CC0 1.0 Universal — locked in `z-motion-spec/LICENSE`), so NeoVim and others can adopt
+- **Z-motion spec**: free + open source (CC0 1.0 Universal — locked in `z-motion-spec/LICENSE`), free for anyone to adopt
 
 ## Scope principle
 

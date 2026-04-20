@@ -19,6 +19,7 @@
 - **Verified GitHub Pages is live** at https://bryanmaclee.github.io/6NZ/ (HTTP 200, 95 KB, serving prototype). Initial deploy failed red — fixed by flipping repo Settings → Pages → Source = "GitHub Actions".
 - **Audited scrmlTS blurb about 6nz** (5 claims: focus-centered viewport / NeoVim-superset + mouse / CM6 + canvas overlay / offline-first PWA / Z-motion CC0) — all accurate against locked decisions here. No correction message sent.
 - **Tightened `pa.md:16`** — "MIT or CC0" → "CC0 1.0 Universal (locked in `z-motion-spec/LICENSE`)". Decision has been locked since session 3; pa.md was stale.
+- **Dropped "NeoVim can adopt" predictions** from pa.md, README.md, z-motion-spec/README.md — framing sounded too confident. Kept factual lineage references (Z-motion extends Vim/NeoVim motion grammar; 6nz is a NeoVim-inspired superset).
 
 ## Key decisions captured
 

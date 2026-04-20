@@ -41,8 +41,8 @@ than counted (`5w`).
 
 The Z-motion specification is published under **CC0 1.0 Universal** (public
 domain dedication). You may implement it, extend it, fork it, embed it in a
-proprietary product, or adopt it into NeoVim or any other editor without
-attribution or permission.
+proprietary product, or adopt it into any editor without attribution or
+permission.
 
 Z-motion draws directly on the NeoVim/Vim motion tradition. Publishing the
 specification in the public domain is an intentional act of reciprocity.
