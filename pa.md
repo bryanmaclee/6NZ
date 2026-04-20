@@ -43,7 +43,7 @@ Current truth only. Design decisions live here *when they're locked*. Speculativ
 
 ## What NOT to do
 
-- Do not start implementation before compiler API is exposed
+- Exploratory scrml implementation is encouraged — find out what works by writing. The editor shell, buffer model, input/event handling, mode machine, Z-motion classifier, config system, and UI primitives can all start now. Semantic features (relevance view content, live diagnostics, completions) remain gated on scrmlTS compiler API exposure — don't scaffold those until the API is real.
 - Do not import research docs here — they stay in scrml-support
 - Do not conflate the editor (closed) with z-motion spec (open)
 
@@ -71,10 +71,13 @@ when work is needed there. Cross-repo coordination happens through the user, not
 - `/home/bryan-maclee/scrmlMaster/scrml-support/docs/deep-dives/` — research context (on demand)
 - `/home/bryan-maclee/scrmlMaster/scrml-support/design-insights.md` — debate outcomes (on demand)
 
+### What this PA reads from scrmlTS (absolute paths, read-only)
+- `/home/bryan/scrmlMaster/scrmlTS/` — scrml language reference: spec, tutorial, examples, syntax docs. Read-only for language lookup while authoring 6nz source. No writes. Do not infer scrmlTS's current roadmap/state from its code — that's cross-repo coordination, which still goes through the user.
+
 ### What this PA does NOT touch
-- Any file outside this repo (except the reads listed above from scrml-support)
+- Any file outside this repo (except the reads listed above from scrml-support and scrmlTS)
 - `~/projects/scrml8/` — FROZEN, read-only archive
-- Other project repos (scrmlTS, scrml-support, giti) — **except** writing message files into their `handOffs/incoming/` (see Cross-repo messaging below)
+- Other project repos (scrml-support, giti, and scrmlTS beyond read-only language reference) — **except** writing message files into their `handOffs/incoming/` (see Cross-repo messaging below)
 
 ### Session-start checklist (this repo only)
 1. Read `pa.md` (this file)
