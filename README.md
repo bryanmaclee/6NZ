@@ -6,6 +6,14 @@ A purpose-built code editor for the [scrml](../scrmlTS) ecosystem — an
 **Status:** design phase. No implementation yet — awaiting compiler API exposure
 in scrmlTS.
 
+## Try it
+
+[**Live playground →**](https://bryanmaclee.github.io/6NZ/) — a playable prototype
+of the editor feel: vim normal/visual, Z-motion insert layer, syntax highlighting,
+command palette, virtual workspace. Vanilla JS on a textarea (not the real editor
+architecture, but the input model is real). Source at
+[`proto/6nz-playable/`](./proto/6nz-playable/).
+
 ## What's here
 
 - [`editor-README.md`](./editor-README.md) — design principles (focus-centered
