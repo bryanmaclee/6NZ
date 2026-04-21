@@ -23,11 +23,8 @@
 ${
     type Mode:enum = { Insert, Normal, Visual, VisualLine, ToggleHold }
 
-    // Using `function` instead of `fn ... -> string` — scrml compiler drops
-    // the function wrapper on `fn name() -> T {}` decls (bug reported to
-    // scrmlTS, 2026-04-20). Plain `function` works correctly.
-    function modeName(m) {
-        return match m {
+    fn modeName(m: Mode) -> string {
+        match m {
             .Insert => "INSERT"
             .Normal => "NORMAL"
             .Visual => "VISUAL"
