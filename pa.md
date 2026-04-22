@@ -104,10 +104,12 @@ when work is needed there. Cross-repo coordination happens through the user, not
 - Session header: `## Session N — YYYY-MM-DD` (N is this repo's session count)
 - Only append user statements relevant to **this repo**; if a statement concerns a sibling repo, drop a message into their `handOffs/incoming/` instead
 
+### Commit authorization
+Commits to main are allowed only after explicit user authorization in the current session. Confirm with the user before the first commit of a session, and before any push. Authorization stands for the scope specified, not beyond. Push-to-origin still goes through master-PA push coordination. Force-push / hook bypass / destructive ops stay explicitly-authorized-only.
+
 ### What NOT to do
 - Do not edit files in other repos (the user will open a different Claude instance). The single exception is dropping message files into `<sibling>/handOffs/incoming/` — see Cross-repo messaging below.
 - Do not modify scrml8 (frozen)
-- Do not commit to main directly
 - Do not bypass pre-commit hooks without explicit user authorization
 - Do not run resource-mapper in write mode on scrml8 (frozen)
 - Do not treat stale sources as authoritative — check currency flags
@@ -150,6 +152,20 @@ status: unread
 
 <body — what happened, what the recipient should know or do, file paths / repros / links>
 ```
+
+### Cross-repo bug reports — reproducer source required
+
+When this PA files a bug report into another repo's `handOffs/incoming/` — or when this PA receives one — the report MUST include a minimal scrml reproducer:
+- **Inline** as a ` ```scrml ` fenced block in the message body (preferred for ≤ ~200 lines), OR
+- **Sidecar file** dropped next to the message: `YYYY-MM-DD-HHMM-<slug>.scrml` (same stem as the `.md`)
+
+Reproducer must be:
+- **Self-contained** — runnable against the receiving repo's current compiler without external setup
+- **Minimal** — smallest scrml that still exhibits the bug
+- **Version-stamped** — exact command used and compiler SHA (e.g., `scrml compile repro.scrml` against `scrmlTS@ccae1f6`)
+- **Expected vs actual** — state both in the report body
+
+As SENDER (6nz's typical role): attach the offending scrml (from a `playground-*` file if that's where the bug surfaced) every time. As RECEIVER (rare): do not begin diagnosis without the reproducer — reply-request source before acting.
 
 ### Session-start: check incoming
 
