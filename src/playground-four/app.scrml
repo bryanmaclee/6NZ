@@ -1,0 +1,556 @@
+// playground-four — undo/redo TREE on a line-indexed buffer.
+//
+// Every keystroke that modifies the buffer creates a new node in a tree.
+// The tree branches when you undo past an edit and then make a different
+// edit: the old branch is preserved, reachable via chronological navigation.
+//
+// Nav:
+//   Keystrokes          -> append edit node (child of current)
+//   u                   -> undo: jump to parent
+//   Ctrl+R              -> redo: jump to youngest child (most recent)
+//   g-                  -> chronological back (node.id - 1)
+//   g+                  -> chronological forward (node.id + 1)
+//   Esc                 -> toggle Insert / Normal (Normal is where u / Ctrl+R / g-/g+ live)
+//   hjkl in Normal      -> move cursor
+//
+// Not tested here (defer to other playgrounds):
+//   z-motion, visual selection, mouse, saving, real CM6 surface.
+//
+// Architectural notes for the bug-hunt journal:
+//   - Uses deeply-nested reactive state (@nodes: array of objects, each
+//     with a children array and a lines array). Stress-tests scrml's
+//     deep reactivity + immutable-update patterns.
+//   - Tree view is rendered as a plain string via renderTree(...) + <pre>
+//     inline interpolation. Avoids for-lift (still accumulating per Bug 5).
+//   - Keystroke granularity deliberately fine — a real editor would
+//     coalesce to word / operator boundaries. Here we want the tree to
+//     grow fast so the nav + rendering is exercised.
+//
+// Run: scrml dev src/playground-four/app.scrml
+
+<program>
+
+${
+    type EditKind:enum = { Initial, InsertChar, Backspace, NewLine }
+
+    // `function kindLabel(k: EditKind) -> string { match k { … } }` parses
+    // but the codegen emits the match-IIFE without a `return` in front,
+    // producing a function that always returns undefined. Using the `fn`
+    // shorthand (which has implicit-return as of Bug G fix) instead.
+    // New bug — noted for a separate filing.
+    fn kindLabel(k: EditKind) -> string {
+        match k {
+            .Initial     => "root"
+            .InsertChar  => "ins"
+            .Backspace   => "bs"
+            .NewLine     => "nl"
+        }
+    }
+
+    // --- Initial state ------------------------------------------------
+
+    // @nodes is an array indexed by id. Node shape:
+    //   { id, parent, children, kind, meta, lines, cursorLine, cursorCol, time }
+    // parent === -1 marks the root.
+    @nodes = [
+        {
+            id: 0,
+            parent: -1,
+            children: [],
+            kind: EditKind.Initial,
+            meta: "",
+            lines: [""],
+            cursorLine: 0,
+            cursorCol: 0,
+            time: 0
+        }
+    ]
+    @current = 0
+    @nextId  = 1
+    @mode    = "insert"
+    @__lastKey = ""
+    @status  = "ready — type to edit, Esc for Normal, then u / Ctrl+R / g- / g+"
+
+    // --- Pure helpers --------------------------------------------------
+    //
+    // Helpers named `lines`, `cursorLine`, `cursorCol` would collide with
+    // record field names of the same name — the compiler renames every
+    // `.lines` / `.cursorLine` / `.cursorCol` field access in the file
+    // to `._scrml_lines_N` etc, breaking record access. (Noted for
+    // filing — recurrence of Bug D family.) Prefixed `cn*` to avoid.
+
+    function curNode() { return @nodes[@current] }
+
+    function cnLines() { return curNode().lines }
+    function cnLine(n) { return curNode().lines[n] }
+    function cnLineNum() { return curNode().cursorLine }
+    function cnColNum()  { return curNode().cursorCol  }
+
+    // --- Edit application (produces a new { lines, cursorLine, cursorCol })
+
+    function applyInsert(ch) {
+        const ls = cnLines()
+        const li = cnLineNum()
+        const co = cnColNum()
+        const row = ls[li]
+        const newRow = row.slice(0, co) + ch + row.slice(co)
+        const newLines = ls.map((r, i) => i == li ? newRow : r)
+        return { lines: newLines, cursorLine: li, cursorCol: co + 1 }
+    }
+
+    function applyBackspace() {
+        const ls = cnLines()
+        const li = cnLineNum()
+        const co = cnColNum()
+        if (co > 0) {
+            const row = ls[li]
+            const newRow = row.slice(0, co - 1) + row.slice(co)
+            const newLines = ls.map((r, i) => i == li ? newRow : r)
+            return { lines: newLines, cursorLine: li, cursorCol: co - 1 }
+        }
+        if (li > 0) {
+            const prev = ls[li - 1]
+            const cur  = ls[li]
+            const joinedCol = prev.length
+            const merged = prev + cur
+            const newLines = []
+            for (let i = 0; i < ls.length; i = i + 1) {
+                if (i == li - 1) { newLines.push(merged) }
+                else if (i == li) { /* drop */ }
+                else { newLines.push(ls[i]) }
+            }
+            return { lines: newLines, cursorLine: li - 1, cursorCol: joinedCol }
+        }
+        // Can't backspace past origin.
+        return { lines: ls, cursorLine: li, cursorCol: co }
+    }
+
+    function applyNewline() {
+        const ls = cnLines()
+        const li = cnLineNum()
+        const co = cnColNum()
+        const row = ls[li]
+        const leftHalf  = row.slice(0, co)
+        const rightHalf = row.slice(co)
+        const newLines = []
+        for (let i = 0; i < ls.length; i = i + 1) {
+            if (i == li) { newLines.push(leftHalf); newLines.push(rightHalf) }
+            else         { newLines.push(ls[i]) }
+        }
+        return { lines: newLines, cursorLine: li + 1, cursorCol: 0 }
+    }
+
+    // --- Tree mutation: commit a new node as a child of @current -------
+
+    function commit(kind: EditKind, meta, result) {
+        const id = @nextId
+        const parent = @current
+
+        const newNode = {
+            id: id,
+            parent: parent,
+            children: [],
+            kind: kind,
+            meta: meta,
+            lines: result.lines,
+            cursorLine: result.cursorLine,
+            cursorCol: result.cursorCol,
+            time: id
+        }
+
+        // CRITICAL: one atomic write. Doing two sequential @nodes = ...
+        // writes (first .map to append child id to parent's children,
+        // then spread + newNode) fires the reactive render effect
+        // between them — and between those writes the parent references
+        // a child id that doesn't exist yet, so renderTree throws and
+        // the throw propagates out of the reactive-set call, halting
+        // commit() before the second write runs. Result: every OTHER
+        // keystroke gets lost.
+        const updatedParents = @nodes.map((n, i) => {
+            if (i == parent) {
+                return {
+                    id: n.id, parent: n.parent,
+                    children: [...n.children, id],
+                    kind: n.kind, meta: n.meta,
+                    lines: n.lines,
+                    cursorLine: n.cursorLine,
+                    cursorCol: n.cursorCol,
+                    time: n.time
+                }
+            }
+            return n
+        })
+        @nodes = [...updatedParents, newNode]
+        @current = id
+        @nextId  = id + 1
+    }
+
+    // --- Navigation ---------------------------------------------------
+
+    function gotoNode(id) {
+        if (id < 0 || id >= @nodes.length) { return false }
+        @current = id
+        return true
+    }
+
+    function undo() {
+        const n = curNode()
+        if (n.parent < 0) { @status = "undo: at root"; return }
+        gotoNode(n.parent)
+        @status = "undo -> node " + @current
+    }
+
+    function redo() {
+        const n = curNode()
+        if (n.children.length == 0) { @status = "redo: no children"; return }
+        // Youngest child = last in list (we append on commit).
+        const child = n.children[n.children.length - 1]
+        gotoNode(child)
+        @status = "redo -> node " + @current
+    }
+
+    function gMinus() {
+        if (@current <= 0) { @status = "g-: at node 0"; return }
+        gotoNode(@current - 1)
+        @status = "g- -> node " + @current
+    }
+
+    function gPlus() {
+        if (@current >= @nodes.length - 1) { @status = "g+: at newest"; return }
+        gotoNode(@current + 1)
+        @status = "g+ -> node " + @current
+    }
+
+    // --- Normal-mode cursor motion (operates on the CURRENT snapshot) --
+    // These don't commit new nodes — they just move cursor fields on the
+    // current node. Same immutable-update discipline.
+
+    function updateCurrentCursor(newLine, newCol) {
+        @nodes = @nodes.map((n, i) => {
+            if (i != @current) { return n }
+            return {
+                id: n.id, parent: n.parent, children: n.children,
+                kind: n.kind, meta: n.meta,
+                lines: n.lines,
+                cursorLine: newLine, cursorCol: newCol,
+                time: n.time
+            }
+        })
+    }
+
+    function motionLeft() {
+        const co = cnColNum()
+        if (co > 0) { updateCurrentCursor(cnLineNum(), co - 1) }
+    }
+
+    function motionRight() {
+        const li = cnLineNum()
+        const co = cnColNum()
+        const len = cnLine(li).length
+        if (co < len) { updateCurrentCursor(li, co + 1) }
+    }
+
+    function motionUp() {
+        const li = cnLineNum()
+        if (li == 0) { return }
+        const co = cnColNum()
+        const prev = cnLine(li - 1)
+        const newCol = Math.min(co, prev.length)
+        updateCurrentCursor(li - 1, newCol)
+    }
+
+    function motionDown() {
+        const li = cnLineNum()
+        if (li >= cnLines().length - 1) { return }
+        const co = cnColNum()
+        const next = cnLine(li + 1)
+        const newCol = Math.min(co, next.length)
+        updateCurrentCursor(li + 1, newCol)
+    }
+
+    // --- Rendering (plain strings; avoids for-lift for now) -----------
+
+    function renderBuffer(ls, li, co) {
+        // Render with a visible cursor caret inserted at (li, co).
+        // Cursor is a highlighted character (the char it sits on), with
+        // end-of-line showing a trailing block.
+        let out = ""
+        for (let i = 0; i < ls.length; i = i + 1) {
+            const row = ls[i]
+            if (i == li) {
+                const before = row.slice(0, co)
+                const at     = co < row.length ? row[co] : " "
+                const after  = co < row.length ? row.slice(co + 1) : ""
+                out = out + before + "[" + at + "]" + after
+            } else {
+                out = out + row
+            }
+            if (i < ls.length - 1) { out = out + "\n" }
+        }
+        return out
+    }
+
+    // Depth-first walk of the tree, producing an indented string.
+    // Uses explicit stack — scrml functions can't trivially recurse by name
+    // inside a reactive scope without capture surprises, so iterative.
+    function renderTree(nodes, currentId) {
+        // stack items: { id: int, depth: int, isLast: bool }
+        let stack = [ { id: 0, depth: 0, isLast: true } ]
+        let out = ""
+        while (stack.length > 0) {
+            const top = stack[stack.length - 1]
+            stack = stack.slice(0, stack.length - 1)
+
+            const n = nodes[top.id]
+            const marker = top.id == currentId ? ">" : " "
+            const indent = "  ".repeat(top.depth)
+
+            let metaStr = ""
+            if (n.kind == EditKind.InsertChar) { metaStr = " '" + n.meta + "'" }
+            else if (n.kind == EditKind.Backspace) { metaStr = "" }
+            else if (n.kind == EditKind.NewLine)   { metaStr = "" }
+
+            out = out + marker + " " + indent + "#" + n.id + " " + kindLabel(n.kind) + metaStr + "\n"
+
+            // Push children in reverse so oldest is processed first.
+            for (let i = n.children.length - 1; i >= 0; i = i - 1) {
+                stack = [...stack, { id: n.children[i], depth: top.depth + 1, isLast: i == 0 }]
+            }
+        }
+        return out
+    }
+
+    // --- Keyboard ------------------------------------------------------
+
+    function handleKeyDown(e) {
+        e.preventDefault()
+        @__lastKey = e.key
+
+        if (e.key == "Escape") {
+            @mode = @mode == "insert" ? "normal" : "insert"
+            @status = "-> " + @mode
+            return
+        }
+
+        if (@mode == "insert") {
+            if (e.key == "Backspace") {
+                commit(EditKind.Backspace, "", applyBackspace())
+                @status = "insert: backspace"
+                return
+            }
+            if (e.key == "Enter") {
+                commit(EditKind.NewLine, "", applyNewline())
+                @status = "insert: newline"
+                return
+            }
+            if (e.key.length == 1) {
+                commit(EditKind.InsertChar, e.key, applyInsert(e.key))
+                @status = "insert: '" + e.key + "'"
+                return
+            }
+            return
+        }
+
+        // Normal mode
+        if (e.ctrlKey && ((e.key == "r") || (e.key == "R"))) { redo(); return }
+        if (e.key == "u") { undo(); return }
+        if (e.key == "-") { gMinus(); return }
+        if (e.key == "+" || e.key == "=") { gPlus(); return }
+        if (e.key == "h") { motionLeft(); @status  = "h"; return }
+        if (e.key == "l") { motionRight(); @status = "l"; return }
+        if (e.key == "j") { motionDown(); @status  = "j"; return }
+        if (e.key == "k") { motionUp(); @status    = "k"; return }
+        if (e.key == "i") { @mode = "insert"; @status = "-> insert"; return }
+        @status = "normal: ignored " + e.key
+    }
+
+    function reset() {
+        @nodes = [{
+            id: 0, parent: -1, children: [], kind: EditKind.Initial, meta: "",
+            lines: [""], cursorLine: 0, cursorCol: 0, time: 0
+        }]
+        @current = 0
+        @nextId  = 1
+        @mode    = "insert"
+        @status  = "reset"
+    }
+
+    const @isInsert = @mode == "insert"
+}
+
+<div class="app">
+    <h1>playground-four — undo tree</>
+    <p class="subtitle">keystroke-granular tree. u / Ctrl+R walk branches. g- / g+ walk chronology.</>
+
+    <div class="mode-wrap">
+        <span class="badge insert" if=@isInsert>INSERT</>
+        <span class="badge normal" if=(@mode == "normal")>NORMAL</>
+    </>
+
+    <div
+        class="surface"
+        tabindex="0"
+        onkeydown=handleKeyDown()
+    >
+        <div class="label">BUFFER</>
+        <!-- Inlining @nodes[@current] rather than curNode() — the compiler
+             doesn't emit display wiring for markup interpolations whose
+             only reactive reads happen behind a helper function call
+             (new bug, noted for filing). Direct @-refs in the
+             interpolation expression do get wired. -->
+        <pre class="buffer">${renderBuffer(@nodes[@current].lines, @nodes[@current].cursorLine, @nodes[@current].cursorCol)}</pre>
+
+        <div class="label">TREE (&gt; marks current)</>
+        <pre class="tree">${renderTree(@nodes, @current)}</pre>
+
+        <div class="hint">${@status}</>
+    </>
+
+    <div class="panel notes">
+        <div><strong>Keys:</></>
+        <div><code>Insert mode</code> — type chars, Backspace, Enter</>
+        <div><code>Esc</code> — toggle mode</>
+        <div><code>Normal mode</code> — <code>u</code> undo · <code>Ctrl+R</code> redo · <code>-</code> older · <code>=</code> newer · <code>hjkl</code> motion · <code>i</code> insert</>
+        <div><strong>Try:</> type "abc", Esc, u u u (back to root), i, type "xyz", Esc, then = / - to walk chronology across branches.</>
+    </>
+
+    <button class="reset-btn" onclick=reset()>Reset</>
+</>
+
+#{
+    body {
+        margin: 0;
+        background: #1a1a1a;
+        color: #e0e0e0;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    .app {
+        max-width: 960px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+
+    h1 {
+        color: #ffa500;
+        margin: 0 0 0.25rem;
+        font-size: 1.4rem;
+    }
+
+    .subtitle {
+        color: #888;
+        margin: 0 0 1.25rem;
+        font-size: 0.85rem;
+    }
+
+    .mode-wrap {
+        text-align: center;
+        margin-bottom: 1rem;
+        min-height: 2.8rem;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.45rem 1.4rem;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.25em;
+        border-radius: 6px;
+        border: 2px solid currentColor;
+    }
+
+    .badge.insert { color: #ffa500; background: rgba(255, 165, 0, 0.1); }
+    .badge.normal { color: #88ff88; background: rgba(136, 255, 136, 0.1); }
+
+    .surface {
+        border: 2px solid #333;
+        border-radius: 6px;
+        padding: 1rem 1.2rem;
+        background: #111;
+        outline: none;
+    }
+
+    .surface:focus { border-color: #ffa500; }
+
+    .label {
+        color: #888;
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        margin-top: 0.6rem;
+    }
+
+    .label:first-child { margin-top: 0; }
+
+    .buffer {
+        background: #0a0a0a;
+        border: 1px solid #222;
+        border-radius: 4px;
+        padding: 0.6rem 0.8rem;
+        margin: 0.35rem 0 0.4rem;
+        color: #e0e0e0;
+        font-family: inherit;
+        font-size: 0.95rem;
+        line-height: 1.45;
+        min-height: 5rem;
+        white-space: pre-wrap;
+    }
+
+    .tree {
+        background: #0a0a0a;
+        border: 1px solid #222;
+        border-radius: 4px;
+        padding: 0.6rem 0.8rem;
+        margin: 0.35rem 0 0.4rem;
+        color: #ccc;
+        font-family: inherit;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        min-height: 5rem;
+        max-height: 16rem;
+        overflow-y: auto;
+        white-space: pre;
+    }
+
+    .hint {
+        color: #888;
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+        min-height: 1.2em;
+    }
+
+    .notes {
+        margin-top: 1rem;
+        padding: 0.85rem 1rem;
+        background: #222;
+        border: 1px solid #333;
+        border-radius: 6px;
+        color: #aaa;
+        font-size: 0.82rem;
+        line-height: 1.7;
+    }
+
+    .notes strong { color: #ffa500; }
+    .notes code {
+        color: #88ff88;
+        background: #111;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 0.78rem;
+    }
+
+    .reset-btn {
+        margin-top: 0.9rem;
+        background: #333;
+        color: #e0e0e0;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 0.35rem 0.85rem;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.82rem;
+    }
+
+    .reset-btn:hover { background: #444; }
+}
+
+</program>
