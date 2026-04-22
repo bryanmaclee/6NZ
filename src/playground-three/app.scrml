@@ -64,9 +64,15 @@ ${
         // the loaded module on window.__cmMod, then dispatches a custom
         // event so scrml can pick it up. Dynamic `import()` isn't visible
         // to scrml's parser, so we do it via a type="module" script tag.
+        //
+        // CM6's `codemirror` meta-package only re-exports basicSetup;
+        // EditorView lives in @codemirror/view. Each symbol has to be
+        // named individually in the bridge. Also pinning @6.0.2 explicitly
+        // — esm.sh resolves bare `@6` to a bogus 6.65.7 CM5 bundle.
         const scriptText =
-            "import * as cm from 'https://esm.sh/codemirror@6'; " +
-            "window.__cmMod = cm; " +
+            "import {basicSetup} from 'https://esm.sh/codemirror@6.0.2'; " +
+            "import {EditorView} from 'https://esm.sh/@codemirror/view@6'; " +
+            "window.__cmMod = { basicSetup, EditorView }; " +
             "window.dispatchEvent(new CustomEvent('cm-loaded'));"
         const script = document.createElement("script")
         script.type = "module"
@@ -75,14 +81,9 @@ ${
         window.addEventListener("cm-loaded", function() { onCmReady(window.__cmMod) }, { once: true })
         document.body.appendChild(script)
     }
-
-    // `^{}` over-captures function-local bindings (host, nl, sampleDoc,
-    // etc. from onCmReady + loadCm) into its env object at module scope,
-    // where those names don't exist — throws "host is not defined" on
-    // mount. Working around by firing loadCm() via a reactive initializer
-    // instead, which executes at module init without building an env.
-    @_bootstrap = loadCm()
 }
+
+^{ loadCm() }
 
 <div class="app">
     <h1>playground-three — CM6 probe</h1>
