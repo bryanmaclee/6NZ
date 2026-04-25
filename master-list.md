@@ -2,7 +2,7 @@
 
 **Purpose:** Live inventory of the 6nz editor repo.
 
-**Last updated:** 2026-04-22 (S9)
+**Last updated:** 2026-04-25 (S10)
 
 **Status:** Exploratory implementation phase. Four scrml-native playgrounds committed. CM6 mount verified end-to-end via esm.sh bridge. Editor scaffolding proper still waiting on compiler API exposure in scrmlTS.
 
@@ -90,11 +90,11 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 
 ## D. Prerequisites
 
-- [ ][ ] **Compiler API exposure** — still pending. `scrmlTS` must expose a programmatic API so the editor can call into the compiler for semantic features (completion, live diagnostics, relevance-region resolution). Cross-repo message sent session 4; scrmlTS noted local-server-on-Bun is a smaller ask than browser-PWA.
+- [x][~] **Compiler API exposure (LSP path)** — **partially shipped S40** (2026-04-24). scrmlTS shipped LSP L1+L2+L3 (108 new tests). `bun run lsp/server.js --stdio` exposes: outline (`documentSymbolProvider`), hover with signatures, completions (HTML/scrml/SQL/keywords) with triggers `< @ $ ? ^ # . : = space`, cross-file go-to-def, cross-file diagnostics, plus three scrml-unique completions (SQL column from `<db>` schema, component prop, import-clause). L4 (signature help + code actions) in progress; L5 (semantic tokens) deferred at our request — see §F. Architecture: 3-file split (`server.js` thin transport + `handlers.js` testable handlers + `workspace.js` cross-file cache). For 6nz this means semantic features (completion, live diagnostics, cross-file resolution) are reachable today via the LSP, before any in-process compiler API. Direct programmatic API for browser-PWA embedding still pending and remains the long-term path.
 - [ ][ ] **Performance + PWA architecture spec** — authored before scaffolding
 - [ ][ ] **scrml compiler in scrml** — needed so the editor (written in scrml) can embed the compiler directly
 
-**Note:** Exploratory implementation is now explicitly unblocked — editor shell / buffer / input / modes / Z-motion / config / UI primitives can all start now (and several have, see §A). Only semantic features (completion, live diagnostics, relevance view content) remain gated on compiler API exposure.
+**Note:** Exploratory implementation is unblocked, AND semantic features are now reachable through the LSP rather than fully gated on a programmatic API. The editor proper still needs the in-process compiler eventually (browser-PWA can't shell out to a Bun child process at runtime), but for development-time tooling and any near-term playground that wants live diagnostics or completions, the LSP is the path.
 
 ---
 
@@ -121,21 +121,30 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 - [x] playground-three — CM6 mount probe (esm.sh bridge)
 - [x] playground-four — undo tree on line-indexed buffer
 - [ ] playground-five (suggested) — CM6 + vim-modes integration: merge two's state machine + hjkl onto three's real CM6 surface. Moves us from "toy textareas" to "actually driving CM6." Expected to surface friction around CM6's own keymap vs scrml-side handlers.
+- [ ] playground-six (now possible, post-S40 LSP) — wire the scrmlTS LSP into a CM6 surface via stdio child-process. Exercise outline / completion / cross-file go-to-def / SQL-column completion from a live editor. First playground that integrates with the actual compiler.
 
 ### Housekeeping (not blocked)
-- [ ][ ] `.claude/maps/` refresh (stale since S2, pre-playgrounds)
+- [x][x] `.claude/maps/` refresh — done S10 (commit `6561d24`)
 
-### Blocked by compiler API (scrmlTS)
+### Blocked by in-process compiler API (browser-PWA)
 - [ ][ ] Editor scaffolding beyond playgrounds (CM6 + canvas overlay, real IR, real relevance view content)
 - [ ][ ] PWA architecture spec (depends on knowing compiler API shape)
-- [ ][ ] Live diagnostics, completions, semantic relevance region, compile-on-keystroke preview
+- [ ][ ] Compile-on-keystroke preview that runs in-browser without a server roundtrip
+
+### Reachable via LSP (was: blocked by compiler API)
+- [ ][ ] Live diagnostics in dev-time playgrounds (LSP `textDocument/publishDiagnostics`)
+- [ ][ ] Completions in dev-time playgrounds (LSP `textDocument/completion`, including SQL-column)
+- [ ][ ] Cross-file go-to-def in dev-time playgrounds (LSP `textDocument/definition`)
+- [ ][ ] Semantic relevance region preview from LSP `textDocument/documentSymbol` + cross-file references
 
 ---
 
 ## F. Cross-repo
 
 ### scrmlTS (compiler)
-- Session 9 interaction was dense: scrmlTS shipped fixes for Bug G, 1, 3, 4, 5, 6 across the span (scrmlTS S37 closed at commit `9540518` with 7,393 tests pass; all six fixes landed pre-close, zero regressions). 6nz filed four more (H, I, J, K) from playground-four with inline + sidecar repros per the new pa.md rule.
+- Session 9 interaction was dense: scrmlTS shipped fixes for Bug G, 1, 3, 4, 5, 6 across the span (scrmlTS S37 closed at commit `9540518` with 7,393 tests pass; all six fixes landed pre-close, zero regressions). 6nz filed four more (H, I, J, K) from playground-four with inline + sidecar repros per the new pa.md rule. Re-filed S10 (2026-04-25) as a dedicated message + standalone sidecars in case the original bundling made them easy to overlook.
+- **S40 LSP unlock (2026-04-24).** scrmlTS shipped LSP L1+L2+L3 in three commits (`e1827e6` / `14cc1d1` / `24712f5`); 108 new tests. Capabilities: outline, hover-with-signatures, completions across all contexts (HTML / scrml / SQL / keywords), cross-file go-to-def, cross-file diagnostics, plus three scrml-unique completions (SQL column from `<db>` schema, component prop, import-clause). L4 (signature help + code actions) in progress. **L5 (semantic tokens) deferred at our request** — 6nz's locked CM6 + canvas overlay + spatial-panels architecture supersedes inline semantic-token coloring as our annotation strategy. Reply sent 2026-04-25.
+- **Bun.SQL codegen shape change** (`cd8dea1` Phase 1 + `9ef0ccb` Phase 2): `?{}` blocks now emit `await _scrml_sql\`...\`` (was `_scrml_db.query("...").all()`). Doesn't affect any current 6nz playground (none use SQL); flagged for any future SQL-touching playground.
 - **No npm escape hatch is coming**. scrmlTS ran a radical-doubt debate on a fourth init-tier (`--compat`) with npm-style deps. Verdict: **Phase 0 first** — (1) `^{}` polish (Bug 6 was the first shipped item), (2) `docs/external-js.md` translation table (shipped `c7198b6`), (3) `scrml vendor add` CLI (queued). Only if Phase 0 attempts-and-fails on adopter evidence does the fourth tier re-open. User accepted the verdict.
 - Implication for 6nz: the path for "I need CM6 / Monaco / D3" is through `^{}` polish + `vendor/` + translation docs, not `import`. Playground-three's esm.sh bridge is the current best pattern for libraries that have to load from a CDN; a second working example + a CM6-family cookbook entry are waiting to land.
 
