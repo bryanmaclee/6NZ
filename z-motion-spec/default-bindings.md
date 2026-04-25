@@ -1,31 +1,11 @@
 # Z-Motion Default Bindings
 
-**Companion to:** `SPEC.md` v0.4
-**Status:** Draft v0.2 — recommendation, not requirement.
-**Partially stale under v0.4** — see notice below.
+**Companion to:** `SPEC.md` v0.5
+**Status:** Draft v0.3 — recommendation, not requirement.
 **All bindings below are provisional.** Specific key assignments are a working
 draft. Expect revision once implementation experience tells us what actually
 feels good under the fingers. The spec mechanism is stable; the key map is not.
 **License:** CC0 1.0 Universal
-
----
-
-## ⚠ v0.4 status notice
-
-This draft was written against SPEC v0.3. Two changes in SPEC v0.4 make
-parts of this document obsolete:
-
-1. **FAMILY 2 (numeric count-hold) is dropped.** SPEC v0.4 §9 removes
-   the count family as redundant with compound rolls and incompatible
-   with keeping Shift out of the roll phase. The §2 section of this
-   document is retained for historical context only — do NOT ship it.
-2. **No calibration, no hold threshold, no roll window.** Any sentence
-   in this document that references timing disambiguation is stale.
-   The §5 classification rule (release order) replaces all of it.
-
-FAMILY 1 (letter-hold / home-row-roll) and its bindings are otherwise
-still valid under v0.4 and remain the default table. A clean rewrite
-(default-bindings.md v0.3) is a planned follow-up.
 
 ---
 
@@ -39,25 +19,19 @@ pairing, §8.3 multi-key hold direction).
 Recommendation only. Implementations are free to ship any default
 table; users are free to remap everything.
 
-## Two binding families
+## Single binding family
 
-This table uses two orthogonal families layered on the same grammar:
+The default table uses one family: **letter-hold / home-row-roll.** The
+hold is a single letter whose mnemonic is the motion *unit* (e.g. `[w]`
+= word). The roll phase supplies *magnitude and direction* via SPEC §8
+home-row rolls. Example: `[w](j)` = 1 word forward, `[w](jk)` = 2 words
+forward, `[w](l)` = 1 word back.
 
-1. **Letter-hold / home-row-roll.** The hold is a single letter whose
-   mnemonic is the motion *unit* (e.g. `[w]` = word). The roll phase
-   supplies *magnitude and direction* via §8 home-row rolls. Example:
-   `[w](j)` = 1 word forward, `[w](jk)` = 2 words forward, `[w](l)` =
-   1 word back.
-
-2. **Numeric count-hold / vim-letter roll.** The hold is a digit `1`–`9`
-   and the roll phase is a single Vim motion letter. `[3](w)` = 3
-   words forward, i.e. Vim's `3w`. Counts ≥ 10 are out of scope —
-   users who need larger counts fall back to traditional Vim normal
-   mode.
-
-Both families live in the same binding hashmap, per SPEC §7.2. A user
-with strong Vim muscle memory can default to the count family; a user
-who prefers pure rolls can default to the letter family; most will mix.
+(SPEC v0.4 §9 dropped the v0.3 numeric count-hold family as redundant
+with compound rolls and incompatible with keeping Shift out of the roll
+phase. Compound rolls cap at 4 per direction, which covers the vast
+majority of in-flight count needs; users who want larger jumps fall
+back to traditional Vim normal mode or the editor's command palette.)
 
 ## Roll-phase conventions (recap from SPEC §8)
 
@@ -81,7 +55,7 @@ on the right hand (`[jk]`/`[kj]`, etc.).
 
 ## Scope limits
 
-- **Operators** (`d`, `c`, `y`) — deferred to SPEC v0.4+ §10.1. Letters
+- **Operators** (`d`, `c`, `y`) — deferred to SPEC §10.1. Letters
   `d`, `c`, `y` are **reserved** and NOT claimed as hold keys here.
 - **Text objects** (`iw`, `a"`, `i(`, …) — SPEC §10.2 keeps them in
   normal/visual mode. Not bound.
@@ -90,13 +64,13 @@ on the right hand (`[jk]`/`[kj]`, etc.).
 
 ---
 
-# FAMILY 1 — Letter-hold family
+# Letter-hold family
 
 Each table lists a representative sample of the binding space;
 implementations SHOULD populate the full 4-right / 4-left rolls for
 count-compatible families unless noted otherwise.
 
-## 1.1 Character motion (vim `h`, `l`)
+## 1. Character motion (vim `h`, `l`)
 
 **(right-hand hold / left-hand roll)** — hand pairing is forced: `h`
 is right-index and would collide with any right-hand roll (same
@@ -121,7 +95,7 @@ meaning for free.
 Single-char moves are slightly more expensive than a bare arrow key;
 the win is staying on the home row *and* never leaving insert mode.
 
-## 1.2 Word motion — forward/back start (vim `w`, `b`)
+## 2. Word motion — forward/back start (vim `w`, `b`)
 
 **(left-hand hold / right-hand roll)**
 **Hold key:** `w` — "word unit."
@@ -137,7 +111,7 @@ the win is staying on the home row *and* never leaving insert mode.
 | `[w](lkj)`     | 3 words back         | `3b`           |
 | `[w](lkj a)`   | 4 words back         | `4b`           |
 
-## 1.3 Word motion — end (vim `e`, `ge`)
+## 3. Word motion — end (vim `e`, `ge`)
 
 **(left-hand hold / right-hand roll)**
 **Hold key:** `e` — "end of word unit."
@@ -151,13 +125,13 @@ the win is staying on the home row *and* never leaving insert mode.
 | `[e](lk)`      | end of 2nd word back     | `2ge`          |
 | `[e](lkj)`     | end of 3rd word back     | `3ge`          |
 
-## 1.4 Line anchors (vim `0`, `^`, `$`)
+## 4. Line anchors (vim `0`, `^`, `$`)
 
 **(left-hand hold / right-hand roll)** — single-roll only; no
 compounding (line anchors are discrete positions, not countable).
 
 **Hold key:** `a` — "line anchor." Mnemonic is admittedly weak; see
-§4 (flagged).
+§7 (flagged).
 
 | Gesture        | Motion              | Vim equivalent |
 |----------------|---------------------|----------------|
@@ -168,41 +142,37 @@ compounding (line anchors are discrete positions, not countable).
 Other rolls under `[a]` are **intentionally unbound** in the default
 table (reserved for user extensions).
 
-## 1.5 Vertical line motion (vim `j`, `k`) — MULTI-KEY HOLD
+## 5. Vertical line motion (vim `j`, `k`)
 
-**(left-hand multi-key hold / right-hand roll)** — this is the first
-default binding that uses a multi-key hold (SPEC §6.1, §8.3).
+**(right-hand hold / left-hand roll)** — direct letter holds. The
+hold letter encodes direction (`j` = down, `k` = up) and the roll
+phase supplies magnitude only.
 
-**Hold sets:**
-- `[sd]` = forward (down) — rightward-rolled left-hand hold (ring →
-  middle)
-- `[ds]` = back (up) — leftward-rolled left-hand hold (middle → ring)
-
-Direction comes from the hold's own press-order roll; the roll phase
-supplies magnitude only.
+**Hold keys:** `j` (down) and `k` (up) — direct from Vim's vertical
+motion alphabet. No multi-key hold needed; the hold itself names the
+direction.
 
 | Gesture        | Motion               | Vim equivalent |
 |----------------|----------------------|----------------|
-| `[sd](j)`      | 1 line down          | `j`            |
-| `[sd](jk)`     | 2 lines down         | `2j`           |
-| `[sd](jkl)`    | 3 lines down         | `3j`           |
-| `[sd](jkl;)`   | 4 lines down         | `4j`           |
-| `[ds](j)`      | 1 line up            | `k`            |
-| `[ds](jk)`     | 2 lines up           | `2k`           |
-| `[ds](jkl)`    | 3 lines up           | `3k`           |
-| `[ds](jkl;)`   | 4 lines up           | `4k`           |
+| `[j](a)`       | 1 line down          | `j`            |
+| `[j](as)`      | 2 lines down         | `2j`           |
+| `[j](asd)`     | 3 lines down         | `3j`           |
+| `[j](asdf)`    | 4 lines down         | `4j`           |
+| `[k](a)`       | 1 line up            | `k`            |
+| `[k](as)`      | 2 lines up           | `2k`           |
+| `[k](asd)`     | 3 lines up           | `3k`           |
+| `[k](asdf)`    | 4 lines up           | `4k`           |
 
-Note the roll phase reuses the rightward roll `j`/`jk`/… for magnitude
-regardless of vertical direction. The leftward-roll vocabulary
-(`l`/`lk`/…) is **unbound** under `[sd]` and `[ds]`, reserved for
-user-defined variants (e.g. scrolled-viewport motion).
+The leftward-roll vocabulary (`f`/`fd`/…) is **unbound** under `[j]`
+and `[k]`, reserved for user-defined variants (e.g. half-page jumps,
+viewport-relative motion).
 
-This family replaces what would otherwise require two dedicated letter
-holds (`[j]` and `[k]`), freeing those letters for user bindings and
-demonstrating the pattern for any other "forward/back" family that
-wants to free up its roll phase for magnitude only.
+(v0.2 routed vertical motion through multi-key holds `[sd]`/`[ds]` to
+avoid claiming `j` and `k`. v0.3 reverses that: direct letter holds
+are simpler and `j`/`k` are the natural mnemonic. The `[sd]`/`[ds]`
+slot is now available for user extensions.)
 
-## 1.6 Document / viewport (vim `gg`, `G`, `H`, `M`, `L`)
+## 6. Document / viewport (vim `gg`, `G`, `H`, `M`, `L`)
 
 **(left-hand hold / right-hand roll)**
 **Hold key:** `g` — "document / viewport scope."
@@ -218,10 +188,11 @@ wants to free up its roll phase for magnitude only.
 `[g](k)` is the one place the pivot `k` is bound — "middle" has no
 handed direction, so the pivot is its natural home.
 
-Numeric line jump (`<N>G` in Vim) is handled by the **count family**
-below: `[4](G)` = jump to line 4. See §2.
+Numeric line jump (`<N>G` in Vim) is not in the default table —
+multi-digit line jumps fall back to traditional Vim normal mode or
+the editor's command palette / `:<N>` ex command.
 
-## 1.7 Paragraph (vim `{`, `}`)
+## 7. Paragraph (vim `{`, `}`)
 
 **(right-hand hold / left-hand roll)**
 **Hold key:** `p` — "paragraph unit."
@@ -237,9 +208,9 @@ below: `[4](G)` = jump to line 4. See §2.
 
 Sentence motion (vim `(`, `)`) is **omitted from defaults** — rarely
 used in code, and `p` is already overloaded. Users can bind `[s]` if
-they want it, or use the count family's `[N])` / `[N](` with Shift.
+they want it.
 
-## 1.8 Match (vim `%`)
+## 8. Match (vim `%`)
 
 **(right-hand hold / left-hand roll)**
 **Hold key:** `m` — "match."
@@ -252,7 +223,7 @@ Matching is a pair toggle — no direction. The pivot roll (`d` on the
 left hand) is the natural single-key home. Other rolls under `[m]`
 are reserved for future scope-jump extensions.
 
-## 1.9 Search iteration (vim `n`, `N`)
+## 9. Search iteration (vim `n`, `N`)
 
 **(right-hand hold / left-hand roll)**
 **Hold key:** `n` — "next search match."
@@ -269,7 +240,7 @@ are reserved for future scope-jump extensions.
 Search *initiators* (`*`, `#`) remain **omitted** — better served by
 the editor's search UI.
 
-## 1.10 Find-char (vim `f<char>`, `t<char>`)
+## 10. Find-char (vim `f<char>`, `t<char>`)
 
 **(left-hand hold / right-hand type char)**
 **Hold keys:** `f` (find) and `t` (till). **Direction convention is
@@ -285,134 +256,118 @@ using this binding MUST document the exemption.
 Back-directions (`F`, `T`) are **omitted** — they require Shift-aware
 holds which SPEC §6.3 treats as aborts unless the binding explicitly
 accepts modifiers. Users who want them can bind Shift-accepting
-variants explicitly.
+variants explicitly (`[F]`, `[T]` are distinct holds per SPEC §11).
+
+## 11. Undo (sustained gesture — SPEC §6.4)
+
+**(left-hand hold / right-hand roll)** — the first default binding to
+exercise SPEC §6.4 sustained gestures. The hold remains active across
+multiple roll events; each event fires its binding independently.
+
+**Hold key:** `u` — "undo."
+
+| Gesture           | Motion                                     | Vim equivalent     |
+|-------------------|--------------------------------------------|--------------------|
+| `[u](g)`          | undo one granular step                     | `u`                |
+| `[u](g,g,g)`      | undo three granular steps (sustained)      | `u u u`            |
+| `[u](b)`          | undo to last motion boundary               | (no direct)        |
+| `[u](t)`          | open undo tree pane                        | (no direct)        |
+| `[u](r)`          | redo one granular step                     | `Ctrl-R`           |
+| `[u](r,r,r)`      | redo three granular steps (sustained)      | `Ctrl-R Ctrl-R Ctrl-R` |
+
+Sustained behavior (SPEC §6.4): hold `u`, tap `g` repeatedly, release
+when the buffer is where you want it. No re-hold per step. Mixing is
+allowed: `[u](g,g,b)` undoes two granular steps then back to the
+previous motion boundary in one sustained gesture.
+
+Implementations supporting `[u]` MUST track undo at finer-than-mode-
+transition granularity per SPEC §6.4.4. Recommended tiers: granular
+(`g`), motion boundary (`b`), undo tree (`t`). Implementations MAY
+add tiers; the `r` (redo) binding above is one such addition.
+
+(Letter `u` was reserved for user extensions in v0.2 §3 and is now
+claimed by the default table. The change is non-breaking — v0.2 had
+no default `[u]` binding.)
 
 ---
 
-# FAMILY 2 — Numeric count-hold family
+## 12. Hold-key allocation summary
 
-**(digit hold / vim-letter roll)**
-
-Each digit `1`–`9` is a hold key. The roll phase is a single Vim
-motion letter. The result is count-prefixed Vim semantics inside
-insert mode.
-
-**Hand pairing:** digits span both hands (`1 2 3 4 5` left, `6 7 8 9 0`
-right). Users SHOULD pick the digit on the hand opposite the vim
-letter they intend to roll, per SPEC §8.2. For example:
-
-- Rolling `w` (left hand) → prefer right-hand digit `6`–`9`.
-- Rolling `l` (right hand) → prefer left-hand digit `1`–`5`.
-
-The binding is the same regardless of which digit — `[3](w)` and
-`[7](w)` both mean "jump forward 3 words vs. 7 words."
-
-**`0` is unbound as a count** — Vim already uses `0` as "line start,"
-and a leading-zero count is not meaningful.
-
-| Gesture       | Motion                                   | Vim equivalent |
-|---------------|------------------------------------------|----------------|
-| `[3](w)`      | 3 words forward                          | `3w`           |
-| `[5](b)`      | 5 words back                             | `5b`           |
-| `[2](e)`      | end of 2nd word forward                  | `2e`           |
-| `[7](l)`      | 7 chars right                            | `7l`           |
-| `[4](h)`      | 4 chars left                             | `4h`           |
-| `[3](j)`      | 3 lines down                             | `3j`           |
-| `[2](k)`      | 2 lines up                               | `2k`           |
-| `[9]($)`*     | `$` applied 9 times (end of 9th line)    | `9$`           |
-| `[4](G)`*     | jump to line 4                           | `4G`           |
-| `[2]())`*     | 2 sentences forward                      | `2)`           |
-
-*Shift-aware vim letters (`$`, `G`, `)`, etc.) require the
-implementation to whitelist Shift in the roll phase — same caveat as
-§1.10 and SPEC §6.3. Implementations that want the full count family
-SHOULD accept Shift in roll-position for digit holds.
-
-## 2.1 Overlap with the letter family is intentional
-
-`[3](w)` and `[w](jkl)` both mean "3 words forward." Users pick
-whichever fits their muscle memory. The binding table stores both.
-
-## 2.2 Counts ≥ 10 are out of scope
-
-The grammar's effective single-digit cap is a deliberate simplification.
-Users who need `23w`-style navigation should drop into traditional Vim
-normal mode (SPEC §10), which conforming editors SHOULD continue to
-support.
-
-## 2.3 Digits are exclusive to family 2
-
-None of `0`–`9` are claimed as hold keys by the letter family, and
-letters are not hold keys in the count family. The two families never
-collide in the hashmap.
-
----
-
-## 3. Hold-key allocation summary
-
-### Letter holds (family 1)
-
-| Hold          | Hand   | Roll hand | Unit                       |
-|---------------|--------|-----------|----------------------------|
-| `h`           | right  | left      | character                  |
-| `w`           | left   | right     | word (start)               |
-| `e`           | left   | right     | word (end)                 |
-| `a`           | left   | right     | line anchor                |
-| `g`           | left   | right     | document / viewport        |
-| `p`           | right  | left      | paragraph                  |
-| `m`           | right  | left      | match (pair toggle)        |
-| `n`           | right  | left      | search iteration           |
-| `f`           | left   | right*    | find-char forward          |
-| `t`           | left   | right*    | till-char forward          |
-| `[sd]`/`[ds]` | left   | right     | vertical line motion       |
+| Hold   | Hand   | Roll hand | Unit                       |
+|--------|--------|-----------|----------------------------|
+| `h`    | right  | left      | character                  |
+| `w`    | left   | right     | word (start)               |
+| `e`    | left   | right     | word (end)                 |
+| `a`    | left   | right     | line anchor                |
+| `j`    | right  | left      | vertical down              |
+| `k`    | right  | left      | vertical up                |
+| `g`    | left   | right     | document / viewport        |
+| `p`    | right  | left      | paragraph                  |
+| `m`    | right  | left      | match (pair toggle)        |
+| `n`    | right  | left      | search iteration           |
+| `f`    | left   | right*    | find-char forward          |
+| `t`    | left   | right*    | till-char forward          |
+| `u`    | left   | right     | undo (sustained)           |
 
 *`[f]` / `[t]` rolls are exempt from §8 directionality — the roll key
 is the target character, not a direction.
 
-### Digit holds (family 2)
-
-| Hold   | Hand  | Roll               | Unit           |
-|--------|-------|--------------------|----------------|
-| `1`–`5`| left  | any vim motion     | count prefix   |
-| `6`–`9`| right | any vim motion     | count prefix   |
-| `0`    | unbound (Vim uses `0` = line start)     |
-
 ### Reserved for future work
-- `d`, `c`, `y` — reserved for operator composition (SPEC §10.1,
-  v0.4+). **Default tables MUST NOT claim them.**
-- `k` (single) and `d` (single) — pivot keys per §8 / §8.1.
+- `d`, `c`, `y` — reserved for operator composition (SPEC §10.1).
+  **Default tables MUST NOT claim them.**
+- `k` (single, in roll-position) and `d` (single, in roll-position)
+  — pivot keys per §8 / §8.1.
 
 ### Unallocated (available for user extensions)
-- Remaining letters: `q r s u i o v x z b`
-- All multi-key holds not listed above (e.g. `[as]`, `[sa]`, `[df]`,
+- Remaining letters: `q r s i o v x z b`
+- All multi-key holds (e.g. `[as]`, `[sa]`, `[df]`, `[sd]`, `[ds]`,
   `[jk]`, `[kj]`, etc.)
 
 ---
 
-## 4. Ambiguous / flagged
+## 13. Ambiguous / flagged
 
-Issues carried forward from v0.1 or discovered during this revision:
+Issues carried forward from v0.2 or discovered during this revision:
 
-1. **WORD motion** (vim `W`/`B`/`E`) — still unbound by default. Needs
-   Shift-accepting holds or a dedicated letter; omitted.
-2. **Find-char back** (`F`/`T`) — Shift-aware; omitted.
+1. **WORD motion** (vim `W`/`B`/`E`) — still unbound by default.
+   Shifted-letter holds (`[W]`, `[B]`, `[E]`) are the natural slot
+   per SPEC §11. Omitted from defaults pending implementation
+   experience.
+2. **Find-char back** (`F`/`T`) — Shifted-letter holds, available
+   per SPEC §11; omitted from defaults.
 3. **Line-anchor mnemonic** — `[a]` has no inherent "line anchor"
    meaning; real user testing should confirm or replace.
-4. **Numeric line jump `<N>G`** — resolved via count family `[N](G)`
-   for single-digit N. Multi-digit line jumps fall back to Vim normal
-   mode or a command palette.
-5. **Sentence motion** — unbound in letter family; accessible via
-   count family `[N])` / `[N](` with Shift.
-6. **Search initiators `*`/`#`** — still omitted; better served by
-   the editor's search UI.
-7. **Shift-in-roll** — the count family needs Shift to cover `$`, `G`,
-   `)`, etc. Either the implementation whitelists Shift in the roll
-   phase or those gestures are unavailable. Flagged for SPEC v0.4.
+4. **Numeric line jump `<N>G`** — no z-motion default. Falls back to
+   ex command (`:<N>`) or normal-mode `<N>G`.
+5. **Sentence motion** — unbound; users can claim `[s]` if needed.
+6. **Search initiators `*`/`#`** — omitted; better served by the
+   editor's search UI.
+7. **Shift-leak from rolls** — when a user holds a letter (e.g. `[w]`)
+   and accidentally rolls a shifted character (`J` instead of `j`),
+   the binding lookup misses. Implementations SHOULD strip Shift from
+   roll keys when looking up bindings (the hold-vs-roll distinction
+   is positional, not modifier-based). SPEC §11 requires Shift to
+   produce a *distinct hold* (`[a]` ≠ `[A]`), but does not yet pin
+   down roll-side Shift handling. Flagged for SPEC §5 or §11 note.
 
 ---
 
-## 5. Change log
+## 14. Change log
 
+- **v0.3 (2026-04-25)** — Rewrite against SPEC v0.5.
+  - Dropped FAMILY 2 (numeric count-hold) entirely. SPEC v0.4 §9
+    removed it; this doc had carried a "do NOT ship" warning since.
+  - §5 vertical line motion: replaced multi-key hold `[sd]`/`[ds]`
+    with direct letter holds `[j]` (down) and `[k]` (up). Simpler
+    mnemonic, same magnitude rolls, frees `[sd]`/`[ds]` for user
+    extensions.
+  - §11 (new): undo hold family `[u]` as the first default binding
+    to exercise SPEC §6.4 sustained gestures (added in SPEC v0.5).
+    Three tiers per SPEC §6.4.4: granular (`g`), motion boundary
+    (`b`), undo tree (`t`). Redo (`r`) added as an extension tier.
+  - §13 (formerly §4): added shift-leak-from-rolls as a flagged
+    item pending SPEC clarification.
+  - Removed v0.4 status notice — no longer stale.
 - **v0.2 (2026-04-11)** — Rewrite against SPEC v0.3.
   - Every family annotated with **(hold-hand / roll-hand)** — the
     hand-pairing rule (SPEC §8.2) is now explicit per binding
