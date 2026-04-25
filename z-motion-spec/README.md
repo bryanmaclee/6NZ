@@ -57,9 +57,10 @@ See `LICENSE` for the full dedication text.
 
 ```
 z-motion-spec/
-├── README.md    this file
-├── SPEC.md      v0.1 specification
-└── LICENSE      CC0 1.0 public domain dedication
+├── README.md            this file
+├── SPEC.md              v0.5 specification
+├── default-bindings.md  suggested key map (working draft, expected to revise)
+└── LICENSE              CC0 1.0 public domain dedication
 ```
 
 ## Contributing

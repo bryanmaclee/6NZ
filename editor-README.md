@@ -2,7 +2,12 @@
 
 A purpose-built code editor for scrml development, built entirely in scrml.
 
-## Status: Design Phase
+## Status: Exploratory implementation phase
+
+Design decisions are locked (see below). Five scrml-native playgrounds exist
+under `src/`, stress-testing the language and compiler ahead of editor-proper
+work. Editor scaffolding (real IR, real relevance view content, live
+diagnostics, completion) remains gated on scrmlTS compiler API exposure.
 
 ## Design Principles
 
@@ -103,4 +108,18 @@ Rendering decision: **CM6 + canvas overlay — locked** (see `master-list.md` §
 
 ## Structure
 
-Planned structure is tracked in `master-list.md`. No source exists yet — implementation is blocked on scrmlTS compiler API exposure.
+Live inventory is tracked in `master-list.md`. Current shape:
+
+- `src/playground-zero` … `playground-four` — scrml-native playgrounds
+  (Z-motion classifier, mode state machine, hjkl + z-motion buffer, CM6
+  mount probe, keystroke-granular undo tree). Exploratory; not the editor.
+- `proto/6nz-playable/` — vanilla-JS playable prototype (deployed to GitHub
+  Pages). Concept demo, not the editor.
+- `proto/z-motion-feel/` — older throwaway for z-motion input grammar.
+- `z-motion-spec/` — open-source (CC0) Z-motion specification.
+
+The editor proper (CM6 + canvas overlay, real IR, relevance view content,
+live diagnostics, completion) is gated on scrmlTS compiler API exposure.
+Exploratory scrml work — editor shell, buffer model, input/event handling,
+mode machine, Z-motion classifier, config system, UI primitives — is
+unblocked and underway in the playgrounds.

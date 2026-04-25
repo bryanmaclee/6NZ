@@ -29,29 +29,38 @@ Open `index.html` in a browser. No build. No server needed (File System Access A
   - `[m](d)` match `%`
   - `[u](g)` undo (sustained: `[u](g,g,g)` undoes three steps)
 
-**Playground features** (all mockups — no compiler hooked up):
-- Syntax highlighting — tiny tokenizer, JS/scrml/JSON/MD, language-by-extension
-- Spatial side panel with 5 tabs (`Ctrl+B` to toggle): **Refs** (relevance mock, §1), **Eval**, **JS Out**, **Deps**, **Files**
-- Relevance region — on cursor move, heuristic text-scan for the word at cursor; flags likely definitions
-- Inline expansion (`Ctrl+Enter` or from palette) — finds a definition in the buffer, renders it in a ghost panel
-- Focus-centered viewport (`Ctrl+L`) — editor §1 behavior, keeps cursor line at screen center
-- Command palette (`Ctrl+P`) — commands, workspace files, z-motion bindings
-- Settings modal (`F2`) — appearance, editor, z-motion toggles, `:km@` overlay paste, layer-stack display, JSON export/import
-- Virtual workspace — `:new <name>`, `:e <name>`, `:ls`, `:rm <name>`, `:ww` (save current buffer), backed by localStorage
-- `:km@<name>` — loads a stored JSON config overlay (mock — demonstrates SPEC config layering)
-- Gesture-in-flight hint — while a z-motion hold is down, shows available roll bindings
-- Relative line numbers — togglable in settings
-- Toast notifications
+**Playground features — mockups only.** None of these are wired to a real
+compiler. They show the *shape* of a 6nz feature so you can feel the UX,
+not the feature itself. The real versions need the scrmlTS compiler API.
+
+- Syntax highlighting — tiny tokenizer, JS/scrml/JSON/MD, language-by-extension. Mock.
+- Spatial side panel with 5 tabs (`Ctrl+B` to toggle): **Refs** (relevance mock, §1), **Eval**, **JS Out**, **Deps**, **Files**. Mock.
+- Relevance region — on cursor move, heuristic text-scan for the word at cursor; flags likely definitions. Mock — real version needs compiler-backed semantic analysis.
+- Inline expansion (`Ctrl+Enter` or from palette) — finds a definition in the buffer, renders it in a ghost panel. Mock — real version needs compiler-resolved references.
+- Focus-centered viewport (`Ctrl+L`) — editor §1 behavior, keeps cursor line at screen center. Demo of the centering UX; real version is integrated, not a toggle.
+- Command palette (`Ctrl+P`) — commands, workspace files, z-motion bindings. Mock.
+- Settings modal (`F2`) — appearance, editor, z-motion toggles, `:km@` overlay paste, layer-stack display, JSON export/import. Mock.
+- Virtual workspace — `:new <name>`, `:e <name>`, `:ls`, `:rm <name>`, `:ww` (save current buffer), backed by localStorage. Mock.
+- `:km@<name>` — loads a stored JSON config overlay. Mock — demonstrates SPEC config layering.
+- Gesture-in-flight hint — while a z-motion hold is down, shows available roll bindings. Real (no compiler involvement needed).
+- Relative line numbers — togglable in settings. Real.
+- Toast notifications. Real.
 
 ## What's intentionally missing
 
-- Syntax highlighting (it's a plain textarea)
+These are absent entirely — not even mocked:
+
+- Real syntax highlighting (the in-prototype highlighter is a tiny tokenizer; it's a plain textarea, no proper highlighter)
 - Registers beyond the unnamed one
 - Macros, marks, jump list, change list
 - Multi-cursor
-- The 6nz headline concepts (relevance view, inline expansion, focus-centered viewport) — those require the compiler API
 - LSP, intellisense, any scrml-aware anything
 - Dot-repeat (`.`)
+
+The 6nz headline concepts (relevance view, inline expansion, focus-centered
+viewport) listed under "what works" are present *as mockups only*. The
+compiler-backed versions — the actual feature — require the scrmlTS API
+and are not implemented here.
 
 ## Defaults chosen (sane, changeable later)
 
