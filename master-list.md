@@ -120,8 +120,9 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 - [x] playground-two — hjkl + z-motion on a real buffer
 - [x] playground-three — CM6 mount probe (esm.sh bridge)
 - [x] playground-four — undo tree on line-indexed buffer
-- [ ] playground-five (suggested) — CM6 + vim-modes integration: merge two's state machine + hjkl onto three's real CM6 surface. Moves us from "toy textareas" to "actually driving CM6." Expected to surface friction around CM6's own keymap vs scrml-side handlers.
+- [x] playground-five — vim modes on CM6 (capture-phase keydown gates CM6; hjkl/0/$/i/a/v/Esc; 18/18 smoke). Surfaced Bug L (BS not string-aware in brace counting).
 - [ ] playground-six (now possible, post-S40 LSP) — wire the scrmlTS LSP into a CM6 surface via stdio child-process. Exercise outline / completion / cross-file go-to-def / SQL-column completion from a live editor. First playground that integrates with the actual compiler.
+- [ ] playground-seven (suggested) — z-motion on CM6: graft playground-two's release-order classifier into playground-five's keymap so insert-mode `[h](roll)` etc. drive CM6 selection without leaving Insert.
 
 ### Housekeeping (not blocked)
 - [x][x] `.claude/maps/` refresh — done S10 (commit `6561d24`)
@@ -142,7 +143,8 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 ## F. Cross-repo
 
 ### scrmlTS (compiler)
-- Session 9 interaction was dense: scrmlTS shipped fixes for Bug G, 1, 3, 4, 5, 6 across the span (scrmlTS S37 closed at commit `9540518` with 7,393 tests pass; all six fixes landed pre-close, zero regressions). 6nz filed four more (H, I, J, K) from playground-four with inline + sidecar repros per the new pa.md rule. Re-filed S10 (2026-04-25) as a dedicated message + standalone sidecars in case the original bundling made them easy to overlook.
+- Session 9 interaction was dense: scrmlTS shipped fixes for Bug G, 1, 3, 4, 5, 6 across the span (scrmlTS S37 closed at commit `9540518` with 7,393 tests pass; all six fixes landed pre-close, zero regressions). 6nz filed four more (H, I, J, K) from playground-four with inline + sidecar repros per the new pa.md rule. Re-filed S10 (2026-04-25) as a dedicated message + standalone sidecars; scrmlTS replied that all four had landed in S39 (commits `39782f0`/`6b3e63f`/`4c4679d`+`ad02884`/`686ffcd`) — retested against `c51ad15` and confirmed all four fixed.
+- **Bug L surfaced S10** during playground-five construction. BS not string-aware in brace counting: `{` and `}` split across separate string literals trip BS's brace counter, manifesting as bogus "Unclosed 'logic' / 'program'" errors. Sibling of the `\n`-not-interpreted issue from playground-two. Filed 2026-04-25 with inline + sidecar repro.
 - **S40 LSP unlock (2026-04-24).** scrmlTS shipped LSP L1+L2+L3 in three commits (`e1827e6` / `14cc1d1` / `24712f5`); 108 new tests. Capabilities: outline, hover-with-signatures, completions across all contexts (HTML / scrml / SQL / keywords), cross-file go-to-def, cross-file diagnostics, plus three scrml-unique completions (SQL column from `<db>` schema, component prop, import-clause). L4 (signature help + code actions) in progress. **L5 (semantic tokens) deferred at our request** — 6nz's locked CM6 + canvas overlay + spatial-panels architecture supersedes inline semantic-token coloring as our annotation strategy. Reply sent 2026-04-25.
 - **Bun.SQL codegen shape change** (`cd8dea1` Phase 1 + `9ef0ccb` Phase 2): `?{}` blocks now emit `await _scrml_sql\`...\`` (was `_scrml_db.query("...").all()`). Doesn't affect any current 6nz playground (none use SQL); flagged for any future SQL-touching playground.
 - **No npm escape hatch is coming**. scrmlTS ran a radical-doubt debate on a fourth init-tier (`--compat`) with npm-style deps. Verdict: **Phase 0 first** — (1) `^{}` polish (Bug 6 was the first shipped item), (2) `docs/external-js.md` translation table (shipped `c7198b6`), (3) `scrml vendor add` CLI (queued). Only if Phase 0 attempts-and-fails on adopter evidence does the fourth tier re-open. User accepted the verdict.
