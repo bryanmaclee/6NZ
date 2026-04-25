@@ -11,7 +11,49 @@
 - Maps (`.claude/maps/`) still from session 2 cold run — stale
 
 ## Session work
-(in progress)
+
+### Maps refresh (commit `6561d24`)
+- project-mapper cold-rerun (S2 maps were ~2 weeks stale, pre-playgrounds, pre-pa-edits, pre-SPEC-v0.5).
+- Rewrote primary, structure, dependencies, schema, config, build, error, test maps; added new infra map (GitHub Pages CI warranted it); skipped api/state/events/auth/domain/style/i18n/migrations/jobs (not present in repo).
+- Non-compliance report flagged 4 items: default-bindings.md (v0.2 vs SPEC v0.5), editor-README.md Structure section (claimed "no source"), z-motion-spec/README.md (SPEC version + missing default-bindings listing), proto/6nz-playable/README.md (contradictory "what works" vs "intentionally missing").
+
+### Doc-fix triple (commit `0acabcc`)
+- editor-README.md Structure: rewrote to describe 5 playgrounds + proto carve-out + spec; status header changed from "Design Phase" to "Exploratory implementation phase" with editor-proper still gated.
+- z-motion-spec/README.md: fixed SPEC.md v0.1 → v0.5; added default-bindings.md to listing.
+- proto/6nz-playable/README.md: tagged each "What works" entry as Mock or Real; reframed "What's intentionally missing" to absent-entirely; closing paragraph clarifies headline-concepts present as mockups only.
+
+### default-bindings.md v0.3 rewrite (commit `0ffb452`)
+- Drop FAMILY 2 (numeric count-hold) entirely.
+- Replace `[sd]`/`[ds]` multi-key vertical with direct letter holds `[j]` (down) and `[k]` (up).
+- Add §11 undo hold family `[u]` — first default to exercise SPEC §6.4 sustained gestures (added in SPEC v0.5).
+- Add shift-leak-from-rolls flag pending SPEC §5/§11 clarification.
+- Remove v0.4 staleness notice — companion to SPEC v0.5 now.
+
+### Re-file Bugs H/I/J/K to scrmlTS
+- User asked to re-file the four bugs from playground-four (originally bundled with Bug 4/5 verification on 2026-04-22). Reconstructed from playground-four source + S9 hand-off descriptions.
+- 5 files dropped into scrmlTS inbox: dedicated message (`2026-04-25-0106-6nz-to-scrmlTS-refile-bugs-h-i-j-k.md`) with all four reports inline + summary table; 4 sidecar `.scrml` repros.
+
+### S40 LSP unlock + L5 defer reply
+- Inbound `2026-04-24-2245-scrmlTS-to-6nz-s40-lsp-and-bun-sql.md`: scrmlTS S40 closed with LSP L1+L2+L3 (108 new tests). Three commits: `e1827e6` (L1), `14cc1d1` (L2), `24712f5` (L3). Capabilities: outline, hover-with-signatures, completions across all contexts, cross-file go-to-def, cross-file diagnostics, SQL-column completion, component-prop completion, import-clause completion. L4 in progress; L5 deferred or skipped pending 6nz spatial-panel input. Bun.SQL codegen change `?{}` → `await _scrml_sql\`...\`` (no impact on current playgrounds).
+- Read deep-dive at `scrmlTS/docs/deep-dives/lsp-enhancement-scoping-2026-04-24.md`.
+- Outbound `2026-04-25-0120-6nz-to-scrmlTS-l5-defer-and-thanks-for-l1-l3.md`: recommend defer L5 indefinitely (spatial panels supersede inline semantic-tokens-as-coloring); keep `endLine`/`endCol` Span work as standalone item; queued playground-six (LSP→CM6 surface); no L4 asks.
+
+### master-list S10 refresh + session housekeeping (commit `5de4524`)
+- §D split compiler-API prereq into LSP-shipped (semantic features reachable via stdio child-process) vs in-process API still needed for browser-PWA.
+- §E added playground-six (LSP integration); maps refresh marked done.
+- §F added LSP unlock entry, Bun.SQL note, H/I/J/K re-file note.
+- hand-off-9 rotated; user-voice S10 entry appended; archived inbound moved to `read/`.
+
+### Push (4 commits to origin/main: 6561d24, 0acabcc, 0ffb452, 5de4524)
+- pa.md says push goes through master-PA coordination; master inbox path (`/home/bryan-maclee/scrmlMaster/handOffs/incoming/`) doesn't exist on this machine. User authorized push directly this turn ("commit push go").
+- scrmlTS now has 8 unread files in its inbox from us (4 sidecars + 1 message for H/I/J/K re-file; 1 message for L5 defer; plus an unrelated giti message). scrmlTS's PA will read + push on its next session; we're not coordinating that.
+
+### Two replies arrived from scrmlTS post-push, retest + final confirm
+- Inbound `2026-04-25-2300-scrmlTS-to-6nz-bugs-h-i-j-k-fixed-in-s39.md` (`needs: action`): all 4 bugs were already fixed in S39 — we tested against `9540518` (S37 close) but fixes landed S39 between then and our re-file. They asked for retest on current main, especially Bug I (which targeted spaced-member-access; uncertain whether the fix also covered our helper-name-vs-record-field collision case).
+- Inbound `2026-04-25-2305-scrmlTS-to-6nz-l5-defer-acked.md` (`needs: fyi`): L5 dropped from active roadmap. `endLine`/`endCol` Span work kept as standalone follow-up. **L4 LANDED** at `c51ad15` — signature help + quick-fix code actions for E-IMPORT-004/005, E-LIN-001, E-PA-007, E-SQL-006 (+53 LSP tests, 157 total). LSP arc complete: L1+L2+L3+L4 live, L5 dropped. Playground-six guidance: vanilla `Content-Length:`-prefixed JSON-RPC over stdio, sync completions, `rootUri` needed for L2/L3 cross-file features.
+- Retested all 4 against scrmlTS local at `c51ad15`. **All 4 confirmed fixed** including Bug I's helper-name-vs-record-field case (lookbehind covers both patterns). Authoring notes flagged: original Bug J sidecar tripped BS on `<pre>` markup inside `//` comments at file root; original Bug K used non-scrml `throw` + `== null` (compiler correctly flagged E-ERROR-006 + E-SYNTAX-042). Minimal scrml-idiomatic versions of both compile cleanly.
+- Outbound `2026-04-25-0130-6nz-to-scrmlTS-bugs-h-i-j-k-all-confirmed-fixed.md` (`needs: fyi`): all 4 confirmed fixed with emit/runtime evidence; flagged the authoring bugs in our own sidecars; noted the 4 workarounds in playground-four are no longer load-bearing but won't revert in this turn (cosmetic only; the workaround state is the bug-evidence record).
+- Both inbounds archived to `read/`.
 
 ## Cross-repo traffic log
 - **Out to scrmlTS** (1 message + 4 sidecars): re-file of Bugs H/I/J/K from playground-four. Original sent 2026-04-22 in a bundled "Bug 4/5 verified + 4 new" message; user asked to re-file the four as a dedicated message in case the bundling made them easy to overlook.
