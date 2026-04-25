@@ -1,30 +1,39 @@
 # dependencies.map.md
-# project: editor (6nz)
-# updated: 2026-04-11T00:00:00Z  commit: 41bce06
+# project: 6nz
+# updated: 2026-04-25T00:00:00Z  commit: e5a0752
 
 ## Runtime Dependencies
 
-None declared. `package.json` is a stub: `{"name": "editor", "version": "0.1.0", "private": true}`.
+Root `package.json` is a stub: `{"name": "editor", "version": "0.1.0", "private": true}`.
+No runtime dependencies declared at repo root.
 
 ## Dev / Build Dependencies
 
-None declared.
+Root: none declared.
+
+`proto/6nz-playable/package.json` (prototype only — not the editor):
+- `puppeteer@^24.40.0` — headless browser used to run smoke tests for the playable prototype
 
 ## Internal Module Graph
 
-No modules exist. Implementation has not started.
+Playground interdependencies (conceptual, not import-based — scrml has no source-level `import`):
 
-## Anticipated (from editor-README.md design decisions)
+- `playground-two` builds on concepts from `playground-zero` (classifier) and `playground-one` (mode machine) — same patterns, not imports
+- `playground-three` is independent (CM6 probe)
+- `playground-four` is independent (undo tree)
+- All playgrounds are self-contained `<program>` scrml files
 
-The following dependencies are mentioned in design docs but are NOT yet declared or installed:
+## External JS Integration (current pattern)
 
-- `CodeMirror 6` — primary editing surface (CM6 + canvas overlay architecture locked)
-- `scrmlTS` compiler API — prerequisite from sibling repo `../scrmlTS/` (not in this repo)
+scrml has no source-level `import`. The working pattern for external libraries (from playground-three):
+1. Inject a `<script>` tag at runtime that loads the ESM from a CDN (e.g. `esm.sh`)
+2. Bridge the loaded exports back to scrml via `window.__name` + `CustomEvent`
+3. Trigger from scrml via `^{ loadCm() }` (direct call in a side-effect block)
 
-These are design intentions, not current dependencies. Do not treat as runtime facts.
+This is the only sanctioned path until `scrml vendor add` CLI lands in scrmlTS.
 
 ## Tags
-#editor #6nz #map #dependencies #design-phase
+#6nz #map #dependencies #scrml #proto
 
 ## Links
 - [primary.map.md](./primary.map.md)

@@ -1,34 +1,50 @@
 # test.map.md
-# project: editor (6nz)
-# updated: 2026-04-11T00:00:00Z  commit: 41bce06
+# project: 6nz
+# updated: 2026-04-25T00:00:00Z  commit: e5a0752
 
 ## Test Framework
 
-Runner: none configured
-Config: none
-Run all: not defined
-Run single: not defined
+No unified test runner. No root-level test config.
 
-Note: `editor-README.md` describes a planned `~{}` inline test sigil that compiles to runtime
-assertions and runs in the live preview iframe — this is a design intention, not an implemented
-test framework.
+Per-playground smoke tests are driven by puppeteer via `proto/6nz-playable/test.js`
+and equivalent per-playground harnesses. Each playground's smoke test is run via:
+```
+node test.js        (from proto/6nz-playable/)
+scrml dev + puppeteer   (pattern for src/playground-* tests)
+```
 
 ## Test Categories
 
-Unit: none
-Integration: none
-E2E: none
+| Playground | Test file | Count | How run |
+|---|---|---|---|
+| playground-zero  | (no separate test file; smoke built-in) | 7 checks | puppeteer, manual |
+| playground-one   | (no separate test file)                 | 8 checks | puppeteer, manual |
+| playground-two   | (no separate test file)                 | 12 checks | puppeteer, manual |
+| playground-three | (no separate test file)                 | 9 checks | puppeteer, manual |
+| playground-four  | (no separate test file)                 | 14 checks | puppeteer, manual |
+| proto/6nz-playable | `proto/6nz-playable/test.js`          | 62 scenarios | `node test.js` |
+
+All smoke tests are manual — no CI trigger. All currently pass (last verified S9, 2026-04-22).
 
 ## Fixtures & Factories
 
-None.
+`proto/6nz-playable/test.js` — inline scenario objects with shape:
+```js
+{ seed: { text, cursorOffset }, steps: string[], expect: { text, cursor } | null }
+```
+
+No separate fixture files.
 
 ## Pattern
 
-No tests exist at scan time. No source code exists.
+Tests are puppeteer-driven real-browser scenarios. Each test seeds the editor with
+an initial buffer and cursor position, dispatches a sequence of key events (using
+explicit hold/release helpers for z-motion gestures), and asserts on final buffer
+state and cursor offset. Assertion style: `assertEqual(actual, expected)` with
+console-reported pass/fail counts.
 
 ## Tags
-#editor #6nz #map #test #design-phase
+#6nz #map #test #scrml #puppeteer #playgrounds
 
 ## Links
 - [primary.map.md](./primary.map.md)

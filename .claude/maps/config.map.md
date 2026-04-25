@@ -1,26 +1,31 @@
 # config.map.md
-# project: editor (6nz)
-# updated: 2026-04-11T00:00:00Z  commit: 41bce06
+# project: 6nz
+# updated: 2026-04-25T00:00:00Z  commit: e5a0752
 
 ## Environment Variables
 
-No `.env.example` or `.env.template` found. No `process.env` references in source (no source exists).
+No `.env.example` or `.env.template`. No `process.env` references in any source file.
 
 ## Feature Flags
 
-No feature flags detected at scan time.
+No feature flags detected.
 
 ## Config Files
 
-### package.json
-name: string — "editor"
-version: string — "0.1.0"
-private: boolean — true (not published to npm)
+### package.json (repo root — stub)
+- `name`: "editor"
+- `version`: "0.1.0"
+- `private`: true
+- No scripts, no dependencies, no devDependencies.
 
-No other config files present (`tsconfig.json`, `vite.config.*`, `.eslintrc`, etc. are all absent).
+### proto/6nz-playable/package.json (prototype only)
+- `name`: "6nz-playable"
+- `version`: "1.0.0"
+- `dependencies.puppeteer`: "^24.40.0"
+- No scripts beyond the default npm placeholder.
 
 ## Tags
-#editor #6nz #map #config #design-phase
+#6nz #map #config #scrml
 
 ## Links
 - [primary.map.md](./primary.map.md)
