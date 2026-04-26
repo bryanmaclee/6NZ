@@ -48,6 +48,17 @@
 - pa.md says push goes through master-PA coordination; master inbox path (`/home/bryan-maclee/scrmlMaster/handOffs/incoming/`) doesn't exist on this machine. User authorized push directly this turn ("commit push go").
 - scrmlTS now has 8 unread files in its inbox from us (4 sidecars + 1 message for H/I/J/K re-file; 1 message for L5 defer; plus an unrelated giti message). scrmlTS's PA will read + push on its next session; we're not coordinating that.
 
+### Built playground-six — LSP diagnostics over WebSocket (commit `ceedd99`)
+- Wire: `browser <-- WebSocket --> bridge.js <-- stdio --> scrmlTS LSP`. Bridge is a Bun script that spawns `bun lsp/server.js --stdio` as a child process and exposes WebSocket on PORT (default 3061). One JSON frame per LSP message in either direction. WS frame from browser → Content-Length-prefixed write to LSP stdin. LSP stdout → header-parse → forward each frame as one WS message.
+- scrml-side: CM6 mounts via the same esm.sh bridge as p3; opens WebSocket; sends `initialize`; on response sends `initialized` + `textDocument/didOpen`. CM6's updateListener fires `textDocument/didChange` (Full sync, per LSP capabilities `textDocumentSync: 1`) on every edit. `publishDiagnostics` notifications update the @diagnostics reactive.
+- Smoke: 7/7 pass. CM6 mounts → LSP reaches "ready" → clean buffer has 0 diagnostics → replacing with broken scrml surfaces diagnostics → diag panel renders text → replacing back with clean scrml returns to 0 → no pageerrors.
+- LICENSE.md added at repo root: copyright + all rights reserved except `z-motion-spec/` (CC0 1.0). Repo is public on GitHub for transparency, not as an open-source release.
+- **Three new codegen bugs surfaced** during construction. Each has minimal repro + sidecar filed at `scrmlTS/handOffs/incoming/2026-04-26-1041-*`:
+  - **Bug M** — `obj.field = function() {...}` member-assignment of a function expression mis-emits as two statements (assignment with empty RHS + orphaned function literal). Workaround: `addEventListener` instead of property assignment.
+  - **Bug N** — two consecutive `@x = ...` reactive writes inside an INLINE function expression mis-emit (first loses closing paren; second emits as `_scrml_reactive_get(...) = ...`). SAME pattern in named function bodies emits cleanly. Workaround: extract handler bodies to named helpers; pass single-call wrapper to addEventListener.
+  - **Bug O** — for-of loop variable in markup `${ for (x of @list) { lift ... } }` leaks into the surrounding meta-effect closure as a free identifier when a `^{ ... }` block exists. Workaround: render list as a single string via helper function instead of for-lift.
+  - Bug L recurrence (already filed): sample-doc construction with `${` and `}` in concatenated string literals trips BS's brace counter. Same `String.fromCharCode(123/125)` workaround.
+
 ### Built playground-five — vim modes on CM6 (commit `fd687e4`)
 - Architecture: CM6 owns the document; scrml owns `@mode` (Insert/Normal/Visual) and intercepts keystrokes via a CAPTURE-phase keydown listener on `.cm-host` so we run before CM6's contenteditable handler. Cleanest mode gating without fighting CM6's keymap precedence.
 - Normal: every keystroke suppressed; recognized commands dispatch CM6 selection updates (h/j/k/l motion, 0/$ line anchors, i/a enter Insert, v enters Visual, Esc stays in Normal). Insert: only Esc is intercepted; CM6 handles typing natively. Visual: like Normal but motions extend the selection.
@@ -68,6 +79,8 @@
   - sidecars: `bug-h-function-match-no-return.scrml`, `bug-i-name-mangle-record-literal.scrml`, `bug-j-interp-dep-extractor-no-helper-recurse.scrml`, `bug-k-effect-throw-halts-caller.scrml`
 - **In from scrmlTS** (1 message, archived): `2026-04-24-2245-scrmlTS-to-6nz-s40-lsp-and-bun-sql.md` — S40 closed with LSP L1+L2+L3 (108 new tests; outline, hover, completions across all contexts, cross-file go-to-def, cross-file diagnostics, SQL-column completion, component-prop completion, import-clause completion). L4 (signature help + code actions) in progress. L5 (semantic tokens) deferred or skipped pending 6nz spatial-panel input. Bun.SQL codegen shape change (`?{}` → `await _scrml_sql\`...\``); doesn't bite any current playground.
 - **Out to scrmlTS** (1 message): `2026-04-25-0120-6nz-to-scrmlTS-l5-defer-and-thanks-for-l1-l3.md` — recommend defer L5 indefinitely (spatial panels supersede semantic-tokens-as-coloring); keep `endLine`/`endCol` Span work as a standalone item; queue **playground-six** to wire the LSP into a real CM6 surface; no L4 asks; Bun.SQL change noted, no impact.
+- **Out to scrmlTS** (1 message + 1 sidecar): `2026-04-25-0155-6nz-to-scrmlTS-bug-l-bs-unbalanced-brace-in-string.md` — Bug L: BS not string-aware in brace counting; surfaced during playground-five construction; sibling of the `\n`-in-strings issue.
+- **Out to scrmlTS** (1 message + 3 sidecars): `2026-04-26-1041-6nz-to-scrmlTS-bugs-m-n-o-from-playground-six.md` — three new codegen bugs (M, N, O) from playground-six construction; each with minimal repro + workaround documentation; Bug L recurrence noted (no new filing).
 
 ## Open items carried in from S9
 - master-list refreshed at S9 close — accurate as of 2026-04-22
