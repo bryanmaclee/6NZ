@@ -47,13 +47,29 @@
 - **Bug R (`if=` unmount no-op):** `if=@derivedReactive` mounts on first true but the unmount path never fires on flip-to-false. Three sibling mode-badges in p7 with mutually-exclusive `if=` accumulate visible clones instead of alternating. Emit looks plausible (both mount and unmount controllers exist; the effect has the else-branch unmount call) — failure is in subscription or derived-flip propagation. Adopter impact: every mode-badge / signed-in-vs-out / accordion pattern using mutually-exclusive `if=@derived` is silently broken.
 - Filed at `scrmlTS/handOffs/incoming/2026-05-23-0735-6nz-to-scrmlTS-bugs-q-r-from-playground-seven.md` + two sidecars (`bug-q-1-auto-lift-no-init.scrml`, `bug-r-if-unmount-no-op.scrml`).
 
+### Bugs S + T filed — surfaced building playground-eight
+- **Bug S (`return not` mis-emits as `return !`):** the `not` keyword in return position is emitted as unary boolean negation instead of `null`/`undefined`. The next statement (a `const` declaration) gets glued onto the `!`, producing `return !const ...` — invalid JS, `node --check` fails, the entire bundle dies at parse time. Workaround: use `return null` (which compiles fine in return position despite §42.7 rejecting `null` in value-assignment positions). Hypothesis: parser disambiguation site between unary-negation `not` and absence-sentinel `not` doesn't account for the "completion of a `return` statement with no operand" position.
+- **Bug T (`//` inside string literal):** BS preprocessing treats `//` as line-comment start regardless of string-literal context. A string like `"file:///path"` is truncated to `"file:"` AND all subsequent `@cell` module-level declarations are silently dropped from init (same cascade shape as Bug Q). Sibling of Bug L (BS not string-aware on `{`/`}`). The adopter-visible failure is "I added an absolute URL with `//` and now my whole page renders empty." Workaround: build URLs via `"file:" + String.fromCharCode(47) + String.fromCharCode(47) + "/path"`.
+- Filed at `scrmlTS/handOffs/incoming/2026-05-23-0757-6nz-to-scrmlTS-bugs-s-t-from-playground-eight.md` + 1 sidecar (`bug-t-double-slash-in-string-truncates-and-cascades.scrml`).
+
 ## Cross-repo traffic log
 - **Out to scrmlTS** (1 message + 1 sidecar): `2026-05-23-0719-6nz-to-scrmlTS-bugs-l-m-n-o-status-plus-bug-p.md` — closes L/M/N/O loop (L still open / fix reverted; M+N+O confirmed fixed by emit + node --check), files new Bug P with minimal repro. Bug N closure explicitly addresses scrmlTS's pending-confirmation ping from 2026-04-26 (their reply message never landed on this clone).
 - **Out to scrmlTS** (1 message + 2 sidecars): `2026-05-23-0735-6nz-to-scrmlTS-bugs-q-r-from-playground-seven.md` — files two new compiler bugs surfaced during playground-seven construction. Q (auto-lift drops @cell init) HIGH; R (if= mounts but never unmounts) HIGH-but-narrower.
+- **Out to scrmlTS** (1 message + 1 sidecar): `2026-05-23-0757-6nz-to-scrmlTS-bugs-s-t-from-playground-eight.md` — two new bugs from p8 construction. S (`return not` mis-emits as `return !`, gluing next `const` → SyntaxError) HIGH. T (`//` inside string literal eats line + cascades to drop subsequent @cell inits) HIGH, sibling of Bug L.
+
+### Built playground-eight — LSP completion + hover on CM6
+- Extends p6's diagnostics-over-WebSocket wiring with two more LSP surfaces: `textDocument/completion` (rendered via CM6's `@codemirror/autocomplete` UI) and `textDocument/hover` (rendered as a CM6 tooltip above the symbol). Bridge wire same as p6: browser ↔ WS ↔ bridge.js ↔ stdio ↔ scrmlTS LSP. Window-side pending-promise map indexed by JSON-RPC id resolves LSP responses back to CM6's source callbacks.
+- Smoke: 8/9 pass. CM6 mounts → LSP reaches ready → initial doc clean → **typing `@` returns 57 completion items (first: `lift`) end-to-end through the bridge** → typing `<` returns another completion batch → hover request path reachable. One inconclusive (broken-doc didChange diagnostic re-trigger; mid-investigation).
+- **End-to-end confirmation:** scrmlTS S40-S42's LSP L1-L4 stack reaches us through the WebSocket bridge cleanly. Any future tooling that wants live diagnostics / completion / hover / signature help / code actions can build on this pattern today, without waiting for the in-process compiler API.
 
 ## Open items carried to S12
-- Awaiting scrmlTS triage on Bugs L (reopen for native-parser M6 follow-through), P, Q, R.
-- Bug L workarounds (FromCharCode for braces in sample docs) stay in p5/p6/p7 until native-parser M6 ships.
-- playground-eight (suggested) — completion + hover on the LSP-wired CM6 surface (p6 + LSP L1-L4 capabilities). Unblocked.
-- Smoke-test scripts only exist for p5/p6/p7. Earlier playgrounds (zero/one/two/four) have no committed puppeteer harness; they compile clean post-migration but formal smoke coverage is a separate work item.
+- Awaiting scrmlTS triage on Bugs L (reopen for native-parser M6 follow-through), P, Q, R, S, T.
+- Bug L workaround (FromCharCode for braces in sample docs) stays in p5/p6/p7 until native-parser M6 ships. Bug T workaround (FromCharCode for `//` in URL string literals) stays in p8 likewise.
+- Bug Q-2 (comment block between auto-lifted @cell decls drops trailing cells from init) is the friction hot-spot of the session — bit during p7 AND p8 construction. Source-side discipline: keep auto-lifted @cell decls contiguous with NO comment lines interleaved.
+- Bug R blocks any cleanly-rendered mutually-exclusive `if=@derived` UI; affects p5 mode badges, p7 mode badges, and any future mode/state-toggle UI we author until fix lands.
+- p8's 1 inconclusive smoke: "broken scrml surfaces diagnostics" — the broken-doc replacement (`<program>\n@x = (\n</program>`) didn't re-trigger diagnostics in the smoke window. Could be LSP-side leniency on the partial doc, didChange version handling, or test-side timing. Probe before deciding if real bug.
+- Smoke-test scripts now exist for p5/p6/p7/p8. Earlier playgrounds (zero/one/two/four) still have no committed puppeteer harness; they compile clean post-migration but formal smoke coverage is a separate work item.
 - Master-list §A `default-bindings.md` status was inconsistent (S10 commit `0ffb452` shipped v0.3 but §E still showed `[ ][ ]`); reconciled to `[x]` this session.
+- Suggested next playgrounds (added to master-list §E this session):
+  - playground-nine: first scrml file that isn't a CM6 demo — editor IR + node-tree shape, exercising scrml's type system + reactive engine on the IR the editor proper will need.
+  - playground-ten: multi-buffer / relevance-region surface — multiple scrml-rendered code spans sharing one mode state machine via `^{}` ambient; probes whether the relevance-view's "multiple focused code regions" model composes.
