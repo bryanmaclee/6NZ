@@ -121,7 +121,7 @@ ${
         }
     }
 
-    function reset() {
+    function clearMode() {
         @mode = Mode.Insert
         @lastKey = ""
         @lastTrigger = "(reset)"
@@ -180,7 +180,7 @@ ${
     <div class="panel">
         <div class="row">
             <span class="slabel">Transition log:</>
-            <button class="reset-btn" onclick=reset()>Clear</>
+            <button class="reset-btn" onclick=clearMode()>Clear</>
         </>
         <ol class="loglist">
             ${

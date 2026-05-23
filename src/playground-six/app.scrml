@@ -121,8 +121,8 @@ ${
             id: nextId(),
             method: "initialize",
             params: {
-                processId: null,
-                rootUri: null,
+                processId: not,
+                rootUri: not,
                 capabilities: {}
             }
         })
@@ -251,16 +251,15 @@ ${
         const lb = String.fromCharCode(123)  // {
         const rb = String.fromCharCode(125)  // }
         const dol = String.fromCharCode(36)  // $
+        // Clean sample doc — v0.3+ auto-lifts top-level decls; no ${...} wrap needed.
         const sampleDoc =
             "// playground-six — LSP diagnostics over WebSocket." + nl +
             "// Edit below; diagnostics appear in the panel beneath." + nl +
             nl +
             "<program>" + nl +
             nl +
-            dol + lb + nl +
-            "    @count = 0" + nl +
-            "    function bump() " + lb + " @count = @count + 1 " + rb + nl +
-            rb + nl +
+            "@count = 0" + nl +
+            "function bump() " + lb + " @count = @count + 1 " + rb + nl +
             nl +
             "<div>" + dol + lb + "@count" + rb + "</>" + nl +
             "<button onclick=bump()>+</>" + nl +

@@ -288,7 +288,7 @@ ${
         }
     }
 
-    function reset() {
+    function clearBuffer() {
         @mode = Mode.Normal
         @cursor = 0
         @pressed = []
@@ -356,7 +356,7 @@ ${
         <strong>INSERT:</> type normally · <code>Backspace</code> and <code>Enter</code> work · <strong>hold h j k or l + tap any key → cursor nudges in that direction</>
     </>
 
-    <button class="reset-btn" onclick=reset()>Reset buffer</>
+    <button class="reset-btn" onclick=clearBuffer()>Reset buffer</>
 </>
 
 #{

@@ -364,7 +364,7 @@ ${
         @status = "normal: ignored " + e.key
     }
 
-    function reset() {
+    function clearHistory() {
         @nodes = [{
             id: 0, parent: -1, children: [], kind: EditKind.Initial, meta: "",
             lines: [""], cursorLine: 0, cursorCol: 0, time: 0
@@ -414,7 +414,7 @@ ${
         <div><strong>Try:</> type "abc", Esc, u u u (back to root), i, type "xyz", Esc, then = / - to walk chronology across branches.</>
     </>
 
-    <button class="reset-btn" onclick=reset()>Reset</>
+    <button class="reset-btn" onclick=clearHistory()>Reset</>
 </>
 
 #{
