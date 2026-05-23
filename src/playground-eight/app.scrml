@@ -1,0 +1,428 @@
+// playground-eight — LSP completion + hover on the CM6 surface.
+//
+// Extends playground-six's diagnostics-over-WebSocket wiring with two
+// more LSP surfaces:
+//
+//   - textDocument/completion — fired on trigger chars (< @ $ ? ^ # . : =
+//     space) per scrmlTS S40 LSP capabilities. Results render in CM6's
+//     native autocomplete UI via @codemirror/autocomplete.
+//
+//   - textDocument/hover — fired on hover. Tooltip body comes from the
+//     LSP Hover response and shows above the symbol. The L2 hover-with-
+//     signatures surface (S40) supplies the meat.
+//
+// This is the dogfood vehicle for scrmlTS's L1-L4 LSP arc. Diagnostics
+// already shipped + verified in p6; completion + hover are exercised
+// here for the first time end-to-end.
+//
+// Wire (same as p6):
+//
+//   browser <-- WebSocket --> bridge.js <-- stdio --> scrmlTS LSP
+//
+// Requires bridge running: bun src/playground-eight/bridge.js
+// Then: scrml dev src/playground-eight/app.scrml
+
+<program>
+
+// Bug L workaround: BS brace-counter still not string-aware (fix
+// reverted, awaiting native-parser M6). Keep raw `{` / `}` out of
+// string literals; we use String.fromCharCode(123/125) where needed.
+
+// Bug Q workaround: precede @-cells with a function/type and keep
+// @-cells contiguous (no comment block interleaved). All @-cells
+// for this file are in one run below.
+
+function lspWsUrl() {
+    const port = String(3081)
+    return "ws://localhost:" + port + "/"
+}
+
+function nextIdSeed() { return 0 }
+
+@docUri      = "file:" + String.fromCharCode(47) + String.fromCharCode(47) + "/playground-eight.scrml"
+@docVersion  = 1
+@docLength   = 0
+@lineCount   = 1
+@cmStatus    = "loading CM6 from esm.sh..."
+@cmError     = ""
+@lspStatus   = "idle"
+@lspMsgsIn   = 0
+@lspMsgsOut  = 0
+@diagCount   = 0
+@diagSummary = "no diagnostics"
+@lastCompletion = "(none yet)"
+@completionCount = 0
+@lastHover   = "(hover an identifier)"
+@hoverCount  = 0
+
+// --- LSP wire format helpers --------------------------------------
+
+function lspSend(ws, msg) {
+    ws.send(JSON.stringify(msg))
+    @lspMsgsOut = @lspMsgsOut + 1
+}
+
+function sendInitialize(ws, id) {
+    lspSend(ws, {
+        jsonrpc: "2.0",
+        id: id,
+        method: "initialize",
+        params: {
+            processId: not,
+            rootUri: not,
+            capabilities: {}
+        }
+    })
+}
+
+function sendInitialized(ws) {
+    lspSend(ws, { jsonrpc: "2.0", method: "initialized", params: {} })
+}
+
+function sendDidOpen(ws, text) {
+    lspSend(ws, {
+        jsonrpc: "2.0",
+        method: "textDocument/didOpen",
+        params: {
+            textDocument: {
+                uri: @docUri,
+                languageId: "scrml",
+                version: @docVersion,
+                text: text
+            }
+        }
+    })
+}
+
+function sendDidChange(ws, text, version) {
+    lspSend(ws, {
+        jsonrpc: "2.0",
+        method: "textDocument/didChange",
+        params: {
+            textDocument: { uri: @docUri, version: version },
+            contentChanges: [{ text: text }]
+        }
+    })
+}
+
+function sendCompletion(ws, id, line, character) {
+    lspSend(ws, {
+        jsonrpc: "2.0",
+        id: id,
+        method: "textDocument/completion",
+        params: {
+            textDocument: { uri: @docUri },
+            position: { line: line, character: character }
+        }
+    })
+}
+
+function sendHover(ws, id, line, character) {
+    lspSend(ws, {
+        jsonrpc: "2.0",
+        id: id,
+        method: "textDocument/hover",
+        params: {
+            textDocument: { uri: @docUri },
+            position: { line: line, character: character }
+        }
+    })
+}
+
+// --- Doc / cursor sync from CM6 -----------------------------------
+
+function onDocUpdate(update) {
+    if (update.docChanged) {
+        const st = update.state
+        @docLength = st.doc.length
+        @lineCount = st.doc.lines
+        @docVersion = @docVersion + 1
+        const text = st.doc.toString()
+        sendDidChange(window.__p8_ws, text, @docVersion)
+    }
+}
+
+// --- LSP response dispatch ----------------------------------------
+//
+// The pending map lives on window (mutable, non-reactive) — scrml's
+// reactive store can't carry function-resolver closures cleanly, and
+// the LSP request/response cycle needs them.
+
+function onLspMessage(text) {
+    @lspMsgsIn = @lspMsgsIn + 1
+    const msg = JSON.parse(text)
+
+    // Notifications (diagnostics) — no id, dispatch by method.
+    if (msg.method == "textDocument/publishDiagnostics") {
+        const ds = msg.params.diagnostics
+        @diagCount = ds.length
+        if (ds.length == 0) {
+            @diagSummary = "clean"
+        } else {
+            @diagSummary = ds.length + " diagnostic(s); first: " + ds[0].message
+        }
+        return
+    }
+
+    // Responses — has id, resolve the pending promise.
+    if (msg.id is some && window.__p8_pending is some) {
+        const pending = window.__p8_pending[msg.id]
+        if (pending is some) {
+            pending.resolve(msg)
+            window.__p8_pending[msg.id] = not
+        }
+    }
+
+    // Initialize response (id 1).
+    if (msg.id == 1 && msg.result is some) {
+        sendInitialized(window.__p8_ws)
+        @lspStatus = "ready"
+        sendDidOpen(window.__p8_ws, window.__cm.state.doc.toString())
+    }
+}
+
+// --- WebSocket lifecycle ------------------------------------------
+
+function connectLsp() {
+    const ws = new window.WebSocket(lspWsUrl())
+    window.__p8_ws = ws
+    window.__p8_nextId = 2
+    window.__p8_pending = {}
+    ws.onopen = function () {
+        @lspStatus = "ws-open"
+        sendInitialize(ws, 1)
+    }
+    ws.onmessage = function (ev) {
+        onLspMessage(ev.data)
+    }
+    ws.onerror = function (e) {
+        @lspStatus = "ws-error"
+    }
+    ws.onclose = function () {
+        @lspStatus = "ws-closed"
+    }
+}
+
+// --- CM6 lifecycle ------------------------------------------------
+
+function onCmReady(cm) {
+    const host = document.querySelector(".cm-host")
+    if (!host) {
+        @cmStatus = "error: .cm-host not found"
+        return
+    }
+    const nl = String.fromCharCode(10)
+    const sampleDoc =
+        "// playground-eight — LSP completion + hover on CM6." + nl +
+        "// Edit below. Trigger completion: type < @ $ ? ^ # . : = or space" + nl +
+        "// in a position the LSP recognizes. Hover an identifier for hover." + nl +
+        nl +
+        "<program>" + nl +
+        nl +
+        "@count = 0" + nl +
+        "function bump() " + String.fromCharCode(123) + " @count = @count + 1 " + String.fromCharCode(125) + nl +
+        nl +
+        "<div>" + String.fromCharCode(36) + String.fromCharCode(123) + "@count" + String.fromCharCode(125) + "</>" + nl +
+        "<button onclick=bump()>+</>" + nl +
+        nl +
+        "</program>" + nl
+
+    // ---- completion source (CM6 → LSP request → CompletionResult) ----
+    // Bug S workaround: `return not` followed by `const` mis-emits as
+    // `return !const ...` (invalid JS). Restructured with early-true
+    // guards + a single nullable trailing return.
+    const completionSource = function (context) {
+        if (!window.__p8_ws) { return null }
+        if (@lspStatus != "ready") { return null }
+        const pos = context.pos
+        const doc = context.state.doc
+        const line = doc.lineAt(pos)
+        const lspLine = line.number - 1
+        const lspChar = pos - line.from
+
+        const id = window.__p8_nextId
+        window.__p8_nextId = window.__p8_nextId + 1
+        const p = new Promise(function (resolve) {
+            window.__p8_pending[id] = { resolve: resolve }
+            sendCompletion(window.__p8_ws, id, lspLine, lspChar)
+        })
+
+        return p.then(function (msg) {
+            const result = msg.result
+            if (!result) { return null }
+            const itemsRaw = Array.isArray(result) ? result : (result.items || [])
+            if (itemsRaw.length == 0) {
+                @lastCompletion = "(no items for pos " + lspLine + ":" + lspChar + ")"
+                return null
+            }
+            const items = itemsRaw.map(function (it) {
+                return {
+                    label: it.label,
+                    detail: it.detail || "",
+                    info: it.documentation
+                        ? (typeof it.documentation == "string" ? it.documentation : it.documentation.value)
+                        : ""
+                }
+            })
+            @completionCount = items.length
+            @lastCompletion = items.length + " items @ " + lspLine + ":" + lspChar + " (first: " + items[0].label + ")"
+            return { from: context.pos, options: items, validFor: /^[\w]*$/ }
+        })
+    }
+
+    // ---- hover source (CM6 → LSP request → tooltip spec) ----
+    const hoverSource = cm.hoverTooltip(function (view, pos, side) {
+        if (!window.__p8_ws) { return null }
+        if (@lspStatus != "ready") { return null }
+        const doc = view.state.doc
+        const line = doc.lineAt(pos)
+        const lspLine = line.number - 1
+        const lspChar = pos - line.from
+
+        const id = window.__p8_nextId
+        window.__p8_nextId = window.__p8_nextId + 1
+        const p = new Promise(function (resolve) {
+            window.__p8_pending[id] = { resolve: resolve }
+            sendHover(window.__p8_ws, id, lspLine, lspChar)
+        })
+
+        return p.then(function (msg) {
+            const result = msg.result
+            if (!result || !result.contents) { return null }
+            const raw = result.contents
+            const text = (typeof raw == "string")
+                ? raw
+                : (Array.isArray(raw) ? raw.map(function(x) { return typeof x == "string" ? x : x.value }).join("\n\n") : raw.value)
+            @hoverCount = @hoverCount + 1
+            @lastHover = "@ " + lspLine + ":" + lspChar + " — " + text.substring(0, 60)
+            return {
+                pos: pos,
+                end: pos,
+                above: true,
+                create: function () {
+                    const dom = document.createElement("div")
+                    dom.className = "p8-hover-popup"
+                    dom.textContent = text
+                    return { dom: dom }
+                }
+            }
+        })
+    })
+
+    const listener = cm.EditorView.updateListener.of(onDocUpdate)
+    const view = new cm.EditorView({
+        parent: host,
+        doc: sampleDoc,
+        extensions: [
+            cm.basicSetup,
+            cm.autocompletion({ override: [completionSource], activateOnTyping: true }),
+            hoverSource,
+            listener
+        ]
+    })
+
+    @docLength  = view.state.doc.length
+    @lineCount  = view.state.doc.lines
+    @cmStatus   = "CM6 mounted; connecting to LSP..."
+
+    window.__cm = view
+    connectLsp()
+}
+
+function onCmError(e) {
+    @cmStatus = "load failed"
+    @cmError  = e.message ? e.message : String(e)
+}
+
+function loadCm() {
+    // Same esm.sh bridge as p3/p5/p6 plus autocomplete + hoverTooltip exports.
+    const scriptText =
+        "import {basicSetup} from 'https://esm.sh/codemirror@6.0.2'; " +
+        "import {EditorView} from 'https://esm.sh/@codemirror/view@6'; " +
+        "import {autocompletion} from 'https://esm.sh/@codemirror/autocomplete@6'; " +
+        "import {hoverTooltip} from 'https://esm.sh/@codemirror/view@6'; " +
+        "window.__cmMod = { basicSetup, EditorView, autocompletion, hoverTooltip }; " +
+        "window.dispatchEvent(new CustomEvent('cm-loaded'));"
+    const script = document.createElement("script")
+    script.type = "module"
+    script.textContent = scriptText
+    script.onerror = onCmError
+    window.addEventListener("cm-loaded", function() { onCmReady(window.__cmMod) }, { once: true })
+    document.body.appendChild(script)
+}
+
+^{ loadCm() }
+
+<div class="app">
+    <h1>playground-eight — completion + hover on LSP-wired CM6</>
+    <p class="subtitle">CodeMirror 6 + WebSocket bridge to scrmlTS LSP. Diagnostics (from p6) + completion + hover.</>
+
+    <div class="panel status">
+        <div class="row"><span class="slabel">CM6 status:</><span class="value">${@cmStatus}</></>
+        <div class="row"><span class="slabel">LSP:</><span class="value">${@lspStatus}</></>
+        <div class="row"><span class="slabel">Doc:</><span class="value">${@lineCount} lines, ${@docLength} chars (v${@docVersion})</></>
+        <div class="row"><span class="slabel">LSP traffic:</><span class="value">in ${@lspMsgsIn} / out ${@lspMsgsOut}</></>
+    </>
+
+    <div class="panel diag">
+        <div class="row"><span class="slabel">Diagnostics:</><span class="value">${@diagSummary}</></>
+    </>
+
+    <div class="panel comp">
+        <div class="row"><span class="slabel">Last completion:</><span class="value">${@lastCompletion}</></>
+        <div class="row"><span class="slabel">Items returned:</><span class="value">${@completionCount}</></>
+    </>
+
+    <div class="panel hov">
+        <div class="row"><span class="slabel">Last hover:</><span class="value">${@lastHover}</></>
+        <div class="row"><span class="slabel">Hover count:</><span class="value">${@hoverCount}</></>
+    </>
+
+    <div class="cm-host"></>
+
+    <div class="panel notes">
+        <strong>Try it:</> click into the editor; type <code>&lt;</code> at the start of a line, or <code>@</code> in logic context — completion should fire. Hover over <code>bump</code> or <code>@count</code> for hover.<br>
+        Diagnostics arrive automatically on every keystroke (Full sync per LSP capabilities).
+    </>
+</>
+
+#{
+    body {
+        margin: 0;
+        background: #1a1a1a;
+        color: #e0e0e0;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    .app { max-width: 920px; margin: 2rem auto; padding: 0 1.5rem; }
+    h1 { color: #ffa500; margin: 0 0 0.25rem; font-size: 1.4rem; }
+    .subtitle { color: #888; margin: 0 0 1.25rem; font-size: 0.85rem; }
+    .panel {
+        background: #222; border: 1px solid #333; border-radius: 6px;
+        padding: 0.85rem 1rem; margin-bottom: 0.9rem;
+    }
+    .panel.diag { border-color: #6666aa; }
+    .panel.comp { border-color: #66aa66; }
+    .panel.hov  { border-color: #aa6666; }
+    .row { display: flex; gap: 0.75rem; align-items: flex-start; margin: 0.18rem 0; }
+    .slabel { color: #888; font-size: 0.8rem; min-width: 10rem; }
+    .value { color: #88ff88; font-weight: 600; word-break: break-all; }
+    .cm-host {
+        min-height: 16rem; background: #111; border: 2px solid #333;
+        border-radius: 6px; margin-bottom: 0.9rem;
+    }
+    .cm-host:focus-within { border-color: #ffa500; }
+    .cm-host .cm-editor { font-family: inherit; font-size: 0.92rem; min-height: 16rem; }
+    .notes { color: #aaa; font-size: 0.83rem; line-height: 1.7; }
+    .notes strong { color: #ffa500; }
+    .notes code {
+        color: #88ff88; background: #111; padding: 1px 5px;
+        border-radius: 3px; font-size: 0.78rem;
+    }
+    .p8-hover-popup {
+        background: #2a1a1a; color: #ffd0d0; border: 1px solid #aa6666;
+        border-radius: 4px; padding: 0.4rem 0.6rem; font-size: 0.85rem;
+        max-width: 400px; white-space: pre-wrap;
+    }
+}
+
+</program>
