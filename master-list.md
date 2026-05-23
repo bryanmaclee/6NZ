@@ -2,9 +2,9 @@
 
 **Purpose:** Live inventory of the 6nz editor repo.
 
-**Last updated:** 2026-04-25 (S10)
+**Last updated:** 2026-05-23 (S11)
 
-**Status:** Exploratory implementation phase. Four scrml-native playgrounds committed. CM6 mount verified end-to-end via esm.sh bridge. Editor scaffolding proper still waiting on compiler API exposure in scrmlTS.
+**Status:** Exploratory implementation phase, dogfood mode. Seven scrml-native playgrounds committed. CM6 mount verified end-to-end via esm.sh bridge; z-motion classifier shipped on CM6 in p7. Editor scaffolding proper still waiting on compiler API exposure in scrmlTS. S11 was the first session post-LSP-shipping arc in scrmlTS (S40→S122 gap on our side) — re-verified all 4 prior bugs, migrated playgrounds for v0.6 language changes, surfaced 3 new compiler bugs (P/Q/R) through real construction.
 
 ---
 
@@ -28,11 +28,14 @@
 - [x][x] `proto/z-motion-feel/` — older throwaway for z-motion input grammar (vanilla JS)
 
 ### Scrml-native source (`src/`)
-- [x][x] `src/playground-zero/` — **works.** Z-motion release-order classifier port (SPEC v0.4 §5). Surfaced 6 compiler bugs in the first hour; scrmlTS fixed all 6 same day. Puppeteer smoke 7/7 pass. Proves the stack can handle event-stream + state-machine work the input layer needs.
-- [x][x] `src/playground-one/` — **works.** Vim-style mode state machine via scrml's `<machine>` primitive (5 modes: Insert / Normal / Visual / V-LINE / ToggleHold). Compiler-enforced legal transitions. Uses `fn modeName(m: Mode) -> string { match … }` (post-Bug-G restoration, verified end-to-end).
-- [x][x] `src/playground-two/` — **works.** hjkl + z-motion rolls on a real buffer with visible cursor. Combines playground-zero's classifier and playground-one's mode machine against a rendered text buffer. Starts in NORMAL (vim convention). Puppeteer smoke 12/12 pass.
+- [x][x] `src/playground-zero/` — **works.** Z-motion release-order classifier port (SPEC v0.4 §5). Surfaced 6 compiler bugs in the first hour; scrmlTS fixed all 6 same day. Puppeteer smoke 7/7 pass. (S11 migration: `reset` is now a reserved keyword → renamed local `function reset()` to `function clearLog()`.)
+- [x][x] `src/playground-one/` — **works.** Vim-style mode state machine via scrml's `<machine>` primitive (5 modes: Insert / Normal / Visual / V-LINE / ToggleHold). Compiler-enforced legal transitions. (S11 migration: `reset` → `clearMode`.)
+- [x][x] `src/playground-two/` — **works.** hjkl + z-motion rolls on a real buffer with visible cursor. Combines playground-zero's classifier and playground-one's mode machine against a rendered text buffer. Starts in NORMAL (vim convention). Puppeteer smoke 12/12 pass. (S11 migration: `reset` → `clearBuffer`.)
 - [x][x] `src/playground-three/` — **works.** CM6 mount via esm.sh + `^{ loadCm() }` direct (post-Bug-6 simplification). 9/9 smoke checks pass — CM6 loads, mounts on a scrml-rendered div, keystrokes into CM6 update scrml-side reactives live. Module-system workaround cost is noisy but functional (see §G).
-- [x][x] `src/playground-four/` — **works.** Keystroke-granular undo TREE on a line-indexed buffer. `u` walks parents, `Ctrl+R` walks youngest child, `-`/`=` walk chronologically across branches. 14/14 smoke checks pass. Zero pageerrors. Surfaced 4 new compiler bugs (H, I, J, K) during construction — all filed with minimal repros.
+- [x][x] `src/playground-four/` — **works.** Keystroke-granular undo TREE on a line-indexed buffer. `u` walks parents, `Ctrl+R` walks youngest child, `-`/`=` walk chronologically across branches. 14/14 smoke checks pass. Zero pageerrors. Surfaced 4 new compiler bugs (H, I, J, K) during construction — all filed and all confirmed fixed S11. (S11 migration: `reset` → `clearHistory`.)
+- [x][x] `src/playground-five/` — **works.** Vim modes on CM6. 18/18 smoke S10. S11 status: latent failures due to Bug P (runtime chunker dep gap) and likely Bug R (`if=` unmount no-op for mode badges); no source change needed beyond what S10 shipped.
+- [x][x] `src/playground-six/` — **works.** LSP diagnostics over WebSocket. 6/7 smoke S11 (only failure is Bug P pageerror). S11 migrations: `null`→`not` in JSON-RPC init frame, bridge path made machine-portable via `import.meta.url`, sample doc dropped redundant `${...}` wrap.
+- [x][x] `src/playground-seven/` — **works (z-motion on CM6 lands).** Release-order classifier from p2 grafted into p5's vim keymap. Insert mode: hold `h/j/k/l` + tap any key → cursor motion in that direction without leaving INSERT. 14/17 smoke pass: NORMAL/VISUAL motion + z-motion all PASS; 3 remaining failures all trace to Bug R. Surfaced 2 new compiler bugs (Q, R) during construction.
 
 ### Infrastructure
 - [x][x] `.github/workflows/pages.yml` — deploys `proto/6nz-playable/` to GitHub Pages
@@ -90,7 +93,7 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 
 ## D. Prerequisites
 
-- [x][~] **Compiler API exposure (LSP path)** — **partially shipped S40** (2026-04-24). scrmlTS shipped LSP L1+L2+L3 (108 new tests). `bun run lsp/server.js --stdio` exposes: outline (`documentSymbolProvider`), hover with signatures, completions (HTML/scrml/SQL/keywords) with triggers `< @ $ ? ^ # . : = space`, cross-file go-to-def, cross-file diagnostics, plus three scrml-unique completions (SQL column from `<db>` schema, component prop, import-clause). L4 (signature help + code actions) in progress; L5 (semantic tokens) deferred at our request — see §F. Architecture: 3-file split (`server.js` thin transport + `handlers.js` testable handlers + `workspace.js` cross-file cache). For 6nz this means semantic features (completion, live diagnostics, cross-file resolution) are reachable today via the LSP, before any in-process compiler API. Direct programmatic API for browser-PWA embedding still pending and remains the long-term path.
+- [x][~] **Compiler API exposure (LSP path)** — **L1-L4 shipped** (S40-S42, 2026-04-24 through ~05-01). 161+ LSP tests total. `bun run lsp/server.js --stdio` exposes: outline (`documentSymbolProvider`), hover with signatures, completions (HTML/scrml/SQL/keywords) with triggers `< @ $ ? ^ # . : = space`, cross-file go-to-def, cross-file diagnostics, three scrml-unique completions (SQL column from `<db>` schema, component prop, import-clause), signature help, and quick-fix code actions for E-IMPORT-004/005, E-LIN-001, E-PA-007, E-SQL-006. L5 (semantic tokens) deferred indefinitely (6nz spatial-panels supersede inline coloring). For 6nz this means semantic features (completion, live diagnostics, cross-file resolution, code actions) are reachable today via the LSP. Direct programmatic API for browser-PWA embedding still pending and remains the long-term path.
 - [ ][ ] **Performance + PWA architecture spec** — authored before scaffolding
 - [ ][ ] **scrml compiler in scrml** — needed so the editor (written in scrml) can embed the compiler directly
 
@@ -101,7 +104,7 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 ## E. Open work
 
 ### Spec work (not blocked)
-- [ ][ ] `default-bindings.md` v0.3 rewrite — remove FAMILY 2, add `[j]`/`[k]` vertical, update against SPEC v0.5
+- [x] `default-bindings.md` v0.3 rewrite — DONE S10 (commit `0ffb452`); drops FAMILY 2, adds `[j]`/`[k]` vertical holds, adds `[u]` undo hold for SPEC §6.4 sustained gestures.
 - [ ][ ] Shift-leak stripping — user locked "strip shift from roll," needs SPEC §5 or §11 note
 - [ ][ ] Operator composition — move from §10.1 stub to full spec
 - [ ][ ] Semantic landmark motions — hold-letter assignments, directionality, full vocabulary
@@ -120,9 +123,9 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 - [x] playground-two — hjkl + z-motion on a real buffer
 - [x] playground-three — CM6 mount probe (esm.sh bridge)
 - [x] playground-four — undo tree on line-indexed buffer
-- [x] playground-five — vim modes on CM6 (capture-phase keydown gates CM6; hjkl/0/$/i/a/v/Esc; 18/18 smoke). Surfaced Bug L (BS not string-aware in brace counting).
-- [x] playground-six — LSP diagnostics over WebSocket. Bridge spawns scrmlTS LSP via stdio + exposes WS; CM6 mounts, scrml-side WS client speaks JSON-RPC; clean → broken → clean transitions correctly produce 0 → N → 0 diagnostics. 7/7 smoke. Surfaced 3 new codegen bugs (M, N, O) + 1 Bug L recurrence.
-- [ ] playground-seven (suggested) — z-motion on CM6: graft playground-two's release-order classifier into playground-five's keymap so insert-mode `[h](roll)` etc. drive CM6 selection without leaving Insert.
+- [x] playground-five — vim modes on CM6 (capture-phase keydown gates CM6; hjkl/0/$/i/a/v/Esc; 18/18 smoke S10; latent Bug P/R failures S11 retest). Surfaced Bug L.
+- [x] playground-six — LSP diagnostics over WebSocket. Bridge spawns scrmlTS LSP via stdio + exposes WS; CM6 mounts, scrml-side WS client speaks JSON-RPC; clean → broken → clean transitions correctly produce 0 → N → 0 diagnostics. 7/7 smoke S10; 6/7 S11 retest (one pageerror = Bug P). Surfaced 3 new codegen bugs (M, N, O) + 1 Bug L recurrence.
+- [x] playground-seven — z-motion on CM6. Release-order classifier from p2 grafted into p5's vim keymap. Insert mode: hold `h/j/k/l` + tap any key → cursor nudges in that direction without leaving INSERT or typing the rolled key. 14/17 smoke (3 mode-badge detection failures trace to Bug R). Surfaced 2 new compiler bugs (Q, R) during construction.
 - [ ] playground-eight (suggested) — completion + hover on the LSP-wired CM6 surface from playground-six. Trigger characters from `initialize` capabilities; render LSP `CompletionItem[]` in CM6's autocomplete UI; hover popup from `textDocument/hover`.
 
 ### Housekeeping (not blocked)
@@ -144,9 +147,17 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 ## F. Cross-repo
 
 ### scrmlTS (compiler)
-- Session 9 interaction was dense: scrmlTS shipped fixes for Bug G, 1, 3, 4, 5, 6 across the span (scrmlTS S37 closed at commit `9540518` with 7,393 tests pass; all six fixes landed pre-close, zero regressions). 6nz filed four more (H, I, J, K) from playground-four with inline + sidecar repros per the new pa.md rule. Re-filed S10 (2026-04-25) as a dedicated message + standalone sidecars; scrmlTS replied that all four had landed in S39 (commits `39782f0`/`6b3e63f`/`4c4679d`+`ad02884`/`686ffcd`) — retested against `c51ad15` and confirmed all four fixed.
-- **Bug L surfaced S10** during playground-five construction. BS not string-aware in brace counting: `{` and `}` split across separate string literals trip BS's brace counter, manifesting as bogus "Unclosed 'logic' / 'program'" errors. Sibling of the `\n`-not-interpreted issue from playground-two. Filed 2026-04-25 with inline + sidecar repro.
-- **Bugs M / N / O surfaced S10** during playground-six construction. (M) `obj.field = function() {...}` member-assignment of a function expression mis-emits as two statements with empty RHS + orphaned function literal. (N) two consecutive `@x = ...` reactive writes inside an inline function expression mis-emit (lost paren on first, assignment-to-get on second; SAME pattern in named function bodies emits cleanly). (O) for-of loop variable in markup `${ for (x of @list) { lift ... } }` leaks into the surrounding meta-effect closure as a free identifier when a `^{ ... }` block also exists in the program. Filed 2026-04-26 with inline + sidecar repros + workaround documentation. Bug L bit again on playground-six's sample-doc construction; same workaround applied.
+- **S11 retest (2026-05-23) — scrmlTS jumped S40 → S122 (~80 sessions, 300+ commits) during the gap.** Highlights affecting 6nz: v0.6.0 release tagged, v0.7 native parser arc in flight, LSP L1-L4 shipped (signature help + code actions live), Bug 14 SPEC §5.2.2 revert (`onclick=fn()` no longer auto-threads event), new `E-RESERVED-IDENTIFIER` on `function reset()` (use `clearXxx()`), `null` → `not` strictness (E-SYNTAX-042), `W-PROGRAM-REDUNDANT-LOGIC` actively recommending bare-decl v0.3 auto-lift form. Also corpus-sweep PLAN queued post-M6 (runtime-verify every example).
+- **Bugs L/M/N/O closure-out S11.**
+  - Bug L (BS brace-counter): fix at `2a5f4a06` was reverted at `529f0312`; **still open**, awaiting native-parser M6 subsumption. `String.fromCharCode(123/125)` workaround in p5+p6 stays.
+  - Bug M (member-assign of fn expr): **fixed** at `08ca2f83`. Verified `ws.onopen = function () { ... };` emits cleanly.
+  - Bug N (consecutive `@x =` in inline fn): **fixed**. scrmlTS had it pending-6nz-confirmation since 2026-04-26; closure message sent S11.
+  - Bug O (for-of leaks into `^{}` meta-effect): **fixed** at `50b431e2`. Frozen-scope object correctly excludes the loop var.
+- **Bug P filed S11 — runtime chunker tree-shake gap.** `_scrml_destroy_scope` (always-included `scope` chunk) calls `_scrml_stop_scope_timers` (conditional `timers` chunk). Apps that don't use timer functions get a runtime tree-shaken without the call target → `ReferenceError: _scrml_stop_scope_timers is not defined` on any scope teardown, halting all subsequent reactive effects. HIGH — every adopter app hits this. Filed at `2026-05-23-0719-6nz-to-scrmlTS-bugs-l-m-n-o-status-plus-bug-p.md` + sidecar.
+- **Bugs Q + R filed S11 — both surfaced building playground-seven.**
+  - Bug Q (auto-lift init gap): `<program>` body's bare `@cell = X` declarations don't get `_scrml_init_set` emission when (Q-1) the body starts with `@cell` instead of fn/type, or (Q-2) `@cell` decls are separated from each other by a comment block. Compile-clean → runtime undefined → bare dependency probe throws at module load → halts the rest of init including `DOMContentLoaded`-wired `if=` markup. Workaround: precede `@cell` decls with a function, keep `@cell` decls contiguous, or use the redundant `${...}` wrap that `W-PROGRAM-REDUNDANT-LOGIC` warns against.
+  - Bug R (`if=` unmount no-op): `if=@derived` mounts the controlled template on first true, but the unmount path never fires when the derived flips to false. Three siblings with mutually-exclusive `if=` (e.g. mode badges) accumulate visible clones instead of alternating. Emit has both mount and unmount functions — the unmount call site exists in the effect — so the failure is in subscription or derived propagation. Adopter impact: every mode-badge / signed-in-vs-out / accordion pattern.
+  - Filed at `2026-05-23-0735-6nz-to-scrmlTS-bugs-q-r-from-playground-seven.md` + two sidecars.
 - **S40 LSP unlock (2026-04-24).** scrmlTS shipped LSP L1+L2+L3 in three commits (`e1827e6` / `14cc1d1` / `24712f5`); 108 new tests. Capabilities: outline, hover-with-signatures, completions across all contexts (HTML / scrml / SQL / keywords), cross-file go-to-def, cross-file diagnostics, plus three scrml-unique completions (SQL column from `<db>` schema, component prop, import-clause). L4 (signature help + code actions) in progress. **L5 (semantic tokens) deferred at our request** — 6nz's locked CM6 + canvas overlay + spatial-panels architecture supersedes inline semantic-token coloring as our annotation strategy. Reply sent 2026-04-25.
 - **Bun.SQL codegen shape change** (`cd8dea1` Phase 1 + `9ef0ccb` Phase 2): `?{}` blocks now emit `await _scrml_sql\`...\`` (was `_scrml_db.query("...").all()`). Doesn't affect any current 6nz playground (none use SQL); flagged for any future SQL-touching playground.
 - **No npm escape hatch is coming**. scrmlTS ran a radical-doubt debate on a fourth init-tier (`--compat`) with npm-style deps. Verdict: **Phase 0 first** — (1) `^{}` polish (Bug 6 was the first shipped item), (2) `docs/external-js.md` translation table (shipped `c7198b6`), (3) `scrml vendor add` CLI (queued). Only if Phase 0 attempts-and-fails on adopter evidence does the fourth tier re-open. User accepted the verdict.
