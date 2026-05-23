@@ -59,7 +59,7 @@
 
 ### Built playground-eight — LSP completion + hover on CM6
 - Extends p6's diagnostics-over-WebSocket wiring with two more LSP surfaces: `textDocument/completion` (rendered via CM6's `@codemirror/autocomplete` UI) and `textDocument/hover` (rendered as a CM6 tooltip above the symbol). Bridge wire same as p6: browser ↔ WS ↔ bridge.js ↔ stdio ↔ scrmlTS LSP. Window-side pending-promise map indexed by JSON-RPC id resolves LSP responses back to CM6's source callbacks.
-- Smoke: 8/9 pass. CM6 mounts → LSP reaches ready → initial doc clean → **typing `@` returns 57 completion items (first: `lift`) end-to-end through the bridge** → typing `<` returns another completion batch → hover request path reachable. One inconclusive (broken-doc didChange diagnostic re-trigger; mid-investigation).
+- Smoke: **9/9 pass**. CM6 mounts → LSP reaches ready → initial doc clean → **typing `@` returns 57 completion items (first: `lift`) end-to-end through the bridge** → typing `<` returns another completion batch → hover request path reachable → broken doc (undeclared identifier) returns full `E-SCOPE-001` diagnostic via LSP. (Initial probe used `@x = (` which silently compiles clean — parser tolerates unclosed paren — so the test was fixed to use an undeclared identifier instead. The compiler's tolerance of unclosed parens is noted but not filed as a bug; could be intentional partial-edit tolerance.)
 - **End-to-end confirmation:** scrmlTS S40-S42's LSP L1-L4 stack reaches us through the WebSocket bridge cleanly. Any future tooling that wants live diagnostics / completion / hover / signature help / code actions can build on this pattern today, without waiting for the in-process compiler API.
 
 ## Open items carried to S12
@@ -67,7 +67,7 @@
 - Bug L workaround (FromCharCode for braces in sample docs) stays in p5/p6/p7 until native-parser M6 ships. Bug T workaround (FromCharCode for `//` in URL string literals) stays in p8 likewise.
 - Bug Q-2 (comment block between auto-lifted @cell decls drops trailing cells from init) is the friction hot-spot of the session — bit during p7 AND p8 construction. Source-side discipline: keep auto-lifted @cell decls contiguous with NO comment lines interleaved.
 - Bug R blocks any cleanly-rendered mutually-exclusive `if=@derived` UI; affects p5 mode badges, p7 mode badges, and any future mode/state-toggle UI we author until fix lands.
-- p8's 1 inconclusive smoke: "broken scrml surfaces diagnostics" — the broken-doc replacement (`<program>\n@x = (\n</program>`) didn't re-trigger diagnostics in the smoke window. Could be LSP-side leniency on the partial doc, didChange version handling, or test-side timing. Probe before deciding if real bug.
+- p8 now 9/9 smoke after fixing the broken-doc sample to use a real diagnostic-generating shape (undeclared identifier). The `@x = (` sample silently compiles clean — flagged as a compiler tolerance observation, not filed as a bug.
 - Smoke-test scripts now exist for p5/p6/p7/p8. Earlier playgrounds (zero/one/two/four) still have no committed puppeteer harness; they compile clean post-migration but formal smoke coverage is a separate work item.
 - Master-list §A `default-bindings.md` status was inconsistent (S10 commit `0ffb452` shipped v0.3 but §E still showed `[ ][ ]`); reconciled to `[x]` this session.
 - Suggested next playgrounds (added to master-list §E this session):

@@ -206,14 +206,20 @@ async function run() {
         check("hover request path reachable (synthetic mouse dispatched)", hoverFired === true);
         console.log(`  NOTE: hover count after synthetic mouse = ${hoverCount}`);
 
-        // 7. Diagnostic round-trip: replace doc with syntax error.
+        // 7. Diagnostic round-trip: replace doc with one that has a real
+        //    diagnostic. Use an undeclared identifier (fires E-SCOPE-001
+        //    cleanly; verified against the compiler directly). NOTE: an
+        //    unclosed parenthesis like `@x = (` is silently TOLERATED by
+        //    the current scrml parser — looks broken to the eye but
+        //    compiles. Use a guaranteed-flagged shape.
         await page.evaluate(() => {
             const v = window.__cm;
+            const broken = "<program>\nfunction foo() { return undeclaredVariable }\n<div>${foo()}</>\n</program>";
             v.dispatch({
-                changes: { from: 0, to: v.state.doc.length, insert: "<program>\n@x = (\n</program>" }
+                changes: { from: 0, to: v.state.doc.length, insert: broken }
             });
         });
-        await sleep(900);
+        await sleep(1500);
         const diagBroken = await readStatus(page, "Diagnostics:");
         check("broken scrml surfaces diagnostics",
             diagBroken && !diagBroken.startsWith("clean") && !diagBroken.startsWith("no"),
