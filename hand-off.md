@@ -47,9 +47,13 @@
 - Fighting puppeteer-from-node fd-inheritance: spawning `scrml dev` + headless chrome from a node script kept the Bash tool's pipe open → process killed (exit 144) with lost stdout. Resolution that works: have the node harness write results synchronously to an absolute file path per-line (not rely on buffered console.log), kill the child by port, internal watchdog timer. (This is exactly the lifecycle pain playwright's test runner removes — reinforces the tooling decision.)
 - Caution logged: a broad `pkill chrome` during debugging may have caught the user's real browser. Only target test instances by port/script from now on.
 
+### Bug S — VERIFIED FIXED + closed (mid-session inbound)
+- Inbound `0809` arrived during the session: Bug S fixed at scrmlTS `3a909c1d` (HEAD moved `a91ad5de`→`3a909c1d`). Two-guard fix (`\s+`→`[ \t]+` + keyword-exclusion) at both lowering sites.
+- Reverted p8's `return null` workaround → canonical `return not` (7 sites in completion/hover sources) + dropped the stale "Bug S workaround" comment. p8 recompiles clean, `node --check` OK, all once-glued sites emit clean `return null;` (zero `return !`). Bare-adjacency repro (`return not` then `const`) also un-glued.
+- Reply `2026-05-24-0814-6nz-to-scrmlTS-bug-s-VERIFIED-closed-workaround-reverted.md` sent; inbound archived. **Clears our last active filing — only Bug V remains open (scrmlTS side).**
+
 ## Open items carried to S13
-- **Bug V** (genuine) — awaiting scrmlTS post-W diagnosis of the lift/reconcile path. Workaround (single `${fn()}` string render) holds; will bite the editor's real tree/list selection-highlight views. Highest open correctness item now that W is closed.
-- **Bug S** (`return not` + `const` → `return !const`) — queued HIGH upstream, last active fix from our filings; `return null` workaround in place.
+- **Bug V** (genuine) — awaiting scrmlTS post-W diagnosis of the lift/reconcile path. Workaround (single `${fn()}` string render) holds; will bite the editor's real tree/list selection-highlight views. **The single open bug from 6nz's dogfooding now** (P/Q/R/S/W all resolved).
 - **Bug L + T** — deferred to M6 native parser (BS string-awareness). Workarounds hold.
 - **Bug U** — minor, logged upstream; M6-family.
 - **Playwright install** — run `npm install` + `npx playwright install chromium` in 6nz to make the local dep real (large download; pending user go-ahead). First new harness should be authored on playwright.

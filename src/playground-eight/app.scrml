@@ -230,12 +230,9 @@ function onCmReady(cm) {
         "</program>" + nl
 
     // ---- completion source (CM6 → LSP request → CompletionResult) ----
-    // Bug S workaround: `return not` followed by `const` mis-emits as
-    // `return !const ...` (invalid JS). Restructured with early-true
-    // guards + a single nullable trailing return.
     const completionSource = function (context) {
-        if (!window.__p8_ws) { return null }
-        if (@lspStatus != "ready") { return null }
+        if (!window.__p8_ws) { return not }
+        if (@lspStatus != "ready") { return not }
         const pos = context.pos
         const doc = context.state.doc
         const line = doc.lineAt(pos)
@@ -251,11 +248,11 @@ function onCmReady(cm) {
 
         return p.then(function (msg) {
             const result = msg.result
-            if (!result) { return null }
+            if (!result) { return not }
             const itemsRaw = Array.isArray(result) ? result : (result.items || [])
             if (itemsRaw.length == 0) {
                 @lastCompletion = "(no items for pos " + lspLine + ":" + lspChar + ")"
-                return null
+                return not
             }
             const items = itemsRaw.map(function (it) {
                 return {
@@ -274,8 +271,8 @@ function onCmReady(cm) {
 
     // ---- hover source (CM6 → LSP request → tooltip spec) ----
     const hoverSource = cm.hoverTooltip(function (view, pos, side) {
-        if (!window.__p8_ws) { return null }
-        if (@lspStatus != "ready") { return null }
+        if (!window.__p8_ws) { return not }
+        if (@lspStatus != "ready") { return not }
         const doc = view.state.doc
         const line = doc.lineAt(pos)
         const lspLine = line.number - 1
@@ -290,7 +287,7 @@ function onCmReady(cm) {
 
         return p.then(function (msg) {
             const result = msg.result
-            if (!result || !result.contents) { return null }
+            if (!result || !result.contents) { return not }
             const raw = result.contents
             const text = (typeof raw == "string")
                 ? raw
