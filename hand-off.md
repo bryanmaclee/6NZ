@@ -83,14 +83,30 @@ Two inbounds arrived overnight from scrmlTS and were processed:
 ### Net state (against scrmlTS `dc073b94`)
 **All four CM6 playgrounds fully green: p5 18/18, p6 7/7, p7 17/17, p8 9/9.** Bug status: M/N/O/P fixed+verified, Q fixed (loud error, migrated), R retracted, S active (queued), L+T deferred to M6.
 
+## S11 day-2 (cont'd) — playground-nine + bugs U/V/W
+
+### Built playground-nine — editor IR + logical traversal (13/13)
+- First non-CM6 playground; actual editor-proper progress (not a demo). Models the Editor IR (editor-architecture.md §3) as a flat-indexed node-tree arena.
+- Implements: logical traversal (step into/out/sibling via l/h/j/k), cursor-driven auto-collapse (the locked "writing code IS debugging code" / auto-collapse-never-manually-managed principle), recursive tree-walk renderer (walk() calls itself — exercises scrml recursion, a surface prior playgrounds didn't hit).
+- **Design note:** fold state is COMPUTED from @cursorId at render time, not mutated. The first design mutated a @collapsed array via `applyAutoCollapse()` + a `^{ applyAutoCollapse() }` meta-effect; that created a write-during-render race (render reads @collapsed, meta-effect writes it, same tick) and the tree froze after exactly one update while the status panel kept updating. Recomputing visibility from cursor position removed the hazard entirely and is a truer expression of the design principle. Lesson: don't have a meta-effect write what a render interpolation reads.
+- 13/13 smoke: recursive render, all traversal, auto-collapse on/off, manual fold under auto-off, deep-descendant recursion, no pageerrors.
+
+### Three bugs surfaced building p9 — filed `2026-05-24-0641-...-bugs-v-w-from-playground-nine.md` + 2 sidecars
+- **Bug W (CRITICAL)** — grouping parens dropped in emit. `(2 + 3) * 4` → `2 + 3 * 4` = 14 not 20. Silent arithmetic corruption, no diagnostic, affects EVERY parenthesized binary expression (reactive or not): `(1+2)*3`→`1+2*3`, `(10-2)/4`→`10-2/4`, `(@r+1)%3`→`@r+1%3`. Found by accident — an index-wrap `(@sel+1) % 3` advanced 0→1→2→3 instead of 0→1→2→0. Ranked above the whole open queue; it's a correctness bug in the most basic expression form. Workaround: none clean — must avoid relying on grouping parens around binary ops until fixed (rewrite to avoid the grouping, or split into intermediate consts where the precedence is unambiguous).
+- **Bug V** — `class:NAME=expr` on a for-lift element is create-time only; never re-evaluates when the dep changes. Selection-highlight in a rendered list silently stuck. Hit it on p9's cursor-line highlight (`class:cursor=ln.isCursor`). Workaround applied in p9: render the tree as a single reactive `${treeText()}` string with a textual "> " cursor marker instead of per-line class binding.
+- **Bug U (minor)** — bare `/` right after a close-tag (`</code>/<code>`) mis-parsed as a closer → E-SYNTAX-050; `/` between plain text is fine. Trivial workaround (spaces / different separator). Folded into the same message.
+
 ## Open items carried to S12
-- Awaiting scrmlTS fix for **Bug S** (`return not` + `const` → `return !const`; queued HIGH; clean `return null` workaround in place). It's the only active fix left from our filings.
+- **Bug W (CRITICAL)** — grouping parens dropped in emit → silent wrong arithmetic. Filed `2026-05-24-0641`. Highest-priority correctness bug; recommended to scrmlTS as above the rest of the queue. No clean workaround — avoid grouping parens around binary ops, or split into intermediate consts, until fixed.
+- **Bug V** — `class:NAME=expr` on a for-lift not reactive. Workaround in p9 (single reactive string render). Affects any selection-highlight-in-a-list; will bite the editor's real tree/list views — track for fix.
+- Awaiting scrmlTS fix for **Bug S** (`return not` + `const` → `return !const`; queued HIGH; clean `return null` workaround in place).
 - Bug L + T deferred to M6 native parser (both BS string-awareness siblings). Workarounds hold: FromCharCode for braces (L) in p5/p6/p7 sample docs; FromCharCode for `//` (T) in p8's module-top URL. Note Bug T only bites module-top `@cell = "...//..."` — function-body strings are fine.
 - **Bug Q lesson — durable source discipline:** at `<program>`/`<page>`/`<channel>` body-top, wrap all reactive-cell writes in `${...}` (or use `<cell> = ...` structural form). Bare `@x = init` is now a compile error. Every future playground starts with the `${...}` logic wrap.
 - **Bug-filing lesson — durable:** before filing any "weird reactive behavior" bug, run a `${...}`-wrapped control. Bug R was a false positive that cost a real retraction; the bare-body-top form produces subtly broken codegen that masquerades as other bugs.
 - Compiler tolerance observation (not filed): `@x = (` (unclosed paren) compiles clean. Could be intentional partial-edit tolerance.
 - Smoke-test scripts now exist for p5/p6/p7/p8. Earlier playgrounds (zero/one/two/four) still have no committed puppeteer harness; they compile clean post-migration but formal smoke coverage is a separate work item.
 - Master-list §A `default-bindings.md` status reconciled to `[x]` (S10 commit `0ffb452` shipped v0.3).
+- Durable lesson (logged): don't have a `^{}` meta-effect write a reactive that a render interpolation reads on the same tick — the render freezes after one update. Compute derived display state from primary reactives at render time instead.
 - Suggested next playgrounds (in master-list §E):
-  - playground-nine: first non-CM6 playground — editor IR + node-tree shape, exercising scrml's type system + reactive engine on the IR the editor proper will need.
-  - playground-ten: multi-buffer / relevance-region surface — multiple scrml-rendered code spans sharing one mode state machine via `^{}` ambient; probes whether the relevance-view's "multiple focused code regions" model composes.
+  - playground-ten: multi-buffer / relevance-region surface — multiple scrml-rendered code spans sharing one mode state machine via `^{}` ambient; probes whether the relevance-view's "multiple focused code regions" model composes. (Be wary of Bug V if any list-selection highlight is involved; use the single-string render pattern.)
+  - editor IR follow-ups for p9: inline-expansion (a reference node expands to include a referenced definition's subtree), relevance annotations, IR↔disk save round-trip. Each is a fresh dogfood surface.
