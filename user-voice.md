@@ -17,3 +17,7 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 > commit, push, keep going. dealer's choice.
 
 > check incoming msgs
+
+## Session 12 — 2026-05-24
+
+> we have switched to playwright for automated testing in scrmlTS. not sure if its worth it, but thought I'd mention
