@@ -1,6 +1,6 @@
 # 6nz — Session 11 Hand-Off
 
-**Date:** 2026-05-23 →
+**Date:** 2026-05-23 → 2026-05-24
 **Next hand-off filename:** `handOffs/hand-off-11.md`
 
 ## Session start state
@@ -62,14 +62,35 @@
 - Smoke: **9/9 pass**. CM6 mounts → LSP reaches ready → initial doc clean → **typing `@` returns 57 completion items (first: `lift`) end-to-end through the bridge** → typing `<` returns another completion batch → hover request path reachable → broken doc (undeclared identifier) returns full `E-SCOPE-001` diagnostic via LSP. (Initial probe used `@x = (` which silently compiles clean — parser tolerates unclosed paren — so the test was fixed to use an undeclared identifier instead. The compiler's tolerance of unclosed parens is noted but not filed as a bug; could be intentional partial-edit tolerance.)
 - **End-to-end confirmation:** scrmlTS S40-S42's LSP L1-L4 stack reaches us through the WebSocket bridge cleanly. Any future tooling that wants live diagnostics / completion / hover / signature help / code actions can build on this pattern today, without waiting for the in-process compiler API.
 
+## S11 day-2 (2026-05-24) — scrmlTS round-trip: P fixed, Q migrated, R retracted
+
+Two inbounds arrived overnight from scrmlTS and were processed:
+
+### Inbound 1 — `2026-05-23-1900-scrmlTS-to-6nz-bug-q-closed-mno-confirmed.md` (archived)
+- **Bug Q CLOSED (S123, `9c06053f`)** — but as a BREAKING CHANGE. Bare `@x = init` at `<program>`/`<page>`/`<channel>` body-top now fires `E-WRITE-NOT-IN-LOGIC-CONTEXT`. Default-logic auto-lifts *declarations* only; reactive-cell *writes* are logic and need `${...}` (or use V5-strict `<cell> = ...` structural form). This is the loud-error resolution of the silent failure I filed — correct call.
+- M/N/O closures acknowledged on their side.
+- L/P/R/S/T triaged: L+T deferred to M6 native parser; P/R/S queued HIGH; they recommended P first.
+
+### Inbound 2 — `2026-05-24-0606-scrmlTS-to-6nz-bug-p-fix-landed.md` (archived)
+- **Bug P FIXED (S126, `d570341d`)** — added a `CHUNK_DEPENDENCIES` table to runtime-chunks.ts; `scope → {timers, animation}`. Our "in case" animation-chunk flag was covered too. In HEAD `dc073b94`.
+
+### Actions taken
+- **Migrated p7 + p8 for E-WRITE** — wrapped each logic block (functions + reactive-cell writes) in `${...}`, matching p5/p6. Both recompile clean.
+- **Bug P verified fixed** — repro emits `function _scrml_stop_scope_timers` (was 0). Re-smoked the two affected playgrounds: **p5 back to 18/18, p6 back to 7/7.** Bug P closed on our side.
+- **Bug R RETRACTED** — re-tested the repro wrapped in `${...}` on `dc073b94`: `if=@derived` mounts AND unmounts correctly (toggle alternates ON/OFF cleanly). Bug R was a downstream artifact of Bug Q's broken init (half-wired if= subscription), NOT a standalone if= bug. p7's mode badges now alternate → **17/17.** Asked scrmlTS to pull Bug R from their fix queue.
+- **Reply sent** — `2026-05-24-0609-6nz-to-scrmlTS-q-migrated-bug-r-RETRACTED-p-s-priority.md`: P verified, Q migrated, R retracted, priority now S-only (P done, R gone, L+T deferred). Plus Bug T scope refinement (only bites module-top declaration context, not function-body strings — p8's `lspWsUrl()` `"ws://..."` compiles fine).
+
+### Net state (against scrmlTS `dc073b94`)
+**All four CM6 playgrounds fully green: p5 18/18, p6 7/7, p7 17/17, p8 9/9.** Bug status: M/N/O/P fixed+verified, Q fixed (loud error, migrated), R retracted, S active (queued), L+T deferred to M6.
+
 ## Open items carried to S12
-- Awaiting scrmlTS triage on Bugs L (reopen for native-parser M6 follow-through), P, Q, R, S, T.
-- Bug L workaround (FromCharCode for braces in sample docs) stays in p5/p6/p7 until native-parser M6 ships. Bug T workaround (FromCharCode for `//` in URL string literals) stays in p8 likewise.
-- Bug Q-2 (comment block between auto-lifted @cell decls drops trailing cells from init) is the friction hot-spot of the session — bit during p7 AND p8 construction. Source-side discipline: keep auto-lifted @cell decls contiguous with NO comment lines interleaved.
-- Bug R blocks any cleanly-rendered mutually-exclusive `if=@derived` UI; affects p5 mode badges, p7 mode badges, and any future mode/state-toggle UI we author until fix lands.
-- p8 now 9/9 smoke after fixing the broken-doc sample to use a real diagnostic-generating shape (undeclared identifier). The `@x = (` sample silently compiles clean — flagged as a compiler tolerance observation, not filed as a bug.
+- Awaiting scrmlTS fix for **Bug S** (`return not` + `const` → `return !const`; queued HIGH; clean `return null` workaround in place). It's the only active fix left from our filings.
+- Bug L + T deferred to M6 native parser (both BS string-awareness siblings). Workarounds hold: FromCharCode for braces (L) in p5/p6/p7 sample docs; FromCharCode for `//` (T) in p8's module-top URL. Note Bug T only bites module-top `@cell = "...//..."` — function-body strings are fine.
+- **Bug Q lesson — durable source discipline:** at `<program>`/`<page>`/`<channel>` body-top, wrap all reactive-cell writes in `${...}` (or use `<cell> = ...` structural form). Bare `@x = init` is now a compile error. Every future playground starts with the `${...}` logic wrap.
+- **Bug-filing lesson — durable:** before filing any "weird reactive behavior" bug, run a `${...}`-wrapped control. Bug R was a false positive that cost a real retraction; the bare-body-top form produces subtly broken codegen that masquerades as other bugs.
+- Compiler tolerance observation (not filed): `@x = (` (unclosed paren) compiles clean. Could be intentional partial-edit tolerance.
 - Smoke-test scripts now exist for p5/p6/p7/p8. Earlier playgrounds (zero/one/two/four) still have no committed puppeteer harness; they compile clean post-migration but formal smoke coverage is a separate work item.
-- Master-list §A `default-bindings.md` status was inconsistent (S10 commit `0ffb452` shipped v0.3 but §E still showed `[ ][ ]`); reconciled to `[x]` this session.
-- Suggested next playgrounds (added to master-list §E this session):
-  - playground-nine: first scrml file that isn't a CM6 demo — editor IR + node-tree shape, exercising scrml's type system + reactive engine on the IR the editor proper will need.
+- Master-list §A `default-bindings.md` status reconciled to `[x]` (S10 commit `0ffb452` shipped v0.3).
+- Suggested next playgrounds (in master-list §E):
+  - playground-nine: first non-CM6 playground — editor IR + node-tree shape, exercising scrml's type system + reactive engine on the IR the editor proper will need.
   - playground-ten: multi-buffer / relevance-region surface — multiple scrml-rendered code spans sharing one mode state machine via `^{}` ambient; probes whether the relevance-view's "multiple focused code regions" model composes.

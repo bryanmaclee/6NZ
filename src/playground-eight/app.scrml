@@ -28,9 +28,11 @@
 // reverted, awaiting native-parser M6). Keep raw `{` / `}` out of
 // string literals; we use String.fromCharCode(123/125) where needed.
 
-// Bug Q workaround: precede @-cells with a function/type and keep
-// @-cells contiguous (no comment block interleaved). All @-cells
-// for this file are in one run below.
+// S123: bare `@x = init` at <program> body-top is now a compile error
+// (E-WRITE-NOT-IN-LOGIC-CONTEXT). The whole logic block — functions +
+// reactive-cell writes — is wrapped in ${...} (matches p5/p6). This is
+// the loud-error resolution of the Bug Q we filed S11.
+${
 
 function lspWsUrl() {
     const port = String(3081)
@@ -349,6 +351,8 @@ function loadCm() {
     script.onerror = onCmError
     window.addEventListener("cm-loaded", function() { onCmReady(window.__cmMod) }, { once: true })
     document.body.appendChild(script)
+}
+
 }
 
 ^{ loadCm() }

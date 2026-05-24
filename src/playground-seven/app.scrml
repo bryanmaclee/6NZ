@@ -26,6 +26,12 @@
 
 <program>
 
+// S123: bare `@x = init` at <program> body-top is now a compile error
+// (E-WRITE-NOT-IN-LOGIC-CONTEXT). Default-logic auto-lifts declarations
+// only; reactive-cell writes are logic and must be wrapped in ${...}.
+// (This is the loud-error resolution of the Bug Q we filed S11.)
+${
+
 type Mode:enum = { Insert, Normal, Visual }
 
 function modeName(m: Mode) -> string {
@@ -384,6 +390,8 @@ function loadCm() {
 const @isInsert = @mode == Mode.Insert
 const @isNormal = @mode == Mode.Normal
 const @isVisual = @mode == Mode.Visual
+
+}
 
 <machine name=ModeMachine for=Mode>
     .Insert => .Normal | .Visual
