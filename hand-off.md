@@ -1,61 +1,73 @@
-# 6nz — Session 12 Hand-Off
+# 6nz — Session 13 Hand-Off
 
-**Date:** 2026-05-24
-**Next hand-off filename:** `handOffs/hand-off-12.md`
+**Date:** 2026-05-29
+**Next hand-off filename:** `handOffs/hand-off-13.md`
 
 ## Session start state
-- Session 11 rotated to `handOffs/hand-off-11.md`
-- Working tree: `main` @ `f9ac69c`, clean (plus 2 unread inbounds in `handOffs/incoming/`)
-- Two inbounds from scrmlTS (both `needs: fyi`) re Bug W:
-  - `2026-05-24-0717-scrmlTS-to-6nz-bug-w-in-progress-v-u-disposition.md` — Bug W CONFIRMED CRITICAL, fix in flight; V queued post-W; U logged minor; meta-effect-freeze acknowledged (not filing).
-  - `2026-05-24-0735-scrmlTS-to-6nz-bug-w-FIX-LANDED-verified.md` — **Bug W FIXED + verified at scrmlTS HEAD `a91ad5de`.** Precedence-aware `emitBinary`; 21179 pass / 0 fail. Action for 6nz: re-verify p9 arithmetic, re-test Bug V (now W is no longer confounding its repro), close Bug W on our side.
-
-## Carried-in open items (from S11)
-- **Bug W** — FIXED upstream at `a91ad5de`, pending our re-verify + close.
-- **Bug V** — `class:NAME=expr` on for-lift not reactive; re-testable now W is fixed (its repro used `(@sel+1)%3`, corrupted by W). If highlight still stuck → genuine V; if it moves → was a W artifact.
-- **Bug S** — `return not` + `const` → `return !const`; queued HIGH upstream; `return null` workaround in place.
-- **Bug L + T** — deferred to M6 native parser (BS string-awareness). Workarounds hold.
-- **Bug U** — minor, logged upstream; likely subsumed by M6.
-- Durable lessons: wrap reactive-cell writes at body-top in `${...}`; run a `${...}`-wrapped control before filing reactive bugs; don't let a `^{}` meta-effect write what a render interpolation reads same-tick.
-- Suggested next playgrounds (master-list §E): playground-ten (multi-buffer/relevance-region), p9 IR follow-ups (inline-expansion, relevance annotations, IR↔disk round-trip).
+- Session 12 rotated to `handOffs/hand-off-12.md`
+- Started on `main` @ `6db4f26` (S12 close). Pulled `origin/main`; it had diverged
+  (origin +1: a batch of 10 misrouted scrmlTS→6nz inbox messages; local +3: S12 Bug S/W
+  close + playwright deps). No file overlap → **rebased local 3 onto origin** cleanly,
+  pushed (`0fa1cbb..238653f`).
 
 ## Session work
 
-### Processed 2 scrmlTS inbounds re Bug W (both moved to `read/`)
-- `0717` (in-progress) + `0735` (fix-landed at `a91ad5de`). scrmlTS asked us to re-verify p9 arithmetic + re-test Bug V now that W no longer confounds it.
+### Reconciled origin + processed 10 inbox messages (all → `incoming/read/`)
+- Headline: **Bug V RESOLVED** upstream (`2026-05-28-1613-...-bug-v-RESOLVED.md`) + a
+  **resume-dogfooding directive** (`2026-05-29-0727`): build/use **v0.6.7** (tag `18de30ba`);
+  several silent-miscompiles fixed (Bug 57/58/59/61); high-value targets = engines (§51),
+  list-churn (Bug-V neighborhood), input-state (§36). Route-around list noted (Bug 54 `:let`,
+  Bug 60 nested-compound render-by-tag, 6nz-U/L/T, `${@x/}`).
+- The other 8 were older (Apr–May 16), mostly superseded (M/N/O shipped, Bug P closed, Bug L
+  reverted, Bug-14 event-auto-thread revert — playgrounds already post-date it). One actionable
+  carry-forward: **multi-close `<//>` → `</></>` editor auto-expansion** (Emmet-style, default off)
+  → logged to master-list §E "Editor architecture".
 
-### Bug W — VERIFIED FIXED, closed our side
-- scrmlTS checkout sits exactly at `a91ad5de` (the fix); `scrml` runs from `compiler/bin/scrml.js` so it reflects HEAD.
-- Emit check: `(2+3)*4`, `(1+2)*3`, `(10-2)/4` all preserve grouping parens (no corrupted forms). Root cause (their side): acorn discards `ParenthesizedExpression`; hand-rolled `emitBinary` had no precedence guard → fixed with precedence-aware paren re-insertion.
-- Runtime check: the Bug V repro's `(@sel+1)%3` index-wrap advances `0→1→2→0` (was stuck pre-fix).
-- p9 recompiles clean against `a91ad5de`, `node --check` on client bundle OK — no regression.
+### Re-verified p9 against v0.6.7 — 13/13 green (unchanged)
+- Toolchain confirmed: `scrml` v0.6.7 (`~/.bun/bin/scrml`, backed by scrmlTS `feab1207`).
+- p9 left as a stable regression anchor; its single-string Bug-V workaround NOT retired in-place
+  (p10 proves the canonical for-lift+class form instead).
 
-### Bug V — GENUINE, confirmed post-W (root cause = lift/reconcile runtime, not codegen)
-- Re-ran the Bug V sidecar against `a91ad5de` under puppeteer. `@sel` advances `0→1→2→0` correctly, but the `.sel` highlight stays frozen on the first item (alpha/id 0) all 3 clicks; only "matches" on click 3 because `@sel` wraps to 0. Exactly one `.item.sel` always — the create-time winner.
-- Static emit confirms the per-item effect IS correctly scoped (own `it`, own `_scrml_lift_el_9`, reads `@sel`) → codegen is fine. The failure is the `innerHTML="" + _scrml_lift(wrapper)` / reconcile path: the reactive toggle never reaches the live DOM node (clone-vs-move or create-time-effect-on-orphaned-node). Diagnostic + hypothesis sent to scrmlTS.
-- So Bug V is NOT a Bug-W artifact (W's fix only removed the confound). Workaround (single reactive `${fn()}` string) holds in p9.
+### Built playground-ten — relevance-region navigator — 17/17 green (v0.6.7)
+- `6nz/src/playground-ten/{app.scrml,test.js}`. Multiple focused code regions + one mode
+  `<engine>` (NAV/EDIT). j/k focus · J/K reorder · o insert · x remove · Enter→type→Esc.
+- **Bug-V fix EMPIRICALLY CONFIRMED on a fresh surface:** reactive `class:focused`/`style:opacity`
+  on a for-lift `<li>` reading global `@focusId` follows focus, stays correct through reorder,
+  exactly-one-focused holds across insert/remove. (3 of the core asserts target this directly.)
+- §51 engine: `match @mode` badge + behaviour gating work (after AA workaround). `<onTransition>`
+  left out pending AB's answer.
 
-### Reply sent to scrmlTS
-- `2026-05-24-0800-6nz-to-scrmlTS-bug-w-VERIFIED-closed-bug-v-GENUINE.md` — W verified/closed, V genuine with full lift-path diagnostic + emit excerpt, p9 clean, U/S acked, plus the puppeteer→playwright tooling FYI (we'd been borrowing their puppeteer via NODE_PATH).
+### Surfaced 4 bugs + 1 engine question (all v0.6.7) — filed to scrmlTS
+Filed `scrmlTS/handOffs/incoming/2026-05-29-1015-6nz-to-scrmlTS-playground-ten-bugs-x-y-z-aa-ab.md`
++ 5 sidecars (`…-sidecars/`). Each reproduces; signatures re-verified.
+- **Bug X (HIGH)** — `//`/URL inside a string literal → `E-CTX-003` hard fail, misleading error
+  (string-unaware comment scanner). Broadens M6-deferred Bug T (now also fn-body + markup interp).
+- **Bug Z (HIGH)** — identifier-rename rewrites a fn-name substring INSIDE a string literal
+  (`"handleKey(e)"` → `"_scrml_handleKey_3(e)"`). Silent; severe for an editor.
+- **Bug Y (MED)** — comma-separated `match` arms → `return X ,;` invalid JS, exit-0 silent miscompile.
+- **Bug AA (MED)** — bare tail `match` in a plain `function` → value-discarding IIFE → returns
+  `undefined`. `return match` / `fn … -> T` are fine. Silent.
+- **Question AB** — `<onTransition>` doesn't fire on a bare `@engineVar = .Variant` write from
+  program scope (plain reactive_set bypasses dispatcher; handler table emitted empty). `@mode`
+  itself is reactive. Asked for the canonical dispatching trigger.
 
-### Test tooling — local package.json stood up (playwright, new tests only)
-- User confirmed: adopt playwright for FUTURE harnesses; leave p5–p9 on puppeteer until touched; migrate opportunistically.
-- Found 6nz has no local `node_modules` — all smoke harnesses borrow puppeteer from scrmlTS via `NODE_PATH`. scrmlTS migrated to playwright (still ships both today), so the borrow is a latent silent-breakage risk.
-- Added `@playwright/test@1.60.0` (matches scrmlTS) to `package.json` + `test` script. `.gitignore` already covers `node_modules/` + `dist/`. **`npm install` + browser download NOT yet run** (heavy fetch) — flagged for user go-ahead.
+Three of these (Y/Z/AA) are exit-0 silent miscompiles — the shape scrmlTS asked us to hunt.
 
-### Harness note (process)
-- Fighting puppeteer-from-node fd-inheritance: spawning `scrml dev` + headless chrome from a node script kept the Bash tool's pipe open → process killed (exit 144) with lost stdout. Resolution that works: have the node harness write results synchronously to an absolute file path per-line (not rely on buffered console.log), kill the child by port, internal watchdog timer. (This is exactly the lifecycle pain playwright's test runner removes — reinforces the tooling decision.)
-- Caution logged: a broad `pkill chrome` during debugging may have caught the user's real browser. Only target test instances by port/script from now on.
+## Carried-in open items / route-arounds (v0.6.7)
+- **AB** awaiting scrmlTS answer on the canonical `<onTransition>` transition trigger. Until then,
+  drive engine state via `@var = .Variant` (works) and don't rely on `<onTransition>` effects.
+- Route around (per scrmlTS): Bug 54 (`<column :let=>`), Bug 60 (nested-compound render-by-tag),
+  6nz-U/L/T, `${@x/}`. X/Y/Z/AA workarounds documented inline in p10.
+- Canonical scrml gotchas re-confirmed this session: cell decls are `<name> = …` (bare, not `${}`-
+  wrapped at `<program>` top — W-PROGRAM-REDUNDANT-LOGIC); functions called BARE (`foo()`, not
+  `@foo()` — `@` is cells only; `@foo()` silently emits `_scrml_reactive_get(...)()` → runtime crash);
+  `<engine>`/`<onTransition>` must be declaration-region children (a closed `${}` block pushes later
+  siblings into markup → emitted literally); `<onTransition>` NESTS inside `<engine>`, dotted
+  `from=.X to=.Y`, `${}` body.
 
-### Bug S — VERIFIED FIXED + closed (mid-session inbound)
-- Inbound `0809` arrived during the session: Bug S fixed at scrmlTS `3a909c1d` (HEAD moved `a91ad5de`→`3a909c1d`). Two-guard fix (`\s+`→`[ \t]+` + keyword-exclusion) at both lowering sites.
-- Reverted p8's `return null` workaround → canonical `return not` (7 sites in completion/hover sources) + dropped the stale "Bug S workaround" comment. p8 recompiles clean, `node --check` OK, all once-glued sites emit clean `return null;` (zero `return !`). Bare-adjacency repro (`return not` then `const`) also un-glued.
-- Reply `2026-05-24-0814-6nz-to-scrmlTS-bug-s-VERIFIED-closed-workaround-reverted.md` sent; inbound archived. **Clears our last active filing — only Bug V remains open (scrmlTS side).**
-
-## Open items carried to S13
-- **Bug V** (genuine) — awaiting scrmlTS post-W diagnosis of the lift/reconcile path. Workaround (single `${fn()}` string render) holds; will bite the editor's real tree/list selection-highlight views. **The single open bug from 6nz's dogfooding now** (P/Q/R/S/W all resolved).
-- **Bug L + T** — deferred to M6 native parser (BS string-awareness). Workarounds hold.
-- **Bug U** — minor, logged upstream; M6-family.
-- **Playwright install** — run `npm install` + `npx playwright install chromium` in 6nz to make the local dep real (large download; pending user go-ahead). First new harness should be authored on playwright.
-- Durable lessons still in force: `${...}`-wrap body-top reactive writes; run a `${...}`-wrapped control before filing reactive bugs; don't let a `^{}` meta-effect write what a render interpolation reads same-tick.
-- Suggested next playgrounds (master-list §E): playground-ten (multi-buffer/relevance-region — author on playwright; mind Bug V if any list-selection highlight), p9 IR follow-ups (inline-expansion, relevance annotations, IR↔disk round-trip).
+## Suggested next playgrounds / work (master-list §E)
+- p10 follow-ups: promote Tier-0 `${for…lift}` → `<each>`; `^{}` ambient sharing across regions;
+  richer §51 (nested engines / `history` / `<onTimeout>`/`<onIdle>`) once AB lands.
+- Input-state types (§36 `<keyboard>`/`<mouse>`/`<gamepad>`) — scrmlTS flagged as ≈0 adoption,
+  uniquely high-signal; a dedicated playground would be valuable.
+- Re-test X/Y/Z/AA/AB against the next scrmlTS tag when fixes land.

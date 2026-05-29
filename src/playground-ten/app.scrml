@@ -1,0 +1,221 @@
+// playground-ten — relevance-region navigator.
+//
+// The "relevance view" model: an editor shows several focused CODE REGIONS at
+// once (not one monolithic buffer). One region is the focus; you navigate
+// across them, reorder them by relevance, splice new ones in, drop stale ones.
+// A mode <engine> gates behaviour (NAV vs EDIT). This is the multi-region /
+// shared-mode-machine surface sketched in master-list §E playground-ten.
+//
+// It is deliberately built on the THREE highest-signal v0.6.7 runtime paths
+// scrmlTS flagged for 6nz (2026-05-29 resume-dogfooding handoff):
+//
+//   1. <engine> state machine (§51): NAV <-> EDIT. The engine variable @mode
+//      is reactive (`${@mode}` reflects it live), drives behaviour gating, and
+//      a `match @mode` (via modeLabel) re-renders the mode badge. (<onTransition>
+//      was probed too — it does NOT fire on bare program-scope variant writes;
+//      filed as open question AB, left out of this playground.)
+//
+//   2. for-lift list with REACTIVE class:/style: bindings on REUSED nodes,
+//      each reading the GLOBAL @focusId — this is the exact Bug-V shape
+//      (`class:NAME=expr` on a for-lift item reading a global reactive),
+//      RESOLVED in v0.6.4/v0.6.7. The focused-region highlight must FOLLOW
+//      focus as @focusId changes, not freeze on the create-time winner.
+//
+//   3. List churn: reorder (J/K), insert (o), remove (x). The reactive class
+//      must stay attached to the right region's node across reconcile.
+//
+// Keys (NAV):  j/k move focus · J/K reorder focused region · o insert · x remove
+//              · Enter -> EDIT
+// Keys (EDIT): any printable char appends to focused region body
+//              · Backspace deletes last char · Esc -> NAV
+//
+// compiled against scrmlTS@v0.6.7
+// Run: scrml dev src/playground-ten/app.scrml
+
+<program>
+
+${
+    type Mode:enum = { Nav, Edit }
+
+    type Region:struct = { id: number, title: string, body: string }
+
+    // NB: region titles deliberately avoid substrings that match this file's
+    // own function names (e.g. "handleKey") — Bug Z: the identifier-rename
+    // pass rewrites such substrings INSIDE string literals (`"handleKey(e)"`
+    // -> `"_scrml_handleKey_NN(e)"`), silently corrupting displayed text.
+    <regions>: Region[] = [
+        { id: 1, title: "render()",     body: "return walk(0)" },
+        { id: 2, title: "walk(ix)",     body: "for child in node" },
+        { id: 3, title: "reconcile()",  body: "diff old vs new" },
+        { id: 4, title: "route(e)",     body: "dispatch by e.key" }
+    ]
+
+    <focusId> = 1
+    <nextId> = 5
+    <lastAction> = "(init)"
+
+    // --- focus helpers --------------------------------------------------
+    function focusIndex() {
+        for (let i = 0; i < @regions.length; i = i + 1) {
+            if (@regions[i].id == @focusId) { return i }
+        }
+        return 0
+    }
+
+    function focusTitle() {
+        const ix = focusIndex()
+        return @regions[ix].title
+    }
+
+    function modeLabel() {
+        // NB: explicit `return` required — a bare tail `match` in a plain
+        // `function` is silently dropped (Bug AA: value-discarding IIFE).
+        // `return match` (or promoting to `fn`) emits the value correctly.
+        return match @mode {
+            .Nav  => "NAV"
+            .Edit => "EDIT"
+        }
+    }
+
+    function moveFocus(delta) {
+        const n = @regions.length
+        let ix = focusIndex() + delta
+        if (ix < 0) { ix = 0 }
+        if (ix > n - 1) { ix = n - 1 }
+        @focusId = @regions[ix].id
+        @lastAction = "focus -> " + @regions[ix].title
+    }
+
+    // --- churn: reorder / insert / remove -------------------------------
+    function reorder(delta) {
+        const ix = focusIndex()
+        const j = ix + delta
+        if (j < 0 || j > @regions.length - 1) { return }
+        // swap ix <-> j, rebuilding the array (reactive write triggers reconcile)
+        const next = [...@regions]
+        const tmp = next[ix]
+        next[ix] = next[j]
+        next[j] = tmp
+        @regions = next
+        @lastAction = "reorder " + (delta > 0 ? "down" : "up")
+    }
+
+    function insertRegion() {
+        const ix = focusIndex()
+        // NB: region body avoids a literal "//" — Bug X (string literal
+        // containing // mis-scanned as a comment) bites at compile time.
+        const fresh = { id: @nextId, title: "new" + @nextId, body: "fresh region" }
+        const next = [...@regions.slice(0, ix + 1), fresh, ...@regions.slice(ix + 1)]
+        @regions = next
+        @focusId = @nextId
+        @nextId = @nextId + 1
+        @lastAction = "inserted region"
+    }
+
+    function removeRegion() {
+        if (@regions.length <= 1) { @lastAction = "can't remove last"; return }
+        const ix = focusIndex()
+        const next = @regions.filter(r => r.id != @focusId)
+        @regions = next
+        // re-home focus to a surviving neighbour
+        const ni = ix > next.length - 1 ? next.length - 1 : ix
+        @focusId = next[ni].id
+        @lastAction = "removed region"
+    }
+
+    // --- edit mode body mutation ----------------------------------------
+    function appendChar(ch) {
+        const ix = focusIndex()
+        const next = @regions.map(r => r.id == @focusId ? { ...r, body: r.body + ch } : r)
+        @regions = next
+    }
+
+    function backspace() {
+        const next = @regions.map(r => r.id == @focusId ? { ...r, body: r.body.slice(0, -1) } : r)
+        @regions = next
+    }
+
+    // --- keyboard router ------------------------------------------------
+    function handleKey(e) {
+        const k = e.key
+
+        if (@mode == Mode.Edit) {
+            if (k == "Escape")        { e.preventDefault(); @mode = .Nav; @lastAction = "-> NAV"; return }
+            if (k == "Backspace")     { e.preventDefault(); backspace(); return }
+            if (k.length == 1)        { e.preventDefault(); appendChar(k); return }
+            return
+        }
+
+        // NAV mode
+        if (k == "j" || k == "ArrowDown") { e.preventDefault(); moveFocus(1); return }
+        if (k == "k" || k == "ArrowUp")   { e.preventDefault(); moveFocus(-1); return }
+        if (k == "J")                     { e.preventDefault(); reorder(1); return }
+        if (k == "K")                     { e.preventDefault(); reorder(-1); return }
+        if (k == "o")                     { e.preventDefault(); insertRegion(); return }
+        if (k == "x")                     { e.preventDefault(); removeRegion(); return }
+        if (k == "Enter")                 { e.preventDefault(); @mode = .Edit; @lastAction = "-> EDIT"; return }
+        @lastAction = "ignored " + k
+    }
+}
+
+// Mode engine (§51 Tier 2). NAV <-> EDIT. The engine variable @mode is
+// reactive — `${@mode}` and `match @mode` (via modeLabel) both reflect the
+// live state, and behaviour gating reads it. NOTE: <onTransition> effects are
+// intentionally NOT used here — they do not fire on bare `@mode = .Variant`
+// writes from a program-scope function (the write compiles to a plain
+// reactive set that bypasses the engine transition dispatcher; handler table
+// emits empty). Filed to scrmlTS as an open question (AB) pending the
+// canonical transition-trigger answer.
+<engine for=Mode initial=.Nav>
+    <Nav  rule=.Edit />
+    <Edit rule=.Nav />
+</engine>
+
+<div class="app">
+    <h1>playground-ten — relevance-region navigator</>
+    <p class="subtitle">Multiple focused code regions, one mode engine. Navigate (j/k), reorder (J/K), splice (o/x), edit (Enter). The focus highlight is a reactive <code>class:focused</code> on a for-lift node reading global <code>@focusId</code> — the Bug-V surface, now fixed.</>
+
+    <div class="panel status">
+        <div class="row"><span class="slabel">Mode:</><span class="value mode">${modeLabel()}</></>
+        <div class="row"><span class="slabel">Focus:</><span class="value">${focusTitle()} (id ${@focusId})</></>
+        <div class="row"><span class="slabel">Regions:</><span class="value">${@regions.length}</></>
+        <div class="row"><span class="slabel">Last action:</><span class="value">${@lastAction}</></>
+    </div>
+
+    <ul class="regions" tabindex="0" onkeydown=handleKey(event)>
+        ${
+            for (let i = 0; i < @regions.length; i = i + 1) {
+                const r = @regions[i]
+                lift <li class:focused=(r.id == @focusId) style:opacity=(r.id == @focusId ? "1" : "0.55")>
+                    <span class="rtitle">${r.title}</span>
+                    <span class="rbody">${r.body}</span>
+                </li>
+            }
+        }
+    </ul>
+
+    <div class="panel notes">
+        <p><strong>NAV:</strong> j/k focus · J/K reorder · o insert · x remove · Enter→edit</>
+        <p><strong>EDIT:</strong> type to append · Backspace · Esc→nav</>
+    </div>
+</div>
+
+#{
+    .app { max-width: 640px; margin: 1.5rem auto; font-family: ui-monospace, monospace; color: #ddd; background: #1a1a1a; padding: 1.25rem; border-radius: 8px; }
+    h1 { font-size: 1.1rem; margin: 0 0 0.25rem; }
+    .subtitle { color: #888; font-size: 0.78rem; line-height: 1.5; margin: 0 0 1rem; }
+    code { color: #9cdcfe; }
+    .panel { background: #222; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.85rem; }
+    .row { display: flex; gap: 0.5rem; font-size: 0.82rem; padding: 0.12rem 0; }
+    .slabel { color: #888; width: 7rem; }
+    .value { color: #eee; }
+    .value.mode { font-weight: 700; color: #4ec9b0; }
+    .regions { list-style: none; margin: 0 0 0.85rem; padding: 0; border: 1px solid #333; border-radius: 6px; outline: none; }
+    .regions li { display: flex; gap: 0.75rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid #2a2a2a; }
+    .regions li.focused { background: #094771; box-shadow: inset 3px 0 0 #4ec9b0; }
+    .rtitle { color: #dcdcaa; min-width: 9rem; }
+    .rbody { color: #ce9178; }
+    .notes p { font-size: 0.76rem; color: #999; margin: 0.15rem 0; }
+}
+
+</program>
