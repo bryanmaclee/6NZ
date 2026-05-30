@@ -11,9 +11,9 @@
 //
 //   1. <engine> state machine (§51): NAV <-> EDIT. The engine variable @mode
 //      is reactive (`${@mode}` reflects it live), drives behaviour gating, and
-//      a `match @mode` (via modeLabel) re-renders the mode badge. (<onTransition>
-//      was probed too — it does NOT fire on bare program-scope variant writes;
-//      filed as open question AB, left out of this playground.)
+//      a `match @mode` (via modeLabel) re-renders the mode badge. (Engine writes
+//      route through the dispatcher even from the program-scope handleKey path;
+//      <onTransition> effects still don't fire there — AB partial fix, see notes.)
 //
 //   2. for-lift list with REACTIVE class:/style: bindings on REUSED nodes,
 //      each reading the GLOBAL @focusId — this is the exact Bug-V shape
@@ -39,15 +39,16 @@ ${
 
     type Region:struct = { id: number, title: string, body: string }
 
-    // NB: region titles deliberately avoid substrings that match this file's
-    // own function names (e.g. "handleKey") — Bug Z: the identifier-rename
-    // pass rewrites such substrings INSIDE string literals (`"handleKey(e)"`
-    // -> `"_scrml_handleKey_NN(e)"`), silently corrupting displayed text.
+    // NB: region title "handleKey(e)" intentionally matches this file's own
+    // `handleKey` function name — a live regression guard for Bug Z (the rename
+    // pass used to rewrite such substrings INSIDE string literals:
+    // `"handleKey(e)"` -> `"_scrml_handleKey_NN(e)"`). RESOLVED scrmlTS S144
+    // `88071273`; the smoke test asserts the literal text renders verbatim.
     <regions>: Region[] = [
-        { id: 1, title: "render()",     body: "return walk(0)" },
-        { id: 2, title: "walk(ix)",     body: "for child in node" },
-        { id: 3, title: "reconcile()",  body: "diff old vs new" },
-        { id: 4, title: "route(e)",     body: "dispatch by e.key" }
+        { id: 1, title: "render()",      body: "return walk(0)" },
+        { id: 2, title: "walk(ix)",      body: "for child in node" },
+        { id: 3, title: "reconcile()",   body: "diff old vs new" },
+        { id: 4, title: "handleKey(e)",  body: "dispatch by e.key" }
     ]
 
     <focusId> = 1
@@ -158,14 +159,14 @@ ${
     }
 }
 
-// Mode engine (§51 Tier 2). NAV <-> EDIT. The engine variable @mode is
-// reactive — `${@mode}` and `match @mode` (via modeLabel) both reflect the
-// live state, and behaviour gating reads it. NOTE: <onTransition> effects are
-// intentionally NOT used here — they do not fire on bare `@mode = .Variant`
-// writes from a program-scope function (the write compiles to a plain
-// reactive set that bypasses the engine transition dispatcher; handler table
-// emits empty). Filed to scrmlTS as an open question (AB) pending the
-// canonical transition-trigger answer.
+// Mode engine (§51 Tier 2). NAV <-> EDIT. The engine variable @mode is reactive
+// — `${@mode}` and `match @mode` (via modeLabel) both reflect the live state, and
+// behaviour gating reads it. Writes route through the engine dispatcher even from
+// the program-scope handleKey path (Bug AB write-path fix, S144 `5113f3ea`).
+// NOTE: <onTransition> effects are deliberately NOT used here — S13 re-test found
+// they still do not fire on program-scope variant writes (codegen emits an empty
+// __scrml_transitions_mode table AND the runtime _scrml_engine_direct_set never
+// fires hooks). Filed as "AB partial fix / reopened". Re-add once that lands.
 <engine for=Mode initial=.Nav>
     <Nav  rule=.Edit />
     <Edit rule=.Nav />

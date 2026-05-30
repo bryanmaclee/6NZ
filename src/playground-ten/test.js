@@ -114,6 +114,12 @@ async function run() {
         const titles0 = await regionTitles(page);
         check("region list renders", titles0.length === 4, `(${titles0.length}: ${titles0.join(", ")})`);
 
+        // 1b. Bug-Z regression guard: the 4th title is the literal "handleKey(e)"
+        //     — which matches this app's own `handleKey` fn name. Pre-fix the
+        //     rename pass rewrote it to "_scrml_handleKey_NN(e)".
+        check("Bug-Z: fn-name substring in string literal is verbatim",
+            titles0[3] === "handleKey(e)", `(${titles0[3]})`);
+
         // 2. Bug-V at create: exactly one focused row, and it's the first region.
         const fc0 = await focusedCount(page);
         const ft0 = await focusedTitle(page);
@@ -165,6 +171,8 @@ async function run() {
         check("exactly one focused row after remove", fcRem === 1, `(${fcRem})`);
 
         // 9. ENGINE: NAV -> EDIT. `match @mode` (via modeLabel) re-renders the badge.
+        //    (Engine write routes through the dispatcher from program scope — AB write
+        //    path. <onTransition> effect-firing is still broken, so not asserted here.)
         const mode0 = await readStatus(page, "Mode:");
         check("mode badge starts NAV (match @mode re-render)", mode0 === "NAV", `(${mode0})`);
         await key(page, "Enter");

@@ -53,8 +53,26 @@ Filed `scrmlTS/handOffs/incoming/2026-05-29-1015-6nz-to-scrmlTS-playground-ten-b
 
 Three of these (Y/Z/AA) are exit-0 silent miscompiles — the shape scrmlTS asked us to hunt.
 
-## Carried-in open items / route-arounds (v0.6.7)
-- **AB** awaiting scrmlTS answer on the canonical `<onTransition>` transition trigger. Until then,
+### Probed §36 input-state (the flagged "uniquely high-signal" surface) — Bug AC filed
+Filed `scrmlTS/handOffs/incoming/2026-05-29-1130-6nz-to-scrmlTS-bug-ac-input-state-undefined-ref.md` + sidecar.
+- **Bug AC (HIGH)** — every `<#id>` read of a `<keyboard>`/`<mouse>` input-state compiles to a bare
+  undefined identifier `_scrml_input_<id>_` (`_scrml_input_cursor_.x`, `_scrml_input_keys_.pressed(...)`).
+  Element registers into `_scrml_input_state_registry` fine, but reads use a name that's never bound →
+  `ReferenceError` on first access. Exit-0, node --check OK, **entire §36 surface runtime-dead** — and the
+  shipped canonical `input-canvas-demo.scrml` is itself broken (compile-only gate). Secondary flag: getters
+  read plain closure vars (no reactive subscription) → direct `${<#x>.x}` interp likely non-reactive even
+  once bound. No 6nz playground depends on §36 — pure probe.
+
+## S144 turnaround (2026-05-30) — scrmlTS fixed 6; 6nz re-tested @ HEAD `4c9079d2` (v0.7.0): 5 CLOSED, AB PARTIAL
+Inbox `2026-05-30-0945-...-AC-resolved-QAB-answered.md` → re-tested each sidecar + happy-dom drives.
+Re-test/close-signal sent `2026-05-30-1130-6nz-to-scrmlTS-s144-5closed-AB-partial.md`.
+- **X** `e50ee9c2` ✅ · **Z** `88071273` ✅ · **Y** `93d8cab4` ✅ (`E-MATCH-ARM-SEPARATOR`) · **AA** `93d8cab4` ✅ (`W-MATCH-VALUE-UNUSED`) · **AC** `c6cd6538` ✅ (reads via registry; renders, no crash; getters non-reactive by-design §36.6).
+- **AB `5113f3ea` — PARTIAL / reopened.** Write-routing landed (`@mode=.X` → `_scrml_engine_direct_set` → dispatcher; `@mode` reactivity + `match` work). BUT `<onTransition>` effects still never fire: codegen emits `__scrml_transitions_mode = {}` empty (bodies not emitted, table not passed) AND runtime `_scrml_engine_direct_set` has no hook-firing. Needs a second landing.
+- Bonus: AB probe → scrmlTS ratified **Fork-C1** (`effect=` on `<engine>` opener; impl pending).
+- **p10 now 18/18** (17 + live Bug-Z guard `"handleKey(e)"` verbatim); `<onTransition>` pulled back out until AB's second half lands. scrml binary v0.7.0 (bun-wired to source — reflects HEAD live).
+
+## Carried-in open items / route-arounds
+- **AB second-half** (onTransition effect-firing) awaiting scrmlTS. Until then drive engine state via `@var = .Variant` (works via dispatcher); don't rely on `<onTransition>` effects.
   drive engine state via `@var = .Variant` (works) and don't rely on `<onTransition>` effects.
 - Route around (per scrmlTS): Bug 54 (`<column :let=>`), Bug 60 (nested-compound render-by-tag),
   6nz-U/L/T, `${@x/}`. X/Y/Z/AA workarounds documented inline in p10.
