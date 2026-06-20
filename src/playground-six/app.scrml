@@ -305,9 +305,9 @@ ${
         document.body.appendChild(script)
     }
 
-    const @hasError = @lspError != "" || @cmError != ""
-    const @hasDiagnostics = @diagCount > 0
-    const @noDiagnostics = @diagCount == 0
+    const <hasError> = @lspError != "" || @cmError != ""
+    const <hasDiagnostics> = @diagCount > 0
+    const <noDiagnostics> = @diagCount == 0
 }
 
 ^{ loadCm() }

@@ -5,7 +5,7 @@
 // selection), and ToggleHold (SPEC §10.3: hold a toggle key to fire
 // normal-mode commands tap-repeatable, release to return to Insert).
 //
-// Uses scrml's < machine> primitive so the compiler enforces legal
+// Uses scrml's <engine> primitive so the compiler enforces legal
 // transitions. Any attempt to move Insert -> Visual without going
 // through Normal would be rejected.
 //
@@ -25,11 +25,11 @@ ${
 
     fn modeName(m: Mode) -> string {
         match m {
-            .Insert => "INSERT"
-            .Normal => "NORMAL"
-            .Visual => "VISUAL"
-            .VisualLine => "V-LINE"
-            .ToggleHold => "TOGGLE-HOLD"
+            .Insert :> "INSERT"
+            .Normal :> "NORMAL"
+            .Visual :> "VISUAL"
+            .VisualLine :> "V-LINE"
+            .ToggleHold :> "TOGGLE-HOLD"
         }
     }
 
@@ -128,14 +128,14 @@ ${
         @log = []
     }
 
-    const @isInsert     = @mode == Mode.Insert
-    const @isNormal     = @mode == Mode.Normal
-    const @isVisual     = @mode == Mode.Visual
-    const @isVisualLine = @mode == Mode.VisualLine
-    const @isToggleHold = @mode == Mode.ToggleHold
+    const <isInsert>     = @mode == Mode.Insert
+    const <isNormal>     = @mode == Mode.Normal
+    const <isVisual>     = @mode == Mode.Visual
+    const <isVisualLine> = @mode == Mode.VisualLine
+    const <isToggleHold> = @mode == Mode.ToggleHold
 }
 
-< machine name=ModeMachine for=Mode>
+<engine name=ModeMachine for=Mode initial=.Insert>
     .Insert     => .Normal | .ToggleHold
     .Normal     => .Insert | .Visual | .VisualLine
     .Visual     => .Normal | .VisualLine | .Insert
@@ -151,8 +151,8 @@ ${
         <label>Input surface (click, then drive modes with Esc / i / a / o / v / V / Ctrl-hold):</>
         <textarea
             class="surface"
-            onkeydown=handleKeyDown()
-            onkeyup=handleKeyUp()
+            onkeydown=${(e) => handleKeyDown(e)}
+            onkeyup=${(e) => handleKeyUp(e)}
             placeholder="focus me first"
             rows="3"
         ></textarea>

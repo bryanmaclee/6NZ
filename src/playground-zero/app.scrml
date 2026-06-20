@@ -84,8 +84,8 @@ ${
         <label>Input surface (focus + press keys):</>
         <textarea
             class="surface"
-            onkeydown=handleKeyDown()
-            onkeyup=handleKeyUp()
+            onkeydown=${(e) => handleKeyDown(e)}
+            onkeyup=${(e) => handleKeyUp(e)}
             placeholder="Click here, then roll your fingers across the home row."
             rows="4"
         ></textarea>

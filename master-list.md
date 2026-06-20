@@ -2,9 +2,9 @@
 
 **Purpose:** Live inventory of the 6nz editor repo.
 
-**Last updated:** 2026-05-24 (S11, cont'd)
+**Last updated:** 2026-06-19 (S12 — re-baseline against v0.7.0)
 
-**Status:** Exploratory implementation phase, dogfood mode. **Nine scrml-native playgrounds, all green** against scrmlTS `dc073b94` (p5 18/18, p6 7/7, p7 17/17, p8 9/9, p9 13/13). p9 is the first non-CM6 playground — the editor IR + logical traversal, real editor-proper progress. The dogfooding loop is producing: S11 surfaced bugs P/Q/R/S/T/U/V/W through construction. scrmlTS turnaround is fast — **P fixed+verified, Q fixed (loud breaking error), R retracted (was a Q artifact).** Active: **S** (queued), **W (CRITICAL — silent paren-drop arithmetic corruption, just filed)**, **V** (class-on-for-lift). Deferred to M6 native parser: L, T, (U minor). Editor scaffolding proper still waiting on in-process compiler API.
+**Status:** Exploratory implementation phase, dogfood mode. **All TEN scrml-native playgrounds re-baselined GREEN against scrml v0.7.0 (`80f2c190`, S209)** — compile-clean + runtime-verified (p3 CM6 mount ✓, p5 18/18, p6 7/7, p7 17/17, p8 9/9, p9 13/13; p0/p1/p2/p4 event-handler fix runtime-probed). The compiler is now `scrml` (renamed from `scrmlTS` at S200; dir `../scrml/`). **S12 re-baseline found NO compiler bugs** — every breakage was adopter-migration debt from v0.7.0's deliberate tightening (see §A.S12 + §F). Migrations applied: `match` subject typing (E-TYPE-025 → annotate), `=>`→`:>` arm arrows, `const @x`→`const <x>`, `<machine>`→`<engine>` + explicit `initial=`, event-threading arrow-form (S96 revert), bridge LSP path (S200 rename). All S11-era bugs now resolved on scrml's side: **P/Q (fixed), R (retracted), M/N/O (fixed), V (fixed S139), S + W (VERIFIED fixed S12 via direct repro against v0.7.0 — W: `(2+3)*4` preserves parens; S: `return not` → `return null`)**; L/T/U deferred to M6 native parser. Editor scaffolding proper still waiting on in-process compiler API.
 
 ---
 

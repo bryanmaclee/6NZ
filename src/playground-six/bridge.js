@@ -21,10 +21,11 @@
 // Stop: SIGINT (Ctrl+C). Bridge will SIGTERM the LSP child.
 
 const PORT = parseInt(process.env.PORT || "3061", 10);
-// Resolve scrmlTS relative to this bridge: 6NZ/src/playground-six/bridge.js
-// → ../../../scrmlTS — works across machines (was hardcoded /home/bryan-maclee/).
-const SCRMLTS_DIR = process.env.SCRMLTS_DIR ||
-    new URL("../../../scrmlTS", import.meta.url).pathname;
+// Resolve the scrml compiler relative to this bridge: 6nz/src/playground-six/bridge.js
+// → ../../../scrml — works across machines (was hardcoded /home/bryan-maclee/).
+// (Dir renamed scrmlTS→scrml at S200; env override accepts SCRML_DIR or legacy SCRMLTS_DIR.)
+const SCRMLTS_DIR = process.env.SCRML_DIR || process.env.SCRMLTS_DIR ||
+    new URL("../../../scrml", import.meta.url).pathname;
 
 console.log("[bridge] spawning LSP:", `bun ${SCRMLTS_DIR}/lsp/server.js --stdio`);
 

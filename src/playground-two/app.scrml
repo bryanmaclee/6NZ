@@ -21,11 +21,11 @@
 ${
     type Mode:enum = { Insert, Normal, Visual }
 
-    function modeName(m) {
+    function modeName(m: Mode) {
         return match m {
-            .Insert => "INSERT"
-            .Normal => "NORMAL"
-            .Visual => "VISUAL"
+            .Insert :> "INSERT"
+            .Normal :> "NORMAL"
+            .Visual :> "VISUAL"
         }
     }
 
@@ -311,9 +311,9 @@ ${
 
     // --- Derived rendering pieces ---------------------------------
 
-    const @isInsert  = @mode == Mode.Insert
-    const @isNormal  = @mode == Mode.Normal
-    const @isVisual  = @mode == Mode.Visual
+    const <isInsert>  = @mode == Mode.Insert
+    const <isNormal>  = @mode == Mode.Normal
+    const <isVisual>  = @mode == Mode.Visual
     // Note: the buffer/cursor/after segments are rendered inline in the
     // markup with ${...} expressions. Derived reactives (`const @x = ...`)
     // referenced from markup spans do not get their reactive display
@@ -321,7 +321,7 @@ ${
     // expressions work fine.
 }
 
-< machine name=ModeMachine for=Mode>
+<engine name=ModeMachine for=Mode initial=.Normal>
     .Insert => .Normal | .Visual
     .Normal => .Insert | .Visual
     .Visual => .Normal | .Insert
@@ -340,8 +340,8 @@ ${
     <div
         class="buffer-pane"
         tabindex="0"
-        onkeydown=handleKeyDown()
-        onkeyup=handleKeyUp()
+        onkeydown=${(e) => handleKeyDown(e)}
+        onkeyup=${(e) => handleKeyUp(e)}
     >
         <span class="seg before">${@buffer.slice(0, @cursor)}</>
         <span class="seg cursor" class:insert-cursor=@isInsert class:block-cursor=@isNormal class:visual-cursor=@isVisual>${glyphFor(@buffer.slice(@cursor, @cursor + 1))}</>

@@ -40,10 +40,10 @@ ${
     // New bug — noted for a separate filing.
     fn kindLabel(k: EditKind) -> string {
         match k {
-            .Initial     => "root"
-            .InsertChar  => "ins"
-            .Backspace   => "bs"
-            .NewLine     => "nl"
+            .Initial     :> "root"
+            .InsertChar  :> "ins"
+            .Backspace   :> "bs"
+            .NewLine     :> "nl"
         }
     }
 
@@ -375,7 +375,7 @@ ${
         @status  = "reset"
     }
 
-    const @isInsert = @mode == "insert"
+    const <isInsert> = @mode == "insert"
 }
 
 <div class="app">
@@ -390,7 +390,7 @@ ${
     <div
         class="surface"
         tabindex="0"
-        onkeydown=handleKeyDown()
+        onkeydown=${(e) => handleKeyDown(e)}
     >
         <div class="label">BUFFER</>
         <!-- Inlining @nodes[@current] rather than curNode() — the compiler

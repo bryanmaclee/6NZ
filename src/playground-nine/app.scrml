@@ -34,23 +34,23 @@ ${
 
 type NodeKind:enum = { Program, Component, State, Func, Markup }
 
-function kindGlyph(k) {
+function kindGlyph(k: NodeKind) {
     return match k {
-        .Program   => "#"
-        .Component => "*"
-        .State     => "@"
-        .Func      => "f"
-        .Markup    => "<"
+        .Program   :> "#"
+        .Component :> "*"
+        .State     :> "@"
+        .Func      :> "f"
+        .Markup    :> "<"
     }
 }
 
-function kindName(k) {
+function kindName(k: NodeKind) {
     return match k {
-        .Program   => "program"
-        .Component => "component"
-        .State     => "state"
-        .Func      => "function"
-        .Markup    => "markup"
+        .Program   :> "program"
+        .Component :> "component"
+        .State     :> "state"
+        .Func      :> "function"
+        .Markup    :> "markup"
     }
 }
 
@@ -298,8 +298,8 @@ function countCollapsed() {
 }
 
 // derived status pieces
-const @cursorLabel = labelOf(@cursorId)
-const @collapsedCount = countCollapsed()
+const <cursorLabel> = labelOf(@cursorId)
+const <collapsedCount> = countCollapsed()
 
 }
 
