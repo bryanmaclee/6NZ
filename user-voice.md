@@ -18,7 +18,11 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 
 > check incoming msgs
 
-## Session 12 — 2026-06-19
+## Session 12 — 2026-05-24
+
+> we have switched to playwright for automated testing in scrmlTS. not sure if its worth it, but thought I'd mention
+
+## Session 14 — 2026-06-19  (this instance ran as a parallel "Session 12" fork off S11, unaware origin had already run S12–S13; merged + renumbered S12→S14 at the 2026-06-20 reconciliation)
 
 > read pa.md and start session
 
