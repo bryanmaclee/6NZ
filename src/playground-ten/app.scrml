@@ -1,0 +1,231 @@
+// playground-ten — relevance-region navigator + §36 input-state panel.
+//
+// Rebuild of the S13 (lost) playground-ten against scrml v0.7.0. The original
+// source landed in a misrouted caps-6NZ clone and never reached the repo; only
+// its 5 bug repros (X/Y/Z/AA/AB) survived. This rebuild restores the canonical
+// p10 AND live-verifies the v0.7.0 fixes on a real surface:
+//
+//   - for-lift <li class:focused= / style:opacity=> reading the GLOBAL @focusId
+//     (Bug-V neighborhood — was frozen-on-create; fixed S139). Restored to real
+//     per-row class binding instead of the single-string workaround.
+//   - region titles that contain a declared fn-name ("handleKey(e)") and a URL
+//     ("https://...") — live-verify Bug Z (rename leaking into strings) and
+//     Bug X (// inside a string) are fixed: the titles render verbatim.
+//   - <engine> Mode machine (Nav/Edit) with <onTransition> — live-verify Bug AB
+//     (bare @mode=.Variant write now routes through the engine dispatcher and
+//     fires onTransition; @transitions increments).
+//   - match @mode badge via `return match` (Bug AA — bare tail match in a plain
+//     function is still dropped in v0.7.0; the return form is the workaround).
+//
+// §36 input-state panel (the high-signal ask — ~0 adoption; perfect editor fit):
+//   - <keyboard id="keys"/> + <mouse id="cursor"/>: a readout of cursor x/y and
+//     last key. FINDING (Question AF): `${<#cursor>.x}` in markup renders the
+//     INITIAL value once and emits NO reactive effect, so it never updates on
+//     mouse move / keypress (the §36 read is render-once; modeBadge's textContent
+//     render right above gets an effect wrapper, the input-state read does not).
+//     Canonical §36 usage reads inside an animationFrame loop and writes a @cell;
+//     bare markup interp of input-state is non-reactive. For an editor this is a
+//     real limitation — raised to scrml as a question (by-design vs codegen gap).
+//
+// New compiler bugs surfaced building this (filed to scrml):
+//   - Bug AD: a user fn called in an ATTRIBUTE-value interp (class="x-${fn()}")
+//     emits the bare un-renamed name -> runtime ReferenceError. exit-0, node
+//     --check OK, runtime-broken. (@cell refs rewrite fine in the same spot;
+//     only user-fn names are missed. textContent interp renames correctly.)
+//   - Bug AE: name= on an <engine> breaks the transition write-guard (it reads a
+//     table derived from the engine name that's never defined; the rule table is
+//     built under the variable name) -> E-ENGINE-001-RT on every legal transition.
+//     Workaround used here: the canonical no-name <engine for=Mode> form.
+//
+// Controls (focus the navigator pane):
+//   j / ↓   focus next region
+//   k / ↑   focus previous region
+//   Enter   toggle Nav <-> Edit mode (drives <onTransition>)
+//   o       insert a region after focus
+//   x       remove the focused region
+//
+// Run: scrml dev src/playground-ten/app.scrml
+
+<keyboard id="keys"/>
+<mouse id="cursor"/>
+
+<program>
+${
+
+type Mode:enum = { Nav, Edit }
+
+// match badge via `return match` — Bug AA (bare tail match dropped) workaround.
+function modeBadge(m: Mode) {
+    return match m {
+        .Nav  :> "NAV"
+        .Edit :> "EDIT"
+    }
+}
+
+// Code regions: each carries a title that deliberately contains identifier-like
+// text + a URL, to exercise Bug Z (rename-in-string) and Bug X (// in string).
+@regions = [
+    { id: 0, title: "handleKey(e)",     body: "j/k navigate; Enter toggles mode", url: "https://scrml.dev/docs/events" },
+    { id: 1, title: "focusNext()",      body: "advances @focusId to the next region", url: "https://scrml.dev/docs/lists" },
+    { id: 2, title: "modeBadge(m)",     body: "match @mode :> NAV | EDIT", url: "https://scrml.dev/docs/match" },
+    { id: 3, title: "onTransition",     body: "fires on Nav<->Edit; counts in @transitions", url: "https://scrml.dev/docs/engine" }
+]
+
+@focusId     = 0
+@nextId      = 4
+@transitions = 0
+// @mode is auto-declared by the <engine for=Mode initial=.Nav> below. NOTE:
+// adding name=ModeMachine breaks the transition write-guard (it looks up a
+// table derived from the engine name that's never defined → E-ENGINE-001-RT on
+// every legal transition). Filed as Bug AE (v0.7.0). Canonical no-name form used.
+@lastAction  = "ready — j/k to navigate, Enter to toggle mode"
+
+// --- region lookups ------------------------------------------------
+
+function idxOf(id) {
+    for (let i = 0; i < @regions.length; i = i + 1) {
+        if (@regions[i].id == id) { return i }
+    }
+    return -1
+}
+
+function focusedTitle() {
+    const ix = idxOf(@focusId)
+    if (ix < 0) { return "(none)" }
+    return @regions[ix].title
+}
+
+// --- navigation ----------------------------------------------------
+
+function focusNext() {
+    const ix = idxOf(@focusId)
+    if (ix >= 0 && ix < @regions.length - 1) {
+        @focusId = @regions[ix + 1].id
+        @lastAction = "focus -> " + focusedTitle()
+    }
+}
+
+function focusPrev() {
+    const ix = idxOf(@focusId)
+    if (ix > 0) {
+        @focusId = @regions[ix - 1].id
+        @lastAction = "focus -> " + focusedTitle()
+    }
+}
+
+// --- mode engine (drives <onTransition>) ---------------------------
+
+function toggleMode() {
+    if (@mode == Mode.Nav) { @mode = .Edit } else { @mode = .Nav }
+    @lastAction = "mode -> " + modeBadge(@mode)
+}
+
+// --- list churn ----------------------------------------------------
+
+function insertRegion() {
+    const ix = idxOf(@focusId)
+    const newRow = { id: @nextId, title: "region_" + @nextId + "()", body: "inserted region", url: "https://scrml.dev/x" }
+    let next = []
+    for (let i = 0; i < @regions.length; i = i + 1) {
+        next = [...next, @regions[i]]
+        if (i == ix) { next = [...next, newRow] }
+    }
+    @regions = next
+    @focusId = @nextId
+    @nextId = @nextId + 1
+    @lastAction = "inserted region"
+}
+
+function removeRegion() {
+    if (@regions.length <= 1) { @lastAction = "cannot remove last region"; return }
+    const ix = idxOf(@focusId)
+    let next = []
+    for (let i = 0; i < @regions.length; i = i + 1) {
+        if (@regions[i].id != @focusId) { next = [...next, @regions[i]] }
+    }
+    @regions = next
+    const newIx = ix >= next.length ? next.length - 1 : ix
+    @focusId = next[newIx].id
+    @lastAction = "removed region"
+}
+
+// --- keyboard handler (event-driven; arrow-form per SPEC §5.2.2) ----
+
+function handleKey(e) {
+    e.preventDefault()
+    const k = e.key
+    if (k == "j" || k == "ArrowDown") { focusNext(); return }
+    if (k == "k" || k == "ArrowUp")   { focusPrev(); return }
+    if (k == "Enter")                 { toggleMode(); return }
+    if (k == "o")                     { insertRegion(); return }
+    if (k == "x")                     { removeRegion(); return }
+    @lastAction = "ignored: " + k
+}
+
+}
+
+<engine for=Mode initial=.Nav>
+    <Nav  rule=.Edit />
+    <Edit rule=.Nav />
+    <onTransition from=.Nav to=.Edit>
+        ${ @transitions = @transitions + 1 }
+    </onTransition>
+    <onTransition from=.Edit to=.Nav>
+        ${ @transitions = @transitions + 1 }
+    </onTransition>
+</engine>
+
+<div class="app">
+    <h1>playground-ten</>
+    <p class="subtitle">relevance-region navigator + §36 input-state — scrml-native.</>
+
+    <div class="layout">
+        <div
+            class="nav-pane"
+            tabindex="0"
+            onkeydown=${(e) => handleKey(e)}
+        >
+            <div class="statusbar">
+                <span class="badge" class:nav=(@mode == Mode.Nav) class:edit=(@mode == Mode.Edit)>${modeBadge(@mode)}</>
+                <span class="slabel">focus:</> <span class="value">${focusedTitle()}</>
+                <span class="slabel">transitions:</> <span class="value tr">${@transitions}</>
+            </div>
+
+            <ul class="regions">
+                ${ for (const r of @regions) {
+                    lift <li
+                        class="region"
+                        class:focused=(r.id == @focusId)
+                        style:opacity=(r.id == @focusId ? "1" : "0.55")>
+                        <span class="rtitle">${r.title}</>
+                        <span class="rbody">${r.body}</>
+                        <span class="rurl">${r.url}</>
+                    </>
+                } }
+            </ul>
+
+            <p class="action">${@lastAction}</>
+        </div>
+
+        <div class="input-pane">
+            <h2>§36 input-state</>
+            <div class="row"><span class="slabel">cursor.x:</> <span class="value mx">${<#cursor>.x}</></>
+            <div class="row"><span class="slabel">cursor.y:</> <span class="value my">${<#cursor>.y}</></>
+            <div class="row"><span class="slabel">keys.lastKey:</> <span class="value lk">${<#keys>.lastKey}</></>
+        </div>
+    </div>
+</div>
+</>
+
+#{
+.layout { display: flex; gap: 1rem; }
+.nav-pane { flex: 2; border: 1px solid #ccc; padding: 1rem; outline: none; }
+.input-pane { flex: 1; border: 1px solid #ccc; padding: 1rem; }
+.region { list-style: none; padding: 0.4rem; border-bottom: 1px solid #eee; }
+.region.focused { background: #1e6; }
+.rtitle { font-weight: bold; margin-right: 0.5rem; }
+.rbody { color: #555; }
+.rurl { color: #08c; font-size: 0.8em; display: block; }
+.badge { padding: 0.1rem 0.4rem; border-radius: 3px; background: #333; color: #fff; }
+.statusbar { margin-bottom: 0.5rem; }
+}

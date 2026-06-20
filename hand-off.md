@@ -61,6 +61,25 @@ User picked "Re-baseline all 9 vs v0.7.0." Result: **all 10 playgrounds compile-
 - **Bug S (`return not`→`return !const`) — VERIFIED FIXED.** Emits `return null;` + clean `const`; `node --check` passes.
 - From inbox: P/Q fixed, R retracted, M/N/O fixed, V fixed (S139). L/T/U M6-deferred. **Net: every S11 bug resolved except the 3 M6-deferred parser ones.**
 
+## S12 (cont'd) — playground-ten rebuilt (relevance-region navigator + §36 input-state), 19/19
+
+User said "kick off pg10." Discovery: **p10 already existed and was lost.** A 6nz instance ("S13", 2026-05-29) built p10 against v0.6.7 and filed bugs X/Y/Z/AA/AB + AC to scrml — but the source landed in the misrouted caps-`6NZ/` clone (now empty) and never reached this repo; our hand-off had no record. Only the 6 bug repros survived in scrml's `read/` archive.
+
+### Recovered + re-verified the lost bug batch against v0.7.0
+Compiled each surviving repro against v0.7.0: **X/Y/Z/AB/AC FIXED, AA still OPEN** (full table in master-list §F). X (// in string) + Z (rename-in-string) were HIGH and editor-critical — both fixed.
+
+### Rebuilt playground-ten (`src/playground-ten/{app.scrml,test.js}`)
+Relevance-region navigator: for-lift region list (`class:focused`/`style:opacity` reading global `@focusId`), `<engine>` Nav/Edit machine + `<onTransition>`, region titles with fn-names + URLs, `match @mode` badge, `<keyboard>`/`<mouse>` §36 panel. **19/19 runtime smoke** against v0.7.0. Live-confirmed: Bug-V (class:focused through nav + churn), Bug AB (onTransition fires), Bug Z + X (verbatim string render).
+
+### 3 NEW findings (filed/pending-send to scrml)
+- **Bug AD (HIGH)** — user fn in an ATTRIBUTE-value interp (`class="x-${fn()}"`) emits the bare un-renamed name → runtime `ReferenceError`. exit-0, node --check OK, runtime-broken. `@cell` refs rewrite fine in the same spot; textContent interp renames correctly; only the attr-interp user-fn path is missed. Z-family. Minimal repro confirmed. Workaround in p10: derived cell / avoid fn in attr interp.
+- **Bug AE (HIGH)** — `name=` on an `<engine>` breaks the transition write-guard: guard reads `__scrml_transitions_<EngineName>` (never defined) while the rule table is built under the variable name (`__scrml_engine_<var>_transitions`) → `E-ENGINE-001-RT` on every legal transition. Confirmed by comparing the `name=` form vs the canonical no-`name=` form (latter wires correctly). Workaround in p10: canonical `<engine for=Mode initial=.Nav>` form (no name=).
+- **Question AF** — `${<#input>.field}` §36 read in markup renders the initial value once, emits NO `_scrml_effect` wrapper → never updates on input (confirmed at emit level: modeBadge textContent gets an effect, the input-state read does not). By-design (read in animationFrame loop) or codegen gap? Real limitation for an editor's live input display.
+
+### My-code issues fixed during the build (not compiler bugs)
+- Indexed for-lift `@regions[i]` in a reactive binding crashes on array shrink (stale index → undefined.id). Fixed by item-binding `for (const r of @regions)` (matches the original p10).
+- `class=@badgeClass` (bare `@cell` in an unquoted attribute) emits the LITERAL string "badgeClass", not a reactive binding — switched to `class:NAME=expr` toggle form. (Possible minor scrml observation: bare `@cell` unquoted attr value silently becomes a literal; not filed — `${...}` interp / `class:` are the canonical forms.)
+
 ## Open / carried items
 - **p9 Bug-V workaround still in place** — p9 renders the tree as one `${treeText()}` string with a textual "> " cursor marker (Bug V workaround). Bug V is fixed (S139) so this CAN be reverted to per-line `class:cursor=` binding. NOT done this session (p9 is green as-is); optional cleanup.
 - **Multi-close editor feature** (`<//>`→`</></>` Emmet expand) — scrml's S54 ask; tracked, v0.next-era, no rush. Belongs in master-list editor backlog (NOT yet added).
@@ -71,9 +90,10 @@ User picked "Re-baseline all 9 vs v0.7.0." Result: **all 10 playgrounds compile-
 ## State as of close
 | Item | State |
 |---|---|
-| Working tree | UNCOMMITTED: 9 app.scrml edits (p0/p1/p2/p4/p5/p6/p7/p9 source migrations), 2 bridge.js (p6/p8), master-list, hand-off rotation. `e6fc5e8` still unpushed. Awaiting commit auth. |
-| Playgrounds | **10/10 GREEN against scrml v0.7.0** (`80f2c190`) — compile + runtime. |
-| Bugs | All S11 bugs resolved except L/T/U (M6-deferred). W + S verified-fixed this session. |
+| Committed (unpushed) | `5964d44` housekeeping, `75221ac` re-baseline, `e6fc5e8` pa-modernize — 3 ahead of origin. |
+| Working tree | UNCOMMITTED: `src/playground-ten/{app.scrml,test.js}` (new), `master-list.md`, `hand-off.md` (this file). Awaiting commit auth for the p10 commit. |
+| Playgrounds | **11/11 GREEN against scrml v0.7.0** (`80f2c190`) — p0–p9 re-baselined + p10 rebuilt (19/19). |
+| Bugs | S11 batch resolved except L/T/U (M6-deferred). S13/p10 batch: X/Y/Z/AB/AC fixed, AA open; **NEW AD/AE (HIGH) + AF (question)** — filed/pending-send to scrml. |
 | Env | global `scrml` command repointed → v0.7.0 (was broken by S200 rename). |
 | Inbox | all 14 processed → `read/`; incoming empty. |
 
@@ -88,5 +108,6 @@ User picked "Re-baseline all 9 vs v0.7.0." Result: **all 10 playgrounds compile-
 - `src/playground-seven/app.scrml` — migrate, `initial=.Normal`.
 - `src/playground-eight/bridge.js` — LSP path scrmlTS→scrml. (app.scrml unchanged — was already clean.)
 - `src/playground-nine/app.scrml` — `kindGlyph(k: NodeKind)`/`kindName(k: NodeKind)`, migrate (arrow/const).
-- `master-list.md` — header/status currency pass (partial).
+- `master-list.md` — currency pass + §F bug ledger (S13-recovery + AD/AE/AF) + p10 entry (§A/§E) + status.
+- `src/playground-ten/{app.scrml,test.js}` — NEW (rebuild; 19/19 smoke).
 - Env: `~/.bun/install/global/node_modules/scrmlts` symlink repointed (outside repo).
