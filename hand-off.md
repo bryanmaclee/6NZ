@@ -97,15 +97,22 @@ Relevance-region navigator: for-lift region list (`class:focused`/`style:opacity
 - **DX note to scrml (optional, low pri):** E-TYPE-025 could infer subject type from exhaustive `.Variant` patterns. Not filed (their deliberate choice).
 - **Inbox archived** — all 14 processed messages moved to `handOffs/incoming/read/` (incoming now empty). Multi-close ask preserved in master-list §E before archiving.
 
+## WRAP (S12 close — 2026-06-20)
+All wrap steps executed:
+1. **hand-off** — this file (full density). 2. **master-list** — currency + §F bug ledger + p10 entry + triage outcomes. 3. **CHANGELOG** — `docs/changelog.md` created with the S12 block (first changelog for the repo). 4. **inbox/outbox** — incoming empty (14 archived); sent: p10 bug batch → scrml, needs:push → master, triage reply processed. 5. **test-suite** — 6nz has no unit suite; playground smoke status verified this session: **11/11 green** (re-baseline + p10). 6. **working-tree** — clean (all committed). 6b. **worktree-cleanup** — N/A (no agent worktrees dispatched this session; `git worktree list` = main only). 6c. **maps-refresh** — DEFERRED (see carry; `.claude/maps/` predate ALL playgrounds → needs a `project-mapper` COLD run, not incremental — flagged for next session). 7. **push** — direct to origin at close (user-authorized "wrap and push"). 8. **meta-docs** — user-voice S12 entry appended; findings captured in §F + changelog.
+
 ## State as of close
 | Item | State |
 |---|---|
-| Committed (unpushed) | `5964d44` housekeeping, `75221ac` re-baseline, `e6fc5e8` pa-modernize — 3 ahead of origin. |
-| Working tree | UNCOMMITTED: `src/playground-ten/{app.scrml,test.js}` (new), `master-list.md`, `hand-off.md` (this file). Awaiting commit auth for the p10 commit. |
-| Playgrounds | **11/11 GREEN against scrml v0.7.0** (`80f2c190`) — p0–p9 re-baselined + p10 rebuilt (19/19). |
-| Bugs | S11 batch resolved except L/T/U (M6-deferred). S13/p10 batch: X/Y/Z/AB/AC fixed, AA open; **NEW AD/AE (HIGH) + AF (question)** — SENT to scrml 2026-06-20 (msg + 3 sidecars). |
+| Push | **pushed to origin/main at S12 close** (direct, user-authorized). 7 wrap+work commits (`e6fc5e8`..wrap tip). |
+| Working tree | clean (`dist/` gitignored). |
+| Playgrounds | **11/11 GREEN against scrml v0.7.0** — p0–p9 re-baselined + p10 rebuilt (19/19). |
+| Bugs | S11 batch resolved except L/T/U (M6-deferred). S13/p10 batch: X/Y/Z/AB/AC fixed, AA open; AD/AE FILED HIGH + DISPATCHED by scrml, AF pending design ruling. |
 | Env | global `scrml` command repointed → v0.7.0 (was broken by S200 rename). |
-| Inbox | all 14 processed → `read/`; incoming empty. |
+| Inbox | all 15 processed → `read/`; incoming empty. |
+| ⚠️ Top carry | when scrml's AE fix lands, `<engine name=...>` → compile error. **p1/p2/p5/p7 use `<engine name=ModeMachine ...>`** — migrate off `name=` (let engine own the cell / use `var=`) + re-smoke. Not urgent (fix not landed). |
+| Carry 2 | `.claude/maps/` stale (pre-playgrounds) → `project-mapper` cold run next session. |
+| Carry 3 | Multi-close editor feature (`<//>`→`</></>`) in master-list §E backlog (scrml S54 ask, v0.next-era). |
 
 ## File-modification inventory (this session)
 - `hand-off.md` → rotated to `handOffs/hand-off-11.md`; fresh `hand-off.md` (this file).

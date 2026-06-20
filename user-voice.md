@@ -17,3 +17,19 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 > commit, push, keep going. dealer's choice.
 
 > check incoming msgs
+
+## Session 12 — 2026-06-19
+
+> read pa.md and start session
+
+> [direction] Re-baseline all 9 vs v0.7.0
+
+> [commit] Commit now, push later
+
+> kick off pg10
+
+> [report to scrml] Send the full batch
+
+> push
+
+> wrap and push.
