@@ -118,6 +118,7 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 - [ ][ ] Editor IR detailed design (node types, incremental update, serialization) — playground-four's `@nodes` tree shape is a rough sketch of the per-edit-node side of this
 - [ ][ ] Logical traversal interaction with multi-cursor
 - [ ][ ] Config sharing infrastructure (`:km@username` — hosting, discovery, scope)
+- [ ][ ] **Multi-close auto-expand** (`<//>`→`</></>`, `<///>`→`</></></>`) — Emmet-style type-time expansion, default OFF. scrml dropped Move 7 from the grammar (S54) and asked the editor to own the typing-density ergonomic instead (inbox `2026-05-04-...-multi-close-editor-option`, v0.next-era, no rush). Optional refinements: smart-close (expand to real tag names from open-tag tracking), configurable abbrev char, ghost-text preview.
 
 ### Playground track (exploratory scrml — unblocked)
 - [x] playground-zero — Z-motion classifier
@@ -150,7 +151,9 @@ SPEC v0.5 — `z-motion-spec/SPEC.md`
 
 ## F. Cross-repo
 
-### scrmlTS (compiler)
+> **S12 currency note (2026-06-19).** The compiler repo was renamed **scrmlTS → `scrml`** at S200 (dir `../scrml/`; GitHub `bryanmaclee/scrml`, old URLs auto-redirect). The dormant self-host `scrml` → `scrml-native`. Current compiler: **v0.7.0 `80f2c190` (S209).** All historical "scrmlTS" / `dc073b94` references below are pre-rename, pre-v0.7.0 — read them as history. **S12 re-baselined all 10 playgrounds green against v0.7.0** (see top status + hand-off-12). Bug ledger now: **P/Q/M/N/O/V/S/W all FIXED** (S/W verified S12 via direct repro), **R retracted**, **L/T/U deferred to M6 native parser**. No 6nz-filed bug is open against v0.7.0 except the 3 M6-deferred parser ones. v0.7.0 notes relevant to us: block-`<match>` in `<each>` renders per-item; `<engine>` `:`-shorthand + `//` block-split fixed; variant-progression `(.A to .B)` lifecycle enforcement fires; `<errorBoundary>` functional. Still-open upstream (R28-1c): `<each>` same-key in-place field mutation doesn't re-render per-item — use `@items=[...]` array-ref replacement.
+
+### scrmlTS (compiler) — historical (pre-S200 rename / pre-v0.7.0)
 - **S11 retest (2026-05-23) — scrmlTS jumped S40 → S122 (~80 sessions, 300+ commits) during the gap.** Highlights affecting 6nz: v0.6.0 release tagged, v0.7 native parser arc in flight, LSP L1-L4 shipped (signature help + code actions live), Bug 14 SPEC §5.2.2 revert (`onclick=fn()` no longer auto-threads event), new `E-RESERVED-IDENTIFIER` on `function reset()` (use `clearXxx()`), `null` → `not` strictness (E-SYNTAX-042), `W-PROGRAM-REDUNDANT-LOGIC` actively recommending bare-decl v0.3 auto-lift form. Also corpus-sweep PLAN queued post-M6 (runtime-verify every example).
 - **Bugs L/M/N/O closure-out S11.**
   - Bug L (BS brace-counter): fix at `2a5f4a06` was reverted at `529f0312`; **still open**, awaiting native-parser M6 subsumption. `String.fromCharCode(123/125)` workaround in p5+p6 stays.

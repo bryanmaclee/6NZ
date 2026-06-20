@@ -66,7 +66,7 @@ User picked "Re-baseline all 9 vs v0.7.0." Result: **all 10 playgrounds compile-
 - **Multi-close editor feature** (`<//>`→`</></>` Emmet expand) — scrml's S54 ask; tracked, v0.next-era, no rush. Belongs in master-list editor backlog (NOT yet added).
 - **master-list currency** — header/status updated; per-playground version stamps in §A + §F cross-repo still say "scrmlTS"/`dc073b94` in places → finish currency sweep before/at wrap.
 - **DX note to scrml (optional, low pri):** E-TYPE-025 could infer subject type from exhaustive `.Variant` patterns. Not filed (their deliberate choice).
-- **Inbox not yet archived** — pending user ack; 8 superseded/acknowledged ready to move to `read/`.
+- **Inbox archived** — all 14 processed messages moved to `handOffs/incoming/read/` (incoming now empty). Multi-close ask preserved in master-list §E before archiving.
 
 ## State as of close
 | Item | State |
@@ -75,7 +75,7 @@ User picked "Re-baseline all 9 vs v0.7.0." Result: **all 10 playgrounds compile-
 | Playgrounds | **10/10 GREEN against scrml v0.7.0** (`80f2c190`) — compile + runtime. |
 | Bugs | All S11 bugs resolved except L/T/U (M6-deferred). W + S verified-fixed this session. |
 | Env | global `scrml` command repointed → v0.7.0 (was broken by S200 rename). |
-| Inbox | 14 unread, triaged; none archived yet. |
+| Inbox | all 14 processed → `read/`; incoming empty. |
 
 ## File-modification inventory (this session)
 - `hand-off.md` → rotated to `handOffs/hand-off-11.md`; fresh `hand-off.md` (this file).
