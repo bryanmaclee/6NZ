@@ -72,6 +72,7 @@ Compiled each surviving repro against v0.7.0: **X/Y/Z/AB/AC FIXED, AA still OPEN
 Relevance-region navigator: for-lift region list (`class:focused`/`style:opacity` reading global `@focusId`), `<engine>` Nav/Edit machine + `<onTransition>`, region titles with fn-names + URLs, `match @mode` badge, `<keyboard>`/`<mouse>` §36 panel. **19/19 runtime smoke** against v0.7.0. Live-confirmed: Bug-V (class:focused through nav + churn), Bug AB (onTransition fires), Bug Z + X (verbatim string render).
 
 ### Cross-repo traffic log
+- **Out to master** (needs:push) — `../handOffs/incoming/2026-06-20-1418-6nz-to-master-needs-push.md`. Requests coordinated push of 6nz (clean, ahead of origin) + flags scrml as push-affected (received the 6nz p10 bug message). User-authorized push this session. **Push is queued with master, NOT yet on origin** — master does the actual push.
 - **Out to scrml** (1 message + 3 sidecars) — `../scrml/handOffs/incoming/2026-06-20-1217-6nz-to-scrml-p10-bugs-ad-ae-af-plus-s13-status.md` + `2026-06-20-1217-6nz-p10-bug-sidecars/{bug-ad,bug-ae,question-af}.scrml`. Delivers: S13 batch re-verification (X/Y/Z/AB/AC fixed, AA open — closes the dropped S13 loop), Bug AD, Bug AE, Question AF. All 3 repros R26-verified against v0.7.0 (AD: bare-name emit; AE: runtime E-ENGINE-001-RT via puppeteer; AF: no-effect-wrapper emit). **scrml is now push-affected** — include it in the next master push coordination.
 
 ### 3 NEW findings (sent to scrml 2026-06-20)
