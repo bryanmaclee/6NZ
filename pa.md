@@ -34,7 +34,7 @@ Current truth only. Design decisions live here *when they're locked*. Speculativ
 
 ## Cross-repo references
 
-- **scrmlTS** at `../scrmlTS/` — compiler API (prerequisite for editor)
+- **scrml** at `../scrml/` — compiler API (prerequisite for editor)
 - **scrml-support** at `../scrml-support/` — editor research deep-dives:
   - `6nz-editor-2026-03-30.md`
   - `6nz-editor-research-2026-04-02.md`
@@ -43,9 +43,80 @@ Current truth only. Design decisions live here *when they're locked*. Speculativ
 
 ## What NOT to do
 
-- Exploratory scrml implementation is encouraged — find out what works by writing. The editor shell, buffer model, input/event handling, mode machine, Z-motion classifier, config system, and UI primitives can all start now. Semantic features (relevance view content, live diagnostics, completions) remain gated on scrmlTS compiler API exposure — don't scaffold those until the API is real.
+- Exploratory scrml implementation is encouraged — find out what works by writing. The editor shell, buffer model, input/event handling, mode machine, Z-motion classifier, config system, and UI primitives can all start now. Semantic features (relevance view content, live diagnostics, completions) remain gated on scrml compiler API exposure — don't scaffold those until the API is real.
 - Do not import research docs here — they stay in scrml-support
 - Do not conflate the editor (closed) with z-motion spec (open)
+
+---
+
+## Modern PA workflow (S209 — adopted from scrml's current PA practice)
+
+Cross-cutting PA disciplines scrml developed; they apply to any ecosystem PA.
+
+### "wrap" — a defined operation, not a vague directive
+When the user says "wrap" (or you propose it), execute ALL of: (1) **hand-off** — update `hand-off.md`
+per the density directive below; (2) **master-list** — current counts/statuses/inventory deltas;
+(3) **CHANGELOG** — a new dated session block at the top of `docs/changelog.md`; (4) **inbox/outbox** —
+process `handOffs/incoming/` (move read → `read/`), send any due cross-repo notices; (5) **test-suite** —
+run + record pass/skip/fail (6nz: N/A until implementation exists); (6) **working-tree** —
+verify clean OR commit pending work (no silent uncommitted state at close); (6b) **worktree-cleanup** —
+`git worktree remove` every landed agent worktree, `git branch -D` its branch, `git worktree prune`;
+(6c) **maps-refresh** — `project-mapper` incremental on the session's changed files, committed with an
+EXPLICIT pathspec. (7) **push** — or surface push-pending explicitly in the hand-off. (8) **meta-docs** —
+user-voice (new durable directives), findings, any meta-doc with state to record. "wrap" = all steps;
+"wrap, no push" = 1–6 + 8 with 7 left explicit-pending.
+
+### Hand-off context-density (never make the next PA re-acquire)
+Err on the side of bloat to capture every in-flight thread, open question, state transition, and
+recovered-from anomaly. Every thread gets its own section; every recovery is documented (what went
+wrong + how it was recovered + what to watch); open questions enumerated at the TOP so the next
+session surfaces them first; state-as-of-close tables; a file-modification inventory at close. Bloat
+is acceptable; under-documentation is not.
+
+### Commit / push hygiene
+- Commit with an EXPLICIT pathspec (`git commit -- <files>`) whenever any non-isolated agent or
+  parallel work is in flight — a bare `git commit` sweeps unrelated staged work into the commit.
+- NEVER bypass the pre-commit hook (`--no-verify`) without explicit user authorization.
+- Coherence check before any push: `git rev-list --left-right --count origin/main...HEAD` (catches a
+  committed-leak-onto-a-local-ref, which `git status` cannot show); confirm the branch tip == the
+  SHA you intend to push.
+- Background-commit race: a `git commit` run in the background returns BEFORE its hook + commit
+  finalize — commit in the FOREGROUND when you need the resulting SHA next, or wait for the
+  completion signal before reading HEAD.
+
+### Worktree isolation + path-discipline (dev-agent dispatch)
+- Background implementation agents use `isolation: "worktree"` to avoid working-tree conflicts; the
+  PA lands their work via file-delta (`git checkout <agent-branch> -- <files>`) AFTER a base-check —
+  verify the agent's base vs current main: a clean clobber if main hasn't touched the file since the
+  base, a cherry-pick if it has.
+- A sub-agent must write ONLY worktree-relative paths; a main-absolute path silently leaks into the
+  live checkout. The PA verifies `git status` post-dispatch shows no unexpected main-side file mods.
+
+### R26 — verify before claim (bidirectional)
+Verify against the REAL source before claiming a thing CLOSED (a regression test that synthesizes
+state can miss the upstream bug) AND before claiming it OPEN / dispatching a fix (an observation can
+be a stale read — if the symptom doesn't reproduce against the real current source, classify
+NOT-REPRODUCED, not OPEN).
+
+### Context-budget wrap-timing (1M context)
+This PA runs on a 1M-token window. Do NOT suggest wrap on context-% alone above ~50% remaining. The
+default wrap-suggestion threshold is ~15–20% remaining. Earlier wrap only with a real reason (a
+natural stopping point, a user signal, or context-density degrading). The user tracks budget as a
+pacing tool — honor their explicit budget signals over conservative reflexes.
+
+### Background-agent crash-recovery
+When dispatching any background agent, instruct it to: commit after each meaningful change (don't
+batch; WIP commits are fine) and update a progress file (`docs/changes/<change-id>/progress.md`)
+after each step. The branch + progress file are how the next agent (or the PA) picks up after a crash.
+
+### The flogence satellite system (available, NOT imposed)
+scrml built a PA-continuity satellite system — **vPA-deputy** (token-thinning maintenance sidecar:
+session-start digest + a PA→deputy delta-log), **sPA** (speciality work-list execution that lands on
+a branch the PA re-integrates), **cPA** (an always-on latency-bridge concierge). These are scale
+solutions for scrml's large gap-backlog; a smaller project does not need them. If 6nz grows
+to where session-start cost or execution throughput becomes a real bottleneck, the contracts live in
+`scrml-support` (`vpa-scrml.md` / `spa-scrml.md` / `cpa-scrml.md`) as adoptable patterns. Until then:
+not imposed — a single PA with the disciplines above is the model.
 
 ---
 
@@ -71,13 +142,13 @@ when work is needed there. Cross-repo coordination happens through the user, not
 - `/home/bryan-maclee/scrmlMaster/scrml-support/docs/deep-dives/` — research context (on demand)
 - `/home/bryan-maclee/scrmlMaster/scrml-support/design-insights.md` — debate outcomes (on demand)
 
-### What this PA reads from scrmlTS (absolute paths, read-only)
-- `/home/bryan/scrmlMaster/scrmlTS/` — scrml language reference: spec, tutorial, examples, syntax docs. Read-only for language lookup while authoring 6nz source. No writes. Do not infer scrmlTS's current roadmap/state from its code — that's cross-repo coordination, which still goes through the user.
+### What this PA reads from scrml (absolute paths, read-only)
+- `/home/bryan-maclee/scrmlMaster/scrml/` — scrml language reference: spec, tutorial, examples, syntax docs. Read-only for language lookup while authoring 6nz source. No writes. Do not infer scrml's current roadmap/state from its code — that's cross-repo coordination, which still goes through the user.
 
 ### What this PA does NOT touch
-- Any file outside this repo (except the reads listed above from scrml-support and scrmlTS)
+- Any file outside this repo (except the reads listed above from scrml-support and scrml)
 - `~/projects/scrml8/` — FROZEN, read-only archive
-- Other project repos (scrml-support, giti, and scrmlTS beyond read-only language reference) — **except** writing message files into their `handOffs/incoming/` (see Cross-repo messaging below)
+- Other project repos (scrml-support, giti, and scrml beyond read-only language reference) — **except** writing message files into their `handOffs/incoming/` (see Cross-repo messaging below)
 
 ### Session-start checklist (this repo only)
 1. Read `pa.md` (this file)
@@ -120,30 +191,30 @@ Commits to main are allowed only after explicit user authorization in the curren
 
 **You are the PA for 6nz.** Your own inbox is `handOffs/incoming/` in this repo.
 
-The four ecosystem projects (scrmlTS, scrml-support, giti, 6nz) communicate asynchronously through file-based dropboxes. Each repo owns `handOffs/incoming/` — unread messages sit there; once this PA reads and acts on them, they move to `handOffs/incoming/read/`.
+The ecosystem projects (scrml, scrml-support, giti, 6nz) communicate asynchronously through file-based dropboxes. Each repo owns `handOffs/incoming/` — unread messages sit there; once this PA reads and acts on them, they move to `handOffs/incoming/read/`.
 
 **This is the ONE sanctioned exception** to "do not write into sibling repos." PAs may write message files into a sibling's `handOffs/incoming/` — nothing else in the sibling repo is touched.
 
 ### Inbox (this PA reads)
-- `/home/bryan/scrmlMaster/6NZ/handOffs/incoming/` — unread
-- `/home/bryan/scrmlMaster/6NZ/handOffs/incoming/read/` — archive
+- `/home/bryan-maclee/scrmlMaster/6nz/handOffs/incoming/` — unread
+- `/home/bryan-maclee/scrmlMaster/6nz/handOffs/incoming/read/` — archive
 
 ### Outbox targets (this PA may write into)
-- scrmlTS:       `/home/bryan/scrmlMaster/scrmlTS/handOffs/incoming/`
-- scrml:         `/home/bryan/scrmlMaster/scrml/handOffs/incoming/`
-- scrml-support: `/home/bryan/scrmlMaster/scrml-support/handOffs/incoming/`
-- giti:          `/home/bryan/scrmlMaster/giti/handOffs/incoming/`
-- master:        `/home/bryan/scrmlMaster/handOffs/incoming/`
+- scrml (formerly scrmlTS): `/home/bryan-maclee/scrmlMaster/scrml/handOffs/incoming/`
+- scrml-native (formerly scrml): `/home/bryan-maclee/scrmlMaster/scrml-native/handOffs/incoming/`
+- scrml-support: `/home/bryan-maclee/scrmlMaster/scrml-support/handOffs/incoming/`
+- giti:          `/home/bryan-maclee/scrmlMaster/giti/handOffs/incoming/`
+- master:        `/home/bryan-maclee/scrmlMaster/handOffs/incoming/`
 
 ### Message file format
 
 Filename: `YYYY-MM-DD-HHMM-<from>-to-<to>-<slug>.md`
-Example: `2026-04-11-1432-6nz-to-scrmlTS-compiler-api-request.md`
+Example: `2026-04-11-1432-6nz-to-scrml-compiler-api-request.md`
 
 ```markdown
 ---
 from: 6nz
-to: scrmlTS
+to: scrml
 date: 2026-04-11
 subject: <one-line subject>
 needs: reply | action | fyi
@@ -162,7 +233,7 @@ When this PA files a bug report into another repo's `handOffs/incoming/` — or 
 Reproducer must be:
 - **Self-contained** — runnable against the receiving repo's current compiler without external setup
 - **Minimal** — smallest scrml that still exhibits the bug
-- **Version-stamped** — exact command used and compiler SHA (e.g., `scrml compile repro.scrml` against `scrmlTS@ccae1f6`)
+- **Version-stamped** — exact command used and compiler SHA (e.g., `scrml compile repro.scrml` against `scrml@ccae1f6`)
 - **Expected vs actual** — state both in the report body
 
 As SENDER (6nz's typical role): attach the offending scrml (from a `playground-*` file if that's where the bug surfaced) every time. As RECEIVER (rare): do not begin diagnosis without the reproducer — reply-request source before acting.
@@ -184,34 +255,13 @@ When this PA needs to tell another project something (compiler API need, z-motio
 ### Push coordination via master
 
 When this repo is at a push point (especially if you sent messages to other repos):
-1. Send a `needs: push` message to master (`/home/bryan/scrmlMaster/handOffs/incoming/`)
+1. Send a `needs: push` message to master (`/home/bryan-maclee/scrmlMaster/handOffs/incoming/`)
 2. List which repos are affected (this repo + any repos you dropped messages into)
 3. The master PA will verify all affected repos are clean and push them together
 
-### Agent staging via master
+### Agent authoring (no central store)
 
-Specialized agents (debate panels, gauntlet devs, deep-dive researchers, etc.) are stored in `~/.claude/agentStore/` and are NOT loaded by default. When a task requires agents not in this repo's `.claude/agents/`:
-
-**Before the task** — send a `needs: action` message to master listing which agents are needed:
-```markdown
-subject: stage agents for <task description>
-needs: action
----
-Next session needs these agents staged:
-- <agent-filename>.md
-- <agent-filename>.md
-Target: 6NZ
-```
-The master PA will copy them into this repo's `.claude/agents/` and tell the user to launch a new session.
-
-**After the task** — send a `needs: action` message to master requesting cleanup:
-```markdown
-subject: task complete — clean up staged agents
-needs: action
----
-<Task> complete. Remove staged agents from 6NZ.
-Agents to remove: <agent-filename>.md, <agent-filename>.md
-```
+There is no central `agentStore`. When a task requires an agent not already in this repo's `.claude/agents/`, author the expert agent `.md` file directly into `.claude/agents/` (the directory is gitignored — agents are local, not committed). The forge's research can be returned-not-written if a write fails. No master-staging round-trip is needed.
 
 ### Scope of the exception
 - **Allowed:** creating new `.md` files inside `<sibling>/handOffs/incoming/`
