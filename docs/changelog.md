@@ -4,7 +4,7 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
-## Session 12 — 2026-06-19/20
+## Session 14 — 2026-06-19/20
 
 **Re-baseline all playgrounds against scrml v0.7.0 + rebuild playground-ten; dogfood yield: recovered the lost S13 bug batch + 2 new HIGH compiler bugs.**
 
@@ -35,4 +35,4 @@ Dated session blocks, newest first. Per-repo session count.
 - Processed + archived all 14 inbound messages; master-list currency pass (scrmlTS→scrml, v0.7.0); pa.md already modernized + rename-pathed earlier today.
 
 ### State at wrap
-- **11/11 playgrounds green** vs scrml v0.7.0. Working tree clean. Pushed to origin (S12).
+- **11/11 playgrounds green** vs scrml v0.7.0. Working tree clean. (S14 first-half push to origin did NOT land — non-FF vs the parallel origin S13 fork; reconciled 2026-06-20 by merging origin in (`f4b9b64`) and pushing the merged tip.)
