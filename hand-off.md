@@ -71,7 +71,10 @@ Compiled each surviving repro against v0.7.0: **X/Y/Z/AB/AC FIXED, AA still OPEN
 ### Rebuilt playground-ten (`src/playground-ten/{app.scrml,test.js}`)
 Relevance-region navigator: for-lift region list (`class:focused`/`style:opacity` reading global `@focusId`), `<engine>` Nav/Edit machine + `<onTransition>`, region titles with fn-names + URLs, `match @mode` badge, `<keyboard>`/`<mouse>` §36 panel. **19/19 runtime smoke** against v0.7.0. Live-confirmed: Bug-V (class:focused through nav + churn), Bug AB (onTransition fires), Bug Z + X (verbatim string render).
 
-### 3 NEW findings (filed/pending-send to scrml)
+### Cross-repo traffic log
+- **Out to scrml** (1 message + 3 sidecars) — `../scrml/handOffs/incoming/2026-06-20-1217-6nz-to-scrml-p10-bugs-ad-ae-af-plus-s13-status.md` + `2026-06-20-1217-6nz-p10-bug-sidecars/{bug-ad,bug-ae,question-af}.scrml`. Delivers: S13 batch re-verification (X/Y/Z/AB/AC fixed, AA open — closes the dropped S13 loop), Bug AD, Bug AE, Question AF. All 3 repros R26-verified against v0.7.0 (AD: bare-name emit; AE: runtime E-ENGINE-001-RT via puppeteer; AF: no-effect-wrapper emit). **scrml is now push-affected** — include it in the next master push coordination.
+
+### 3 NEW findings (sent to scrml 2026-06-20)
 - **Bug AD (HIGH)** — user fn in an ATTRIBUTE-value interp (`class="x-${fn()}"`) emits the bare un-renamed name → runtime `ReferenceError`. exit-0, node --check OK, runtime-broken. `@cell` refs rewrite fine in the same spot; textContent interp renames correctly; only the attr-interp user-fn path is missed. Z-family. Minimal repro confirmed. Workaround in p10: derived cell / avoid fn in attr interp.
 - **Bug AE (HIGH)** — `name=` on an `<engine>` breaks the transition write-guard: guard reads `__scrml_transitions_<EngineName>` (never defined) while the rule table is built under the variable name (`__scrml_engine_<var>_transitions`) → `E-ENGINE-001-RT` on every legal transition. Confirmed by comparing the `name=` form vs the canonical no-`name=` form (latter wires correctly). Workaround in p10: canonical `<engine for=Mode initial=.Nav>` form (no name=).
 - **Question AF** — `${<#input>.field}` §36 read in markup renders the initial value once, emits NO `_scrml_effect` wrapper → never updates on input (confirmed at emit level: modeBadge textContent gets an effect, the input-state read does not). By-design (read in animationFrame loop) or codegen gap? Real limitation for an editor's live input display.
@@ -93,7 +96,7 @@ Relevance-region navigator: for-lift region list (`class:focused`/`style:opacity
 | Committed (unpushed) | `5964d44` housekeeping, `75221ac` re-baseline, `e6fc5e8` pa-modernize — 3 ahead of origin. |
 | Working tree | UNCOMMITTED: `src/playground-ten/{app.scrml,test.js}` (new), `master-list.md`, `hand-off.md` (this file). Awaiting commit auth for the p10 commit. |
 | Playgrounds | **11/11 GREEN against scrml v0.7.0** (`80f2c190`) — p0–p9 re-baselined + p10 rebuilt (19/19). |
-| Bugs | S11 batch resolved except L/T/U (M6-deferred). S13/p10 batch: X/Y/Z/AB/AC fixed, AA open; **NEW AD/AE (HIGH) + AF (question)** — filed/pending-send to scrml. |
+| Bugs | S11 batch resolved except L/T/U (M6-deferred). S13/p10 batch: X/Y/Z/AB/AC fixed, AA open; **NEW AD/AE (HIGH) + AF (question)** — SENT to scrml 2026-06-20 (msg + 3 sidecars). |
 | Env | global `scrml` command repointed → v0.7.0 (was broken by S200 rename). |
 | Inbox | all 14 processed → `read/`; incoming empty. |
 
