@@ -83,6 +83,12 @@ Relevance-region navigator: for-lift region list (`class:focused`/`style:opacity
 - Indexed for-lift `@regions[i]` in a reactive binding crashes on array shrink (stale index → undefined.id). Fixed by item-binding `for (const r of @regions)` (matches the original p10).
 - `class=@badgeClass` (bare `@cell` in an unquoted attribute) emits the LITERAL string "badgeClass", not a reactive binding — switched to `class:NAME=expr` toggle form. (Possible minor scrml observation: bare `@cell` unquoted attr value silently becomes a literal; not filed — `${...}` interp / `class:` are the canonical forms.)
 
+## S12 (cont'd) — scrml triage reply received + push
+
+**Inbound `2026-06-20-1339-scrml-to-6nz-p10-bugs-triaged` (archived):** AD + AE both FILED HIGH + DISPATCHED (fixes in flight); S13 batch confirmed; AA tracked for a lint; AF is a pending design ruling (render-once may be by-design — rAF→`@cell` is the supported live pattern). AE root re-classified: `name=` is not a valid `<engine>` attr (valid: `for=`/`initial=`/`var=`/`derived=`); the fix will REJECT it as a compile error.
+
+⚠️ **CARRY (future-break, not urgent):** when scrml's AE fix lands, `<engine name=...>` becomes a COMPILE ERROR. **p1/p2/p5/p7 all use `<engine name=ModeMachine ...>`** (p1:138, p2:324, p5:309, p7:396) — they compile fine now (against `41422726`, fix not landed) but will need migration: drop `name=`, remove the separate `@mode: ModeMachine` declaration, let the engine own `@mode` via `initial=` (or use `var=`). Requires re-smoke of p1/p5/p7 after. Watch for scrml's "AD/AE landed" ping, then migrate.
+
 ## Open / carried items
 - **p9 Bug-V workaround still in place** — p9 renders the tree as one `${treeText()}` string with a textual "> " cursor marker (Bug V workaround). Bug V is fixed (S139) so this CAN be reverted to per-line `class:cursor=` binding. NOT done this session (p9 is green as-is); optional cleanup.
 - **Multi-close editor feature** (`<//>`→`</></>` Emmet expand) — scrml's S54 ask; tracked, v0.next-era, no rush. Belongs in master-list editor backlog (NOT yet added).
