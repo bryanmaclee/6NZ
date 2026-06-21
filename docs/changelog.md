@@ -4,6 +4,18 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
+## Session 14 (continued) — 2026-06-20 — fork reconciliation + dogfood-batch closure + re-test
+
+**Discovered the "lost S13 instance" had actually pushed to origin (local/origin diverged at `0fa1cbb`). Merged the two histories, renumbered (the June fork mislabeled itself "S12" → S14), processed three scrml replies that closed the entire p10 dogfood batch, and re-verified the fixes against a newer compiler build.**
+
+- **Merge `f4b9b64`** — reconciled local S14 (v0.7.0 re-baseline + p10 19/19) with the parallel origin S12/S13 fork (v0.6.7 p10 18/18 + bug findings). Kept ours on conflicts; salvaged playwright deps, p8 `return not` revert, 4 inbox messages, origin's S13 hand-off (→ `hand-off-13.md`).
+- **Renumber** — the June engagement is one S14 session (origin held the real S12/S13). Corrected the false "pushed to origin at close" claims (that push never landed — non-FF vs origin S13).
+- **scrml replies processed** — AB CLOSED `2ebd107a`; AD `14fb0230`; AE `faa213c5`/equivalent (scrml HONORED `<engine name=N>`, did NOT reject it — reversed the migration carry); AF RULED BY-DESIGN (§36.6; use the `@cell` bridge for live editor-chrome readout). AA remains open (low-pri lint regression).
+- **Next-build re-test @ `8c27805e`** — AB (p10 onTransition 0→1→2 runtime), AD (emit fn-rename), AE (coherent transition table + p5 18/18 / p7 17/17 `name=` engines green); all 11 playgrounds compile-clean + `node --check` OK, no regression. **p10 batch now closed except AA.**
+- **Cross-repo:** inquiries to scrml (answered) + master (push-provenance + supersede the stale needs:push). Pushed `f4b9b64..d2e9667` to origin.
+
+---
+
 ## Session 14 — 2026-06-19/20
 
 **Re-baseline all playgrounds against scrml v0.7.0 + rebuild playground-ten; dogfood yield: recovered the lost S13 bug batch + 2 new HIGH compiler bugs.**

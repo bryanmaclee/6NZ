@@ -126,7 +126,8 @@ All wrap steps executed:
 | Bugs | S11 batch resolved except L/T/U (M6-deferred). S13/p10 batch: X/Y/Z/AB/AC fixed, AA open; AD/AE FILED HIGH + DISPATCHED by scrml, AF pending design ruling. |
 | Env | global `scrml` command repointed → v0.7.0 (was broken by S200 rename). |
 | Inbox | all 15 processed → `read/`; incoming empty. |
-| ⚠️ Top carry | ~~migrate p1/p2/p5/p7 off `<engine name=...>`~~ **RESOLVED (scrml S210, `...-1709`)** — scrml HONORED `name=` (AE fixed @ `faa213c5`), did NOT reject it. No migration. Optional next-build re-test of p1/p2/p5/p7/p10 to confirm AB/AD/AE (all newer than `80f2c190`). |
+| ⚠️ Top carry | ~~migrate p1/p2/p5/p7 off `<engine name=...>`~~ **RESOLVED + RE-VERIFIED** — scrml HONORED `name=`, did NOT reject it. **Re-tested 2026-06-20 @ `8c27805e`:** AB/AD/AE all confirmed (p10 19/19 onTransition, AD emit-rename, AE coherent table + p5 18/18 / p7 17/17). All 11 compile-clean, no regression. No migration. |
+| ✅ Re-test | scrml build advanced `80f2c190 → 8c27805e` (has AB/AD/AE fixes). Full sweep done — see master-list §F re-test summary. p1/p2 compile-confirmed (no harness); p3/p6/p8/p9 compile-confirmed (CM6/LSP harnesses not run — don't touch engine surfaces). |
 | Carry 2 | `.claude/maps/` stale (pre-playgrounds) → `project-mapper` cold run next session. |
 | Carry 3 | Multi-close editor feature (`<//>`→`</></>`) in master-list §E backlog (scrml S54 ask, v0.next-era). |
 
