@@ -2,7 +2,7 @@
 //
 // The wire:
 //
-//   browser <-- WebSocket --> bridge.js <-- stdio --> scrmlTS LSP
+//   browser <-- WebSocket --> bridge.js <-- stdio --> scrml LSP
 //
 // scrml-side: CM6 mount, WebSocket client speaking JSON-RPC.
 // bridge.js: spawns the LSP child and forwards Content-Length-framed
@@ -314,7 +314,7 @@ ${
 
 <div class="app">
     <h1>playground-six — LSP diagnostics</>
-    <p class="subtitle">CM6 buffer wired to scrmlTS LSP via WebSocket bridge. Type to see live diagnostics from the compiler pipeline.</>
+    <p class="subtitle">CM6 buffer wired to scrml LSP via WebSocket bridge. Type to see live diagnostics from the compiler pipeline.</>
 
     <div class="panel status">
         <div class="row">

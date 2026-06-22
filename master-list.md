@@ -23,7 +23,7 @@
 - [x][x] `SPEC.md` — v0.5 (release-order classification + sustained gestures; CC0)
 - [x][x] `README.md` — intro, motivation, licensing, status
 - [x][x] `LICENSE` — CC0 1.0 dedication
-- [ ][x] `default-bindings.md` — v0.2, **partially stale against SPEC v0.5**. v0.3 rewrite planned: drop FAMILY 2, add `[j]`/`[k]` vertical, update against sustained gestures.
+- [x][x] `default-bindings.md` — v0.3 (rewritten S10, commit `0ffb452`; companion to SPEC v0.5). Dropped FAMILY 2, added `[j]`/`[k]` vertical holds + `[u]` undo hold for SPEC §6.4 sustained gestures.
 
 ### Non-scrml prototypes (`proto/` carve-out)
 - [x][x] `proto/6nz-playable/` — vanilla-JS playable prototype on a textarea. Live at <https://bryanmaclee.github.io/6NZ/> via GitHub Pages. 62 scenarios passing. Input model matches the spec; editor architecture does not.

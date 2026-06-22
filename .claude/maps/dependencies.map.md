@@ -1,39 +1,62 @@
 # dependencies.map.md
-# project: 6nz
-# updated: 2026-04-25T00:00:00Z  commit: e5a0752
+# project: editor (6nz)
+# updated: 2026-06-22T00:00:00Z  commit: d2e9667
 
 ## Runtime Dependencies
 
-Root `package.json` is a stub: `{"name": "editor", "version": "0.1.0", "private": true}`.
-No runtime dependencies declared at repo root.
+Root `package.json`: no runtime dependencies. Stub only.
 
 ## Dev / Build Dependencies
 
-Root: none declared.
+Root `package.json`:
+- `@playwright/test@1.60.0` — top-level test runner (Playwright; scripts: `"test": "playwright test"`)
 
-`proto/6nz-playable/package.json` (prototype only — not the editor):
-- `puppeteer@^24.40.0` — headless browser used to run smoke tests for the playable prototype
+Per-playground `test.js` harnesses use Puppeteer, loaded dynamically:
+```js
+try { puppeteer = require("puppeteer"); }
+catch { puppeteer = require("puppeteer-core"); }
+```
+No Puppeteer in root `package.json` — test.js files resolve it from the playground's own `node_modules`
+or the system. The p5/p6/p7/p8/p9/p10 test harnesses follow this pattern.
+
+## External Runtime Dependencies (per-playground, loaded via CDN at runtime)
+
+| Playground | Library | Load mechanism |
+|---|---|---|
+| p3, p5, p7 | CodeMirror 6 (`@codemirror/view`, `@codemirror/state`, `codemirror`) | Dynamic `import()` from `esm.sh` inside scrml `^{}` block |
+| p6, p8 | CodeMirror 6 + `@codemirror/autocomplete` + `@codemirror/lint` | Same CDN pattern |
+| p6, p8 | scrml LSP server (`bun lsp/server.js`) | Via `bridge.js` child process |
+
+No version pinning or lockfile for CDN-loaded libraries. Version is resolved by `esm.sh` at runtime.
 
 ## Internal Module Graph
 
-Playground interdependencies (conceptual, not import-based — scrml has no source-level `import`):
+All playgrounds are self-contained scrml `<program>` files — scrml has no source-level `import`.
+Conceptual build-on-top lineage (not imports):
 
-- `playground-two` builds on concepts from `playground-zero` (classifier) and `playground-one` (mode machine) — same patterns, not imports
-- `playground-three` is independent (CM6 probe)
-- `playground-four` is independent (undo tree)
-- All playgrounds are self-contained `<program>` scrml files
+```
+playground-zero  (classifier)  ──→ playground-two (classifier + mode machine + buffer)
+playground-one   (mode machine) ─┘    ──→ playground-five (+ CM6)
+                                               ──→ playground-seven (+ z-motion)
+playground-three (CM6 probe)    ──→ playground-five, -six, -seven, -eight
+playground-six   (LSP wire)     ──→ playground-eight (+ completion + hover)
+playground-four  (undo tree)    ─── standalone
+playground-nine  (editor IR)    ─── standalone (first non-CM6 playground)
+playground-ten   (relevance nav) ── standalone (§36 input-state; rebuilt S14)
+```
 
-## External JS Integration (current pattern)
+## External JS Integration Pattern
 
-scrml has no source-level `import`. The working pattern for external libraries (from playground-three):
-1. Inject a `<script>` tag at runtime that loads the ESM from a CDN (e.g. `esm.sh`)
-2. Bridge the loaded exports back to scrml via `window.__name` + `CustomEvent`
-3. Trigger from scrml via `^{ loadCm() }` (direct call in a side-effect block)
+scrml has no source-level `import`. Sanctioned path for external libraries:
+1. Inject `<script>` at runtime loading ESM from `esm.sh`
+2. Bridge exports to scrml via `window.__name` + `CustomEvent`
+3. Trigger from scrml via `^{ loadCm() }` (side-effect block)
 
-This is the only sanctioned path until `scrml vendor add` CLI lands in scrmlTS.
+See `master-list.md §G` for full constraint list. `scrml vendor add` CLI (planned in scrml) will
+eventually provide a cleaner path.
 
 ## Tags
-#6nz #map #dependencies #scrml #proto
+#editor #6nz #map #dependencies #scrml #codemirror #playwright
 
 ## Links
 - [primary.map.md](./primary.map.md)

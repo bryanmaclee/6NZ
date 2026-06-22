@@ -1,50 +1,61 @@
 # test.map.md
-# project: 6nz
-# updated: 2026-04-25T00:00:00Z  commit: e5a0752
+# project: editor (6nz)
+# updated: 2026-06-22T00:00:00Z  commit: d2e9667
 
 ## Test Framework
 
-No unified test runner. No root-level test config.
+Root: `@playwright/test@1.60.0` is declared; `npm test` runs `playwright test`.
+No Playwright test files exist yet — the Playwright suite is wired but empty.
 
-Per-playground smoke tests are driven by puppeteer via `proto/6nz-playable/test.js`
-and equivalent per-playground harnesses. Each playground's smoke test is run via:
-```
-node test.js        (from proto/6nz-playable/)
-scrml dev + puppeteer   (pattern for src/playground-* tests)
-```
+Per-playground: standalone Puppeteer harnesses (`test.js` in each playground directory).
+These are independent of Playwright and run via `node src/playground-N/test.js`.
 
 ## Test Categories
 
-| Playground | Test file | Count | How run |
+| Playground | Test file | Smoke count | Status (vs scrml v0.7.0) |
 |---|---|---|---|
-| playground-zero  | (no separate test file; smoke built-in) | 7 checks | puppeteer, manual |
-| playground-one   | (no separate test file)                 | 8 checks | puppeteer, manual |
-| playground-two   | (no separate test file)                 | 12 checks | puppeteer, manual |
-| playground-three | (no separate test file)                 | 9 checks | puppeteer, manual |
-| playground-four  | (no separate test file)                 | 14 checks | puppeteer, manual |
-| proto/6nz-playable | `proto/6nz-playable/test.js`          | 62 scenarios | `node test.js` |
+| playground-zero | none (no test.js) | 7 checks embedded in p0 README | runtime-probed S14 |
+| playground-one | none (no test.js) | — | runtime-probed S14 |
+| playground-two | none (no test.js) | 12 checks documented | runtime-probed S14 |
+| playground-three | none (no test.js) | 9 checks documented | CM6 ✓ S14 |
+| playground-four | none (no test.js) | 14 checks documented | runtime-probed S14 |
+| playground-five | `src/playground-five/test.js` | 18/18 | PASS S14 |
+| playground-six | `src/playground-six/test.js` | 7/7 | PASS S14 |
+| playground-seven | `src/playground-seven/test.js` | 17/17 | PASS S14 |
+| playground-eight | `src/playground-eight/test.js` | 9/9 | PASS S14 |
+| playground-nine | `src/playground-nine/test.js` | 13/13 | PASS S14 |
+| playground-ten | `src/playground-ten/test.js` | 19/19 | PASS S14 (rebuilt) |
+| proto/6nz-playable | (prototype) | 62 scenarios | manual; not scrml source |
 
-All smoke tests are manual — no CI trigger. All currently pass (last verified S9, 2026-04-22).
+Run individual: `node src/playground-N/test.js`
+Run p6/p8: start bridge first (`bun src/playground-six/bridge.js`), then `node src/playground-six/test.js`
 
 ## Fixtures & Factories
 
-`proto/6nz-playable/test.js` — inline scenario objects with shape:
+No separate fixture files. Each `test.js` defines inline scenario data.
+
+p6/p8 test.js — sample scrml source strings embedded inline:
 ```js
-{ seed: { text, cursorOffset }, steps: string[], expect: { text, cursor } | null }
+const SAMPLE_DOC = `<program>\n${...}\n`
 ```
 
-No separate fixture files.
+p9/p10 test.js — DOM assertions against rendered tree structure; no fixture objects.
 
 ## Pattern
 
-Tests are puppeteer-driven real-browser scenarios. Each test seeds the editor with
-an initial buffer and cursor position, dispatches a sequence of key events (using
-explicit hold/release helpers for z-motion gestures), and asserts on final buffer
-state and cursor offset. Assertion style: `assertEqual(actual, expected)` with
-console-reported pass/fail counts.
+Tests are Puppeteer-driven real-browser scenarios. Each harness:
+1. Spawns `scrml dev` as a child process, waits for the dev server to be ready
+2. Launches Puppeteer, navigates to `http://localhost:3000`
+3. Registers `page.on("pageerror", ...)` to catch runtime JS errors
+4. Dispatches keyboard events (type, keydown/keyup) and waits for DOM state
+5. Asserts via a custom `check(name, condition, detail)` function that logs pass/fail
+6. Reports total passed/failed at end; exits with non-zero on any failure
+
+Assertion style: `check("description", booleanExpr, optionalDetail)` — explicit pass/fail logging.
+Zero pageerrors is always the final check in each harness.
 
 ## Tags
-#6nz #map #test #scrml #puppeteer #playgrounds
+#editor #6nz #map #test #scrml #puppeteer #playwright #playgrounds
 
 ## Links
 - [primary.map.md](./primary.map.md)

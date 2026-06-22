@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // playground-eight — LSP-over-WebSocket bridge.
 //
-// Spawns scrmlTS's LSP (`bun lsp/server.js --stdio`) and exposes it
+// Spawns scrml's LSP (`bun lsp/server.js --stdio`) and exposes it
 // to the browser over WebSocket. Browsers can't shell out to a child
 // process; this bridge is the workaround.
 //
@@ -16,7 +16,7 @@
 // send each as a single WebSocket frame.
 //
 // Run: bun src/playground-eight/bridge.js
-//      (defaults to PORT=3081 and LSP at scrmlTS via SCRMLTS_DIR env)
+//      (defaults to PORT=3081 and LSP at scrml via SCRML_DIR env)
 //
 // Stop: SIGINT (Ctrl+C). Bridge will SIGTERM the LSP child.
 
