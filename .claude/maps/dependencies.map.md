@@ -31,8 +31,13 @@ No version pinning or lockfile for CDN-loaded libraries. Version is resolved by 
 
 ## Internal Module Graph
 
-All playgrounds are self-contained scrml `<program>` files — scrml has no source-level `import`.
-Conceptual build-on-top lineage (not imports):
+All playgrounds are authored as self-contained single-file scrml `<program>`s — a **6nz convention,
+not a language limit.** scrml HAS a Module/Import System (SPEC §21/§41): stdlib `import {x} from
+'scrml:NAME'`, relative-path `import {x} from './f.js'`, `vendor:`, and **cross-file scrml
+component/engine splitting** (`<Component/>` / `<EngineName/>` use-site mount tags — tutorial.md §3.3
++ :551). What it lacks is **npm/bare-specifier** imports (`from 'lodash'` → `E-IMPORT-005`). So the
+playgrounds *could* import each other; they simply don't (each is an isolated probe). Conceptual
+build-on-top lineage below is re-implementation, NOT a forced limitation:
 
 ```
 playground-zero  (classifier)  ──→ playground-two (classifier + mode machine + buffer)
@@ -47,7 +52,7 @@ playground-ten   (relevance nav) ── standalone (§36 input-state; rebuilt S1
 
 ## External JS Integration Pattern
 
-scrml has no source-level `import`. Sanctioned path for external libraries:
+scrml has no **npm/CDN** `import` path (bare specifiers → `E-IMPORT-005`). Sanctioned path for external (npm-style) libraries:
 1. Inject `<script>` at runtime loading ESM from `esm.sh`
 2. Bridge exports to scrml via `window.__name` + `CustomEvent`
 3. Trigger from scrml via `^{ loadCm() }` (side-effect block)

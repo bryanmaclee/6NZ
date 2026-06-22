@@ -101,8 +101,11 @@ diagnose whether the wrong maps were named OR the map granularity is wrong.
   need a re-test pass to confirm. No migration needed for `<engine name=...>` (AE fix honored `name=`).
 - **Compiler Bug AA is the only open 6nz-filed bug** vs current scrml. Symptom: bare tail `match`
   in a plain `function` is silently dropped. Workaround: `return match`. Low priority (lint regression).
-- **External JS constraint**: scrml has no source-level `import`. CM6 and other libraries load
-  at runtime via esm.sh CDN + CustomEvent bridge triggered by `^{ fn() }`. No version pinning.
+- **External JS constraint**: scrml has no **npm/bare-specifier** `import` (`from 'lodash'` →
+  `E-IMPORT-005`) — but it DOES have a full Import System (SPEC §21/§41): stdlib (`scrml:NAME`),
+  relative-path JS, `vendor:`, and cross-file scrml component/engine splitting. npm/CDN libraries
+  (CM6 etc.) still load at runtime via esm.sh CDN + CustomEvent bridge triggered by `^{ fn() }`. No
+  version pinning. (S15 correction — prior "no source-level import" was wrong; see master-list §G.)
 - **LSP L1-L4 reachable** via bridge.js (p6/p8 pattern). Capabilities: outline, hover, completions,
   go-to-def, diagnostics, signature help, code actions. In-process browser API still pending.
 - **AF ruling (§36.6 by-design)**: `${<#id>.field}` markup interp is render-once, not reactive.
