@@ -4,6 +4,41 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
+## Session 15 — 2026-06-22
+
+**Housekeeping + dogfood-confirmation session: cold maps refresh, source-currency sweep, Bug-AB loop closed, engine-`name=`/AE re-test green against the current compiler tip.**
+
+### Maps
+- **Cold `project-mapper` run** — all 10 `.claude/maps/` regenerated (were stale from 2026-04-27, pre-dating p5–p10, the scrmlTS→scrml rename, and v0.7.0) + fresh non-compliance report.
+
+### Currency fixes (from the non-compliance report)
+- `README.md` — dead `../scrmlTS` link → `../scrml`; status → exploratory phase (11 playgrounds); added `src/`.
+- `editor-README.md` — "Five playgrounds" → eleven; `scrmlTS`→`scrml`; p0–p4 list → p0–p10 + master-list pointer.
+- `master-list.md §A` — `default-bindings.md` "v0.3 planned" → "v0.3 done S10".
+- p6/p8 source — user-visible "scrmlTS LSP" strings/comments → "scrml" (compile-verified).
+- (Mapper finding #5 — z-motion-spec/README "v0.1" — was a **false positive**; file already v0.5. Skipped.)
+
+### Bug-AB loop closed (R26-verified)
+- Processed the last unread inbox message (`2026-05-30 bug-ab-fixed`). p10's `<onTransition>`/`@transitions` guard already in place from the S14 rebuild; **re-ran p10 harness against current compiler `d299798`: 19/19**, both AB guards green (`transitions 0->1`, `Enter again → 2`). Archived the message; inbox empty.
+
+### Engine `name=` / Bug-AE confirmation re-test (vs `d299798`)
+- All four `<engine name=ModeMachine for=Mode>` playgrounds confirmed against the current tip (newer than the `80f2c190` baseline + the AE fix `faa213c5`): **p5 18/18, p7 17/17** (harnessed, full transitions, no `E-ENGINE-001-RT`); **p1/p2 compile clean**. AE fix confirmed at runtime.
+- §36/AF: markup-interp non-reactivity observed in p10 — matches the by-design §36.6 ruling; recorded, not flagged.
+- **Net: no open 6nz-filed bug against `d299798`** except L/T/U (M6-deferred parser items).
+
+### Source-currency corrections (user audit)
+- **Corrected the "scrml has no source-level import" claim** (was wrong in the maps + master-list §G — a long-standing belief). scrml HAS an Import System (SPEC §21/§41): stdlib `scrml:NAME`, relative `./f.js`, `vendor:`, and **cross-file scrml component/engine splitting** (tutorial §3.3 + :551). What it lacks is npm/bare-specifier imports (`E-IMPORT-005`). Load-bearing for the integration question — playgrounds *can* compose across files.
+- **Noted kickstarter v2** (`scrml/docs/articles/llm-kickstarter-v2-2026-05-04.md`) supersedes our frozen v0/v1 local records.
+
+### Cross-repo
+- **Out to scrml** — `2026-06-22-0804-6nz-to-scrml-bug-ab-confirmed-plus-engine-name-retest.md` (needs: fyi): Bug-AB confirmed + engine-`name=`/AE re-test all green + §36/AF by-design observation. **scrml push-affected.**
+- **Out to master** — needs:push (this wrap).
+
+### Discussed (no code)
+- First-integration playground (playground-eleven) sketch: composes mode engine (p1/p2) + z-motion classifier (p0/p7) + CM6 buffer (p3/p5) + relevance panel (p10) across **multiple `.scrml` files** — would be the first 6nz exercise of cross-file `<EngineName/>` mount. Not built; design notes in hand-off.
+
+---
+
 ## Session 14 — 2026-06-19/20
 
 **Re-baseline all playgrounds against scrml v0.7.0 + rebuild playground-ten; dogfood yield: recovered the lost S13 bug batch + 2 new HIGH compiler bugs.**

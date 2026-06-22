@@ -49,3 +49,25 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 > push
 
 > fix session nums, we just started
+
+## Session 15 — 2026-06-22
+
+> read pa.md and start session
+
+> run the cold mapper
+
+> apply the currency fixes and commit
+
+> bug-ab loop close first.
+
+> send the confirmation and do the re-test
+
+> are all of the playgrounds just individual concepts in isolation?
+
+> sketch what a first integration playground would compose. but first, "scrml has no source-level import"? that's interesting. I was under a different impression
+
+> which version of "kickstarter" are you referencing? and when was the primer that you reference last updated?
+
+> fix the import claim and note kickstarter v2
+
+> wrap and push

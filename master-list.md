@@ -2,7 +2,7 @@
 
 **Purpose:** Live inventory of the 6nz editor repo.
 
-**Last updated:** 2026-06-20 (S14 — merged the parallel S13/origin fork; S14 re-baseline against v0.7.0 retained)
+**Last updated:** 2026-06-22 (S15 — cold maps refresh, currency sweep, Bug-AB loop closed + engine-`name=`/AE re-test green vs `d299798`, import-claim correction)
 
 **Status:** Exploratory implementation phase, dogfood mode. **All ELEVEN scrml-native playgrounds GREEN against scrml v0.7.0 (`80f2c190`, S209)** — p0–p9 re-baselined (p3 CM6 ✓, p5 18/18, p6 7/7, p7 17/17, p8 9/9, p9 13/13; p0/p1/p2/p4 event-fix runtime-probed) + **playground-ten REBUILT (relevance-region navigator + §36 input-state), 19/19 runtime smoke.** The compiler is now `scrml` (renamed from `scrmlTS` at S200; dir `../scrml/`). The S14 re-baseline (p0–p9) found NO compiler bugs (all adopter-migration debt). **The p10 rebuild surfaced 2 NEW compiler bugs (AD, AE) + 1 §36 question (AF)** + recovered/re-verified the lost S13 p10 bug batch (X/Y/Z/AB/AC FIXED, AA open) — see §F. Bugs AD/AE/AF sent to scrml 2026-06-20. Migrations applied: `match` subject typing (E-TYPE-025 → annotate), `=>`→`:>` arm arrows, `const @x`→`const <x>`, `<machine>`→`<engine>` + explicit `initial=`, event-threading arrow-form (S96 revert), bridge LSP path (S200 rename). All S11-era bugs now resolved on scrml's side: **P/Q (fixed), R (retracted), M/N/O (fixed), V (fixed S139), S + W (VERIFIED fixed S14 via direct repro against v0.7.0 — W: `(2+3)*4` preserves parens; S: `return not` → `return null`)**; L/T/U deferred to M6 native parser. Editor scaffolding proper still waiting on in-process compiler API.
 
