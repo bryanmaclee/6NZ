@@ -109,14 +109,43 @@ When dispatching any background agent, instruct it to: commit after each meaning
 batch; WIP commits are fine) and update a progress file (`docs/changes/<change-id>/progress.md`)
 after each step. The branch + progress file are how the next agent (or the PA) picks up after a crash.
 
-### The flogence satellite system (available, NOT imposed)
+### The flogence satellite system — vPA-deputy ADOPTED S15 (2026-06-22)
 scrml built a PA-continuity satellite system — **vPA-deputy** (token-thinning maintenance sidecar:
 session-start digest + a PA→deputy delta-log), **sPA** (speciality work-list execution that lands on
-a branch the PA re-integrates), **cPA** (an always-on latency-bridge concierge). These are scale
-solutions for scrml's large gap-backlog; a smaller project does not need them. If 6nz grows
-to where session-start cost or execution throughput becomes a real bottleneck, the contracts live in
-`scrml-support` (`vpa-scrml.md` / `spa-scrml.md` / `cpa-scrml.md`) as adoptable patterns. Until then:
-not imposed — a single PA with the disciplines above is the model.
+a branch the PA re-integrates), **cPA** (an always-on latency-bridge concierge).
+
+**6nz has ADOPTED the vPA-deputy** (S15), proactively, ahead of the real-app-work surge (6nz integrates
+into flogence as its native editor + kb-nav platform; flogence beta testers imminent). The contract is
+`vpa.md` at the 6nz root — a **scaled** adaptation of `../scrml-support/vpa-scrml.md` (6nz has no
+`state.ts`/flograph/dock/`@gap` machinery, so it owns a thinner surface + adds a 6nz-specific Function 4:
+autonomous flogence inbox intake). The PA-side contract is the **"S15 addendum — vPA deputy (PA side)"**
+section below. sPA / cPA are NOT adopted (contracts in `scrml-support` if 6nz ever needs them).
+
+### S15 addendum — vPA deputy (PA side)
+The deputy (`vpa.md`) runs alongside you as a second instance. Your side of the contract:
+
+- **Session-start step 0 — read the digest, with a freshness guard.** Read `handOffs/digest.md` at start
+  IFF it stamps `digest: current` (run `bun scripts/state.ts --check`). If it reports `STALE` or is absent,
+  **DISTRUST it and fall back to the authoritative reads** (a drifted digest is worse than reading cold).
+  Then read `handOffs/deputy-state.md` (the ACK tells you whether your `(vpa:)` casts landed; the HEARTBEAT
+  tells you how current the deputy's state is) and `handOffs/flogence-intake.md` (flogence bugs the deputy
+  queued while you were away — see F4 promotion).
+- **delta-log single-writer.** You are single-writer on `handOffs/delta-log.md` — append an entry
+  (`land`/`disp`/`find`/`rule`/`state`/`msg`) as you work, with a `(vpa: …)` maintenance directive when you
+  want the deputy to do a maintenance act. Never block on it (async cast; you-do-it fallback covers urgency).
+- **Integrate `deputy-maint`.** At your commit-points + at wrap + on boot: `git merge deputy-maint` (clean by
+  construction — disjoint surface). The deputy NEVER advances main's HEAD; you integrate.
+- **Surface partition — don't fight the deputy.** It owns `.claude/maps/*`, `docs/changelog.md`,
+  `handOffs/{digest.md, deputy-state.md, flogence-intake.md}` + the flogence-message archival. You own
+  everything substantive incl. `master-list.md §F`. When a deputy IS up, prefer a `(vpa:)` cast over editing
+  a deputy-owned file directly (avoids a merge race). When NO deputy is up, do the maintenance yourself
+  (regen digest via `bun scripts/state.ts --digest`, refresh maps, extend changelog, process flogence msgs).
+- **Wrap-time digest regen** (the load-bearing tick): at wrap, poke the deputy for a FINAL tick (regen digest
+  at the settled HEAD) + merge it — so the post-wrap start finds `digest: current` and thins. No deputy up →
+  regen it yourself.
+- **F4 promotion** (session-start): drain `handOffs/flogence-intake.md` — for each queued flogence bug, do
+  the triage the deputy deliberately did NOT (reproduce / classify / severity per R26), promote the real ones
+  into `master-list.md §F`, then strike the queue line. The deputy FILES; you TRIAGE.
 
 ---
 
@@ -151,6 +180,7 @@ when work is needed there. Cross-repo coordination happens through the user, not
 - Other project repos (scrml-support, giti, and scrml beyond read-only language reference) — **except** writing message files into their `handOffs/incoming/` (see Cross-repo messaging below)
 
 ### Session-start checklist (this repo only)
+0. **(deputy era, S15+)** Read `handOffs/digest.md` IFF `bun scripts/state.ts --check` reports `current` (else DISTRUST + read cold); read `handOffs/deputy-state.md` (ACK + heartbeat — did your `(vpa:)` casts land? how current is the deputy?); drain `handOffs/flogence-intake.md` (queued flogence bugs → triage per R26 → promote real ones to `master-list.md §F`, strike the line). See "S15 addendum — vPA deputy (PA side)".
 1. Read `pa.md` (this file)
 2. Read `hand-off.md`
 3. List `handOffs/incoming/*.md` (ignore `read/` subdir); if any exist, surface to user
@@ -200,6 +230,7 @@ The ecosystem projects (scrml, scrml-support, giti, 6nz) communicate asynchronou
 - `/home/bryan-maclee/scrmlMaster/6nz/handOffs/incoming/read/` — archive
 
 ### Outbox targets (this PA may write into)
+- **flogence** (primary integration partner — 6nz is its native editor + kb-nav platform): `/home/bryan-maclee/scrmlMaster/flogence/handOffs/incoming/`
 - scrml (formerly scrmlTS): `/home/bryan-maclee/scrmlMaster/scrml/handOffs/incoming/`
 - scrml-native (formerly scrml): `/home/bryan-maclee/scrmlMaster/scrml-native/handOffs/incoming/`
 - scrml-support: `/home/bryan-maclee/scrmlMaster/scrml-support/handOffs/incoming/`
@@ -244,6 +275,19 @@ Add to the session-start checklist (after reading `hand-off.md`):
 - List `handOffs/incoming/*.md` (ignore the `read/` subdir)
 - If any exist, surface them to the user at session start alongside "caught up / next priority"
 - After the user acknowledges or acts on a message, move it to `handOffs/incoming/read/` (preserve filename)
+
+### Flogence message autonomy (F4 — bounded auto-act, unattended)
+**User-ratified S15.** Messages `from: flogence` are subject to **autonomous deputy intake** (`vpa.md` § F4) —
+the deputy, on its loop, handles them WITHOUT a session running. The boundary (the deputy FILES, never DECIDES):
+- **Auto-intake + archive** (deputy moves `incoming/ → read/`): status · FYI · version/doc notice · bug report
+  (with reproducer → filed to `handOffs/flogence-intake.md` for PA triage).
+- **Surface** (deputy leaves in `incoming/`, routes to PA via `deputy-state.md`): design-decision replies ·
+  6nz↔flogence scope/architecture changes · anything touching the live build · anything ambiguous.
+
+This autonomy is **flogence-scoped ONLY** — messages from scrml / scrml-support / giti / master still surface
+to the user at session-start per the rule above (no auto-act). **When no deputy is up,** the PA applies the
+SAME boundary itself at session-start: auto-process the low-risk flogence msgs, queue bugs to the intake file,
+surface the rest.
 
 ### Sending a message
 
