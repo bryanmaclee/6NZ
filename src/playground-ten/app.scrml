@@ -80,6 +80,38 @@ function modeBadge(m: Mode) {
 // every legal transition). Filed as Bug AE (v0.7.0). Canonical no-name form used.
 @lastAction  = "ready — j/k to navigate, Enter to toggle mode"
 
+// --- §36 input-state → reactive @cell bridge (§36.6 canonical) ------
+// AF (RULED BY-DESIGN, §36.6): bare `${<#id>.x}` in markup is NON-reactive — it
+// paints the initial value once and never updates (input fires 100s/sec; per-event
+// markup re-render would be a footgun). The §36.6 reactive pattern reads the device
+// inside an `animationFrame` loop and writes a reactive @cell; the panel interpolates
+// the @cell, which DOES re-render. The `if (<#id>)` guards tolerate the init race
+// before the device registers.
+//
+// (History: earlier builds hit two transient gaps making this live — `animationFrame`
+// scope-resolution + §36 device registration from a non-markup read body. Both
+// NOT-REPRODUCED as of scrml dd5331e2 — the canonical animationFrame loop compiles
+// and registers devices from the loop-body read, so the prior <timer>+forced-markup-
+// read workaround is dropped.)
+@cursorX = 0
+@cursorY = 0
+@lastKey = "—"
+
+function pollInput() {
+    if (<#cursor>) {
+        let cx = <#cursor>.x
+        let cy = <#cursor>.y
+        if (@cursorX != cx) { @cursorX = cx }
+        if (@cursorY != cy) { @cursorY = cy }
+    }
+    if (<#keys>) {
+        let lk = <#keys>.lastKey
+        if (lk != "" && @lastKey != lk) { @lastKey = lk }
+    }
+    animationFrame(pollInput)
+}
+animationFrame(pollInput)
+
 // --- region lookups ------------------------------------------------
 
 function idxOf(id) {
@@ -209,9 +241,10 @@ function handleKey(e) {
 
         <div class="input-pane">
             <h2>§36 input-state</>
-            <div class="row"><span class="slabel">cursor.x:</> <span class="value mx">${<#cursor>.x}</></>
-            <div class="row"><span class="slabel">cursor.y:</> <span class="value my">${<#cursor>.y}</></>
-            <div class="row"><span class="slabel">keys.lastKey:</> <span class="value lk">${<#keys>.lastKey}</></>
+            <p class="hint">LIVE via §36.6 @cell bridge (animationFrame loop → reactive @cell). Move the mouse / press keys:</>
+            <div class="row"><span class="slabel">cursor.x:</> <span class="value mx">${@cursorX}</></>
+            <div class="row"><span class="slabel">cursor.y:</> <span class="value my">${@cursorY}</></>
+            <div class="row"><span class="slabel">keys.lastKey:</> <span class="value lk">${@lastKey}</></>
         </div>
     </div>
 </div>
@@ -228,4 +261,7 @@ function handleKey(e) {
 .rurl { color: #08c; font-size: 0.8em; display: block; }
 .badge { padding: 0.1rem 0.4rem; border-radius: 3px; background: #333; color: #fff; }
 .statusbar { margin-bottom: 0.5rem; }
+.input-pane .row { padding: 0.2rem 0; font-family: monospace; }
+.input-pane .value { font-weight: bold; color: #08c; }
+.hint { font-size: 0.78em; color: #888; margin: 0.3rem 0; }
 }
