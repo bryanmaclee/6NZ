@@ -4,6 +4,25 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
+## Session 15 — 2026-06-22 — pre-surge readiness: vPA deputy + flogence channel; p10 → canonical §36 bridge
+
+**Strategic inflection: 6nz moves from exploratory playgrounds into REAL app work — it integrates into flogence as the native text editor + kb-nav platform, and flogence gets human beta testers soon. User decision: stand the PA-continuity system up NOW, pre-surge ("full proactive build"), not migrate peri-surge.**
+
+### p10 §36 input-state → canonical animationFrame bridge (R26)
+- Found uncommitted in-flight p10 work (the §36 `@cell` bridge) carrying two "to-be-filed" compiler bugs against scrml `8c27805e`: **AG** (`animationFrame` fails scope-resolution, E-SCOPE-001) + **AH** (§36 device registration only emitted from markup `<#id>` reads, not timer/logic bodies).
+- **R26-verified both against current `dd5331e2`: NOT-REPRODUCED** — minimal + full repros compile clean, emit `animationFrame` + `_scrml_input_mouse_create` from the loop body. Fixed upstream; never filed (saved two false bug reports).
+- Converted p10's §36 panel from the `<timer>`+forced-markup-read workaround to the **canonical §36.6 `animationFrame` loop**; dropped the stale bug comments. **19/19 smoke**, reactive readout confirmed (`x 0→123`). Commit `3ee4bc5`.
+
+### vPA deputy ADOPTED + flogence channel (commit `f44093a`)
+- **`vpa.md`** — 6nz deputy contract, scaled from `../scrml-support/vpa-scrml.md` (6nz lacks scrml's state.ts/flograph/dock/@gap machinery → thinner surface). **4 functions:** disjoint-surface maintenance (maps/changelog/digest), digest curation, reboot-gap bridge, **+ F4 autonomous flogence inbox intake** (the 6nz-specific one). Load-bearing constraint + commit/surface-partition model identical to scrml's.
+- **F4 autonomy = "bounded auto-act, unattended"** (user-ratified): the deputy auto-intakes `from: flogence` status/FYI/version/bug-report (files bugs to `handOffs/flogence-intake.md`, **never triages**), surfaces design/scope/live-build/ambiguous + all non-flogence senders. The deputy FILES; the PA TRIAGES.
+- **`pa.md`** — flogence outbox target; the autonomy policy; the PA-side deputy addendum (digest freshness-guard, delta-log single-writer, `git merge deputy-maint` integration, surface partition, wrap-time digest regen, F4 promotion); session-start step 0.
+- **Seams:** `handOffs/{delta-log,deputy-state,flogence-intake,digest}.md` + `scripts/state.ts` (`--digest`/`--check`, dependency-free, bun-runnable).
+- **Maps:** cold refresh dispatched to project-mapper (worktree-isolated; landing pending).
+- **Memory:** project direction recorded (`6nz-to-flogence-and-vpa-adoption`).
+
+---
+
 ## Session 14 (continued) — 2026-06-20 — fork reconciliation + dogfood-batch closure + re-test
 
 **Discovered the "lost S13 instance" had actually pushed to origin (local/origin diverged at `0fa1cbb`). Merged the two histories, renumbered (the June fork mislabeled itself "S12" → S14), processed three scrml replies that closed the entire p10 dogfood batch, and re-verified the fixes against a newer compiler build.**
