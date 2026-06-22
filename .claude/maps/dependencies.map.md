@@ -1,39 +1,69 @@
 # dependencies.map.md
-# project: 6nz
-# updated: 2026-04-25T00:00:00Z  commit: e5a0752
+# project: editor (6nz)
+# updated: 2026-06-22T00:00:00Z  commit: 3ee4bc5
 
 ## Runtime Dependencies
 
-Root `package.json` is a stub: `{"name": "editor", "version": "0.1.0", "private": true}`.
-No runtime dependencies declared at repo root.
+Root `package.json`: no runtime dependencies declared.
 
 ## Dev / Build Dependencies
 
-Root: none declared.
+| Package | Version | Purpose |
+|---|---|---|
+| `@playwright/test` | `1.60.0` | Top-level test runner (`scripts.test = "playwright test"`) |
 
-`proto/6nz-playable/package.json` (prototype only — not the editor):
-- `puppeteer@^24.40.0` — headless browser used to run smoke tests for the playable prototype
+Per-playground `test.js` harnesses use Puppeteer, resolved dynamically:
+```js
+try { puppeteer = require("puppeteer"); }
+catch { puppeteer = require("puppeteer-core"); }
+```
+Puppeteer is NOT in root `package.json` — test.js files resolve it from `NODE_PATH` pointing at
+`../scrml/node_modules` (see playground test.js comments: `NODE_PATH=$scrml/node_modules`).
+
+## External Runtime Libraries (CDN-loaded per playground)
+
+Loaded at runtime via `esm.sh` — no lockfile, no npm install.
+
+| Playground | Library | Pinned version | Purpose |
+|---|---|---|---|
+| p3, p5, p6, p7, p8 | `codemirror@6.0.2` | yes | BasicSetup meta-package |
+| p3, p5, p6, p7, p8 | `@codemirror/view@6` | `@6` | EditorView |
+| p5, p6, p7, p8 | `@codemirror/state@6` | `@6` | EditorState |
+| p8 | `@codemirror/autocomplete@6` | `@6` | CM6 autocomplete UI |
+| p5, p6, p7, p8 | `@codemirror/lint@6` | `@6` | CM6 lint/diagnostic markers |
+
+CDN load mechanism (p3 pattern): inject `<script type="module">` at runtime via `document.createElement`,
+expose loaded module on `window.__cmMod`, dispatch `CustomEvent('cm-loaded')`, scrml listens via
+`window.addEventListener`.
+
+## External Process Dependencies
+
+| Tool | How invoked | Used by |
+|---|---|---|
+| `scrml dev <file>` | CLI; resolved from PATH | All playgrounds (development serve) |
+| `bun lsp/server.js --stdio` | Child process via `Bun.spawn` | `bridge.js` in p6, p8 |
+
+Bridge resolves scrml dir at runtime: `new URL("../../../scrml", import.meta.url).pathname`.
+Env overrides: `SCRML_DIR` (preferred) or `SCRMLTS_DIR` (legacy, pre-S200 rename).
 
 ## Internal Module Graph
 
-Playground interdependencies (conceptual, not import-based — scrml has no source-level `import`):
+All playgrounds are self-contained single-file `<program>` apps. No scrml `import` between them.
+Conceptual build-on-top lineage (re-implementation, not import dependency):
 
-- `playground-two` builds on concepts from `playground-zero` (classifier) and `playground-one` (mode machine) — same patterns, not imports
-- `playground-three` is independent (CM6 probe)
-- `playground-four` is independent (undo tree)
-- All playgrounds are self-contained `<program>` scrml files
-
-## External JS Integration (current pattern)
-
-scrml has no source-level `import`. The working pattern for external libraries (from playground-three):
-1. Inject a `<script>` tag at runtime that loads the ESM from a CDN (e.g. `esm.sh`)
-2. Bridge the loaded exports back to scrml via `window.__name` + `CustomEvent`
-3. Trigger from scrml via `^{ loadCm() }` (direct call in a side-effect block)
-
-This is the only sanctioned path until `scrml vendor add` CLI lands in scrmlTS.
+```
+p0 (classifier)       ─┐
+p1 (mode machine)     ─┴─> p2 (classifier + mode + buffer)
+                                └─> p5 (+ CM6) ──> p7 (+ z-motion)
+p3 (CM6 probe)        ────────────> p5, p6, p7, p8
+p6 (LSP diagnostics)  ────────────> p8 (+ completion + hover)
+p4 (undo tree)        ─── standalone
+p9 (editor IR)        ─── standalone (first non-CM6, first real editor-proper progress)
+p10 (relevance nav)   ─── standalone (§36 input-state; rebuilt S14; 1 uncommitted change)
+```
 
 ## Tags
-#6nz #map #dependencies #scrml #proto
+#editor #6nz #map #dependencies #scrml #codemirror #playwright #lsp
 
 ## Links
 - [primary.map.md](./primary.map.md)

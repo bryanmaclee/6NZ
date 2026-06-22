@@ -1,113 +1,112 @@
 # non-compliance.report.md
-# project: 6nz
-# generated: 2026-04-25T00:00:00Z
-# scan mode: FULL_COLD_START (S10 cold refresh)
+# project: editor (6nz)
+# generated: 2026-06-22T00:00:00Z
+# scan mode: FULL_COLD_START (S15 cold refresh)
 
 ## Summary
 
-Total docs scanned: 14
-Compliant: 10
-Non-compliant: 2
-Uncertain: 2
+Total docs scanned: 17
+Compliant: 9
+Non-compliant: 5
+Uncertain: 3
 
-Docs scanned (excluding handOffs/, .claude/):
-`editor-README.md`, `editor-architecture.md`, `master-list.md`, `pa.md`, `README.md`,
-`user-voice.md`, `z-motion-spec/SPEC.md`, `z-motion-spec/README.md`,
-`z-motion-spec/default-bindings.md`, `proto/README.md`, `proto/6nz-playable/README.md`,
-`src/playground-zero/README.md`, `src/playground-one/README.md`, `hand-off.md`
+Docs scanned (excludes `handOffs/`, `.claude/`, `node_modules/`, `dist/`):
+`README.md`, `editor-README.md`, `editor-architecture.md`, `master-list.md`, `pa.md`,
+`user-voice.md`, `hand-off.md`, `docs/changelog.md`,
+`z-motion-spec/SPEC.md`, `z-motion-spec/README.md`, `z-motion-spec/default-bindings.md`,
+`proto/README.md`, `proto/6nz-playable/README.md`,
+`src/playground-zero/README.md`, `src/playground-one/README.md`,
+`LICENSE.md`
 
 ---
 
 ## Non-compliant docs
 
-### z-motion-spec/default-bindings.md
-
-**Reason:** content-heuristic + spec-draft
-**Detail:** The document's own header states `Companion to: SPEC.md v0.4` and carries an explicit
-`⚠ v0.4 status notice` flagging two items as stale against the current spec: (1) FAMILY 2
-(numeric count-hold) is marked "do NOT ship" because SPEC v0.4 §9 dropped it; (2) any timing
-language (hold threshold, roll window) is stale. The authoritative spec is now v0.5 (sustained
-gestures, 2026-04-12). `default-bindings.md` is v0.2, pegged to v0.3 grammar. The document
-itself acknowledges v0.3 alignment is partially stale and a v0.3 rewrite is planned.
-
-Additionally, `z-motion-spec/README.md` says the repository layout contains `SPEC.md v0.1
-specification` — a stale copy of the README that hasn't been updated to reflect v0.5.
-
-**Specific stale content:**
-- All of `# FAMILY 2 — Numeric count-hold family` section — explicitly dropped in SPEC v0.4 §9
-- `master-list.md §E` also calls `default-bindings.md` v0.2 "partially stale against SPEC v0.5"
-  and queues a v0.3 rewrite
-
-**Suggested disposition:** Do not move this file. Keep it in-place but scope is to rewrite as
-`default-bindings.md` v0.3: drop FAMILY 2 entirely, add `[j]`/`[k]` vertical motion per
-master-list §E, update SPEC references to v0.5. Tracked as open work in `master-list.md §E`.
+### README.md
+**Reason:** grep-mismatch + content-heuristic
+**Detail:** Three stale items:
+1. Line 3: `[scrml](../scrmlTS)` — links to `../scrmlTS` which does not exist. Compiler dir renamed to `scrml` at S200.
+2. Lines 5-6: "Status: design phase. No implementation yet — awaiting compiler API exposure in scrmlTS." — 11 working scrml playgrounds exist; compiler is named `scrml` not `scrmlTS`; LSP L1-L4 is reachable.
+3. "What's here" section omits all 11 `src/` playgrounds and the `docs/` directory entirely.
+**Suggested disposition:** Update in-place. Fix link target to `scrml`. Update status to "exploratory implementation phase". Add src/ mention. Low urgency (the live site is the proto, not this README).
 
 ---
 
-### editor-README.md — `## Structure` section and "decision pending" line
+### editor-README.md
+**Reason:** grep-mismatch + content-heuristic
+**Detail:** Two stale items:
+1. Line 10 (approximately): "remains gated on scrmlTS compiler API exposure" — compiler renamed to `scrml` at S200.
+2. Playground list section mentions only p0–p4; there are now 11 playgrounds (p0–p10). Status says "6 playgrounds" or similar.
+3. Same "scrmlTS" text repeated in the status block.
+**Suggested disposition:** Update in-place. Replace `scrmlTS` → `scrml`. Expand or defer playground list to `master-list.md`. Low urgency (pa.md and master-list.md are authoritative for agents).
 
-**Reason:** content-heuristic + grep-mismatch
-**Detail:** Two issues in the same file:
+---
 
-1. The last sentence under `## Architecture` reads:
-   `"No source exists yet — implementation is blocked on scrmlTS compiler API exposure."`
-   This is now partially wrong. `src/` exists and contains 5 working scrml playgrounds
-   (as of S8–S9). The editor _proper_ is still blocked; exploratory playgrounds are not.
-   The sentence over-states the block.
+### master-list.md §A entry for default-bindings.md
+**Reason:** content-heuristic (internal inconsistency within the same file)
+**Detail:** §A line reads: `default-bindings.md — v0.2, partially stale against SPEC v0.5. v0.3 rewrite planned.`
+But §E confirms: `default-bindings.md v0.3 rewrite — DONE S10 (commit 0ffb452)`. The file itself
+is v0.3 (header confirms this). The §A checklist entry was never updated to reflect v0.3 completion.
+**Suggested disposition:** Update §A entry to reflect `v0.3, companion to SPEC v0.5` status.
 
-2. The `## Deep Dive` section at the bottom includes paths like
-   `../scrml-support/docs/deep-dives/6nz-editor-2026-03-30.md` — these are out-of-repo
-   cross-references that are correct in spirit but cannot be verified from this repo.
-   Not flagging as non-compliant (they are explicitly described as living in scrml-support).
+---
 
-**Suggested disposition:** Update the `## Structure` section in `editor-README.md` to say
-"Exploratory implementation in progress — see `master-list.md §A` for current playground
-inventory. Editor proper awaits scrmlTS compiler API exposure." Do not expand further.
+### src/playground-zero/README.md
+**Reason:** grep-mismatch + content-heuristic
+**Detail:** Line ~21 references a historical inbox message path containing `scrmlTS`:
+`../../handOffs/incoming/read/2026-04-20-1700-scrmlTS-to-6nz-all-6-bugs-fixed.md`.
+Also, line ~41: "Smoke test now passes: TAP / ROLL / HOLD" but the playground has no test.js —
+the smoke counts referenced are from manual or historical testing notes that may be documented
+elsewhere. Minor: no test.js exists but the README says "Smoke test passes".
+**Suggested disposition:** The historical inbox reference is a cross-repo provenance note; acceptable
+as-is unless a naming-consistency pass is done. Smoke test claim: note "no automated test.js; runtime-probed S14".
+
+---
+
+### src/playground-one/README.md
+**Reason:** grep-mismatch
+**Detail:** Line 2 says `< machine>` (with a space) — this is the old scrml `<machine>` syntax.
+As of v0.7.0 migration (S14), all `<machine>` tags were renamed to `<engine>`. The README still
+describes the old primitive name and says "Bug G to scrmlTS" — compiler renamed to `scrml`.
+Line 43: "Puppeteer-driven, 8/8 functional tests pass" — playground-one has no test.js.
+**Suggested disposition:** Update `<machine>` → `<engine>`, `scrmlTS` → `scrml`. Clarify that
+p1 has no automated test harness (runtime-probed S14).
 
 ---
 
 ## Uncertain docs (needs human review)
 
 ### z-motion-spec/README.md
-
 **Reason:** content-heuristic
-**Detail:** The repository layout block inside the README reads:
-```
-z-motion-spec/
-├── README.md    this file
-├── SPEC.md      v0.1 specification
-└── LICENSE      CC0 1.0 public domain dedication
-```
-It says "v0.1 specification" for SPEC.md — but the actual SPEC.md is v0.5. This is
-a stale README that was likely written when v0.1 was the current version. The actual
-file layout is also missing `default-bindings.md`.
-
-**What to check:** Update the layout block in `z-motion-spec/README.md` to show the
-correct SPEC version (v0.5) and include `default-bindings.md` in the listing.
+**Detail:** Layout block inside reads `SPEC.md — v0.1 specification`. The actual SPEC.md is v0.5.
+The layout listing also omits `default-bindings.md` entirely. This README appears to be from the
+v0.1 era and was never updated through v0.2–v0.5 revisions.
+**What to check:** Update layout block to show SPEC.md v0.5 and include `default-bindings.md v0.3`.
 
 ---
 
-### proto/6nz-playable/README.md — "What's intentionally missing" contradiction
+### proto/README.md
+**Reason:** content-heuristic (partially stale)
+**Detail:** "6nz is blocked on scrmlTS compiler API exposure" — compiler renamed. Also: the
+"Current prototypes" section only lists `z-motion-feel/` and omits `6nz-playable/` (the deployed
+prototype with 62 scenarios, live on GitHub Pages). If `proto/6nz-playable/` was added after this
+README was written, it was never added to the list.
+**What to check:** Update `scrmlTS` → `scrml`. Add `6nz-playable/` to the current prototypes list.
 
-**Reason:** content-heuristic
-**Detail:** The section `## What's intentionally missing` says:
-> "The 6nz headline concepts (relevance view, inline expansion, focus-centered viewport) — those require the compiler API"
+---
 
-However, the `## What works` section documents that **relevance region**, **inline expansion**,
-and **focus-centered viewport** ARE implemented (as mocks/heuristics). The "intentionally
-missing" list and the "what works" list describe the same features with opposite verdicts.
-
-The contradiction is consistent with the prototype having evolved past its initial README.
-
-**What to check:** Reconcile `## What works` (lines 37–40: relevance region, inline expansion,
-focus-centered viewport are listed as working mockups) with `## What's intentionally missing`
-(same features listed as missing). Clarify that these are *compiler-backed* versions that are
-missing, not the prototype-level mocks. This is a docs accuracy issue, not a structural one.
+### proto/6nz-playable/README.md
+**Reason:** uncertain — needs human review
+**Detail:** Not read in this scan (proto/ is generally in scope here since it's actively deployed).
+The prototype was built against an older spec version; the README may reference SPEC v0.3 or v0.4
+while SPEC is now v0.5. The file exists and is deployed.
+**What to check:** Verify the README version references (SPEC version, feature set) match what the
+live prototype actually implements. Proto/ content is explicitly throwaway per proto/README.md rules.
 
 ---
 
 ## Tags
-#non-compliance #project-mapper #cleanup #6nz
+#non-compliance #project-mapper #cleanup #editor #6nz
 
 ## Links
 - [primary.map.md](./primary.map.md)

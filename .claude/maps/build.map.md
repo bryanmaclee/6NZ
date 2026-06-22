@@ -1,40 +1,59 @@
 # build.map.md
-# project: 6nz
-# updated: 2026-04-25T00:00:00Z  commit: e5a0752
+# project: editor (6nz)
+# updated: 2026-06-22T00:00:00Z  commit: 3ee4bc5
 
 ## Development Commands
 
-Root `package.json` has no `scripts` field.
-
-Playground dev (per-playground, not unified):
+Root `package.json` scripts:
 ```
-scrml dev src/playground-zero/app.scrml     run playground-zero in dev mode
-scrml dev src/playground-one/app.scrml      run playground-one
-scrml dev src/playground-two/app.scrml      run playground-two
-scrml dev src/playground-three/app.scrml    run playground-three (CM6 probe)
-scrml dev src/playground-four/app.scrml     run playground-four (undo tree)
+npm test   →   playwright test   (Playwright test suite at repo root)
 ```
 
-Prototype smoke tests:
+Per-playground dev (individual, not unified):
 ```
-cd proto/6nz-playable && node test.js       run puppeteer test harness against index.html
+scrml dev src/playground-zero/app.scrml      run p0 (Z-motion classifier)
+scrml dev src/playground-one/app.scrml       run p1 (mode machine)
+scrml dev src/playground-two/app.scrml       run p2 (hjkl + z-motion buffer)
+scrml dev src/playground-three/app.scrml     run p3 (CM6 probe)
+scrml dev src/playground-four/app.scrml      run p4 (undo tree)
+scrml dev src/playground-five/app.scrml      run p5 (vim modes on CM6)
+bun src/playground-six/bridge.js             start p6 LSP bridge (port 3061)
+scrml dev src/playground-six/app.scrml       run p6 (LSP diagnostics on CM6)
+scrml dev src/playground-seven/app.scrml     run p7 (z-motion on CM6)
+bun src/playground-eight/bridge.js           start p8 LSP bridge (port 3081)
+scrml dev src/playground-eight/app.scrml     run p8 (completion + hover on CM6)
+scrml dev src/playground-nine/app.scrml      run p9 (editor IR + logical traversal)
+scrml dev src/playground-ten/app.scrml       run p10 (relevance navigator + §36)
 ```
+
+Per-playground smoke tests (Puppeteer, run individually):
+```
+NODE_PATH=$scrml/node_modules node src/playground-five/test.js    p5: 18/18
+NODE_PATH=$scrml/node_modules node src/playground-six/test.js     p6: 7/7  (bridge must be running)
+NODE_PATH=$scrml/node_modules node src/playground-seven/test.js   p7: 17/17
+NODE_PATH=$scrml/node_modules node src/playground-eight/test.js   p8: 9/9  (bridge must be running)
+NODE_PATH=$scrml/node_modules node src/playground-nine/test.js    p9: 13/13
+NODE_PATH=$scrml/node_modules node src/playground-ten/test.js     p10: 19/19
+```
+
+Test ports: p5=3055, p6=3056, p7=3057, p8=3058, p9=3059, p10=3060 (hardcoded in each test.js).
 
 ## Build & Release
 
-No build tooling configured at repo root. No `Makefile`, no bundler config.
-Playgrounds are built/served by `scrml dev` (the scrmlTS compiler's dev server).
-`proto/6nz-playable/index.html` is a self-contained single-file HTML — no build step.
+No root-level build tooling. No Makefile, no bundler config.
+Playgrounds are compiled and served by `scrml dev` (compiler at `../scrml/`). Per-playground `dist/`
+dirs are gitignored compiled output.
+`proto/6nz-playable/index.html` is a self-contained single-file HTML — no build step required.
 
-## CI/CD Pipeline  [`.github/workflows/pages.yml`]
+## CI/CD Pipeline  [.github/workflows/pages.yml]
 
 **Deploy playground to GitHub Pages**
-Triggers: push to `main` (path filter: `proto/6nz-playable/**` or `pages.yml`) + `workflow_dispatch`
+Triggers: push to `main` filtering `proto/6nz-playable/**` or `.github/workflows/pages.yml`; also `workflow_dispatch`
 
 | Stage | What it does |
 |---|---|
-| build | `actions/checkout@v4` → copies `proto/6nz-playable/index.html` + `README.md` to `_site/` → uploads Pages artifact |
-| deploy | deploys `_site/` to GitHub Pages environment |
+| build | checkout → copy `proto/6nz-playable/index.html` + `README.md` to `_site/` → upload Pages artifact |
+| deploy | deploys `_site/` to GitHub Pages |
 
 Live URL: `https://bryanmaclee.github.io/6NZ/`
 
@@ -43,7 +62,7 @@ Live URL: `https://bryanmaclee.github.io/6NZ/`
 No Dockerfile, no docker-compose.
 
 ## Tags
-#6nz #map #build #ci #github-pages #scrml
+#editor #6nz #map #build #ci #github-pages #scrml #playwright #puppeteer
 
 ## Links
 - [primary.map.md](./primary.map.md)
