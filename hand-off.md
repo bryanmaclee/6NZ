@@ -60,7 +60,7 @@ All wrap steps executed:
 ## State as of close
 | Item | State |
 |---|---|
-| Push | **PENDING master coordination.** 6nz local `main` ahead of origin (commits below); scrml also push-affected (received the bug-ab confirmation message). needs:push sent to master. |
+| Push | **DONE — pushed directly to origin** by user request (2026-06-22). `origin/main` @ `f0c9854`, 0/0 divergence. Clean fast-forward (fetched first; origin was still at `d2e9667`). The master needs:push message was downgraded → needs:fyi (6nz handled; scrml still push-affected for its own inbox message). |
 | Commits this session (unpushed) | `944d360` (cold maps + currency fixes), `9682771` (import-claim correction + kickstarter-v2 note), + wrap-bookkeeping commit (this close). |
 | Working tree | clean after wrap commit (`dist/` gitignored). |
 | Playgrounds | 11/11 green vs scrml v0.7.0; **p5/p7/p10 re-confirmed green vs current tip `d299798`** this session. |
