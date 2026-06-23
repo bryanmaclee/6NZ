@@ -5,10 +5,11 @@
 **Prev session:** S14 rotated to `handOffs/hand-off-14.md`.
 
 ## Open questions (surface first)
-1. **Push pending (post-merge).** The merge tip is unpushed; it now contains BOTH S15 tracks + the
-   reconciliation merge commit. origin/main is an ancestor of the merge → a clean fast-forward when pushed.
-   Goes through master coordination (pa.md). **Track B already sent master a needs:push for its half** —
-   that needs superseding with the merged tip (don't let master push the old origin tip alone).
+1. **Push — DONE (`1a32ba4`, direct).** The full merged S15 stack is on origin; coherence `0 0`.
+   **Push model CHANGED (S15 user directive):** master no longer orchestrates pushes — this PA pushes 6nz
+   directly after user auth, gated by the session-start coherence check. `pa.md` updated (Commit-auth +
+   "Pushing (DIRECT)" section). **Loose end:** Track B's earlier `needs:push` is still sitting in master's
+   inbox, now obsolete (6nz self-pushed) — optional one-line courtesy note to master to retract it.
 2. **Maps re-run after merge — DONE?** The merge took the parallel instance's maps (`944d360`) as the
    conflict resolution placeholder; they do NOT capture this session's new infra (`vpa.md`, `scripts/`,
    the `handOffs/` seams, pa.md deputy changes). A cold project-mapper re-run for the UNION state should
