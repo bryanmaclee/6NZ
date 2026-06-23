@@ -41,7 +41,9 @@ Dated session blocks, newest first. Per-repo session count.
 **Cross-repo:** out to scrml `2026-06-22-0804-...bug-ab-confirmed-plus-engine-name-retest` (fyi); out to master (needs:push). **Discussed (no code):** playground-eleven sketch — first cross-file `<EngineName/>` composition (mode engine + z-motion classifier + CM6 buffer + relevance panel across multiple `.scrml`).
 
 ### Reconciliation (merge)
-- Merged `origin/main` (the parallel instance's 4 commits `944d360`/`9682771`/`f0c9854`/`1bb8cbb`) into local. Kept BOTH sides — Track A's deputy/flogence/p10 + Track B's currency sweep + dogfood confirmations. `.claude/maps/` re-run cold post-merge for the union state. The two S15 narratives folded into this block. The fork recurred because session-start ran no coherence check — flagged for a `pa.md` fix.
+- Merged `origin/main` (the parallel instance's 4 commits `944d360`/`9682771`/`f0c9854`/`1bb8cbb`) into local. Kept BOTH sides — Track A's deputy/flogence/p10 + Track B's currency sweep + dogfood confirmations. `.claude/maps/` re-run cold post-merge for the union state. The two S15 narratives folded into this block.
+- **`pa.md` root-cause fixes:** (1) session-start **coherence check** (`git fetch` + `rev-list --left-right`) — the fork recurred (S14 + S15) because that check only ran at wrap; moved it to step 0. (2) **direct push** — master no longer orchestrates pushes (user directive); the PA pushes 6nz directly after auth, gated by the coherence check.
+- **Pushed direct to origin** `1a32ba4` (then `eed5fa7`) — full merged S15 stack live; coherence `0 0`.
 
 ---
 

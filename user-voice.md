@@ -71,3 +71,17 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 > fix the import claim and note kickstarter v2
 
 > wrap and push
+
+### S15 parallel instance — 2026-06-23 (pre-surge readiness; reconciled into the above by merge)
+
+> Im sure the workload hasnt gotten too bad yet. but its about to. we're moving up to real app work, 6nz is going to integrate into flogence as the native text editor and kb nav platform. between that and starting to have some human beta testers for flogence soon. we are going to have hands full. and we want to be ready, not try to migrate the system peri-surge. also msgs from flogence can likely be run autonomously on read, if possible.
+
+> [decision] Full proactive build — stand up the vPA deputy + flogence channel + the maintenance substrate now, pre-surge.
+
+> [decision] Bounded auto-act, unattended — the deputy auto-intakes flogence messages without a session running (files, never triages).
+
+> ok. handle it as best you can
+
+> push. master pa no longer orchestrates pushes. you should have the latest PA.
+
+> I didnt say wrap. I said push. oh well, so wrap is completly done?
