@@ -30,3 +30,12 @@ Append-only. Timestamped lines: what was done, what's next, blockers.
 scrml HEAD: session-start `a2137214` (S215) → mid-session `96745d34`. All 11 compile clean + Tier-0 smokes green (p9 13/13, p6 7/7, p10 19/19) on `96745d34`. Moving dogfood target — record SHA per commit.
 
 ### `<each>` adoption: 0/11 → 6/11 (the audit's headline red flag, removed where lists exist)
+
+## Tier 1 — render-per-state → `<match for=Mode on=@mode>` — COMPLETE (4/4; p4 deferred to post-Tier-2)
+Replaced `const <isX>` derived-booleans + `if=`-per-badge with `<match for=Mode on=@mode>` state-child arms (SPEC §18). Engines were already correct — only the rendering was flag-shaped.
+- **p5** (3 modes): badge → `<match>`; booleans deleted. **18/18** (validated the pattern first).
+- **p7** (3 modes): same. **17/17**.
+- **p1** (5 modes Insert/Normal/Visual/VisualLine/ToggleHold): badge → `<match>`; booleans deleted. probe: badge transitions Insert→Normal→Visual reactively.
+- **p2** (3 modes): badge → `<match>`; booleans ALSO fed the cursor `class:` bindings (L347) → inlined those to `(@mode == Mode.X)`; booleans deleted. ALSO removed stale gap #2/#3/#4 comments (all NOT-REPRODUCED). probe: badge + cursor-class track (block-cursor→insert-cursor).
+- p4 NOT done here — its `@mode` is a string `"insert"/"normal"`; folds into Tier 1 AFTER Tier-2 enum+engine promotion.
+Verified @ scrml 346b4357 (compiler bumped a2137214→96745d34→346b4357 over the session). All 11 compile clean; p5/p7 smokes green.

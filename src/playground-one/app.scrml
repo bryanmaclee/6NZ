@@ -128,11 +128,6 @@ ${
         @log = []
     }
 
-    const <isInsert>     = @mode == Mode.Insert
-    const <isNormal>     = @mode == Mode.Normal
-    const <isVisual>     = @mode == Mode.Visual
-    const <isVisualLine> = @mode == Mode.VisualLine
-    const <isToggleHold> = @mode == Mode.ToggleHold
 }
 
 <engine name=ModeMachine for=Mode initial=.Insert>
@@ -159,11 +154,13 @@ ${
     </>
 
     <div class="mode-display">
-        <div class="badge insert"     if=@isInsert>INSERT</>
-        <div class="badge normal"     if=@isNormal>NORMAL</>
-        <div class="badge visual"     if=@isVisual>VISUAL</>
-        <div class="badge visual"     if=@isVisualLine>V-LINE</>
-        <div class="badge toggle"     if=@isToggleHold>TOGGLE-HOLD</>
+        <match for=Mode on=@mode>
+            <Insert><div class="badge insert">INSERT</></>
+            <Normal><div class="badge normal">NORMAL</></>
+            <Visual><div class="badge visual">VISUAL</></>
+            <VisualLine><div class="badge visual">V-LINE</></>
+            <ToggleHold><div class="badge toggle">TOGGLE-HOLD</></>
+        </match>
     </>
 
     <div class="panel status">

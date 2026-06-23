@@ -79,9 +79,6 @@ ${
         return pos < len - 1 ? pos + 1 : (len > 0 ? len - 1 : 0)
     }
 
-    // Workaround: scrml compiler drops the `return X + y` line when
-    // preceded by `const y = a ? b : c` (ternary). Using Math.min +
-    // explicit return avoids the pattern.
     function moveUp(buf, pos) {
         const col = pos - lineStart(buf, pos)
         const ls = lineStart(buf, pos)
@@ -295,9 +292,6 @@ ${
         @lastEvent = "reset"
     }
 
-    // Ternaries inside `const @name = ...` derived reactives appear to
-    // compile to empty branches (scrml bug reported 2026-04-20). Helper
-    // functions work around it.
     function glyphFor(ch) {
         if (ch.length > 0 && ch.charCodeAt(0) == 10) { return " " }
         if (ch == "") { return " " }
@@ -309,16 +303,6 @@ ${
         return ""
     }
 
-    // --- Derived rendering pieces ---------------------------------
-
-    const <isInsert>  = @mode == Mode.Insert
-    const <isNormal>  = @mode == Mode.Normal
-    const <isVisual>  = @mode == Mode.Visual
-    // Note: the buffer/cursor/after segments are rendered inline in the
-    // markup with ${...} expressions. Derived reactives (`const @x = ...`)
-    // referenced from markup spans do not get their reactive display
-    // wiring emitted by the current compiler — filed as a bug. Inline
-    // expressions work fine.
 }
 
 <engine name=ModeMachine for=Mode initial=.Normal>
@@ -332,9 +316,11 @@ ${
     <p class="subtitle">vim hjkl + z-motion rolls against a real buffer + visible cursor.</>
 
     <div class="mode-wrap">
-        <span class="badge insert" if=@isInsert>INSERT</>
-        <span class="badge normal" if=@isNormal>NORMAL</>
-        <span class="badge visual" if=@isVisual>VISUAL</>
+        <match for=Mode on=@mode>
+            <Insert><span class="badge insert">INSERT</></>
+            <Normal><span class="badge normal">NORMAL</></>
+            <Visual><span class="badge visual">VISUAL</></>
+        </match>
     </>
 
     <div
@@ -344,7 +330,7 @@ ${
         onkeyup=${(e) => handleKeyUp(e)}
     >
         <span class="seg before">${@buffer.slice(0, @cursor)}</>
-        <span class="seg cursor" class:insert-cursor=@isInsert class:block-cursor=@isNormal class:visual-cursor=@isVisual>${glyphFor(@buffer.slice(@cursor, @cursor + 1))}</>
+        <span class="seg cursor" class:insert-cursor=(@mode == Mode.Insert) class:block-cursor=(@mode == Mode.Normal) class:visual-cursor=(@mode == Mode.Visual)>${glyphFor(@buffer.slice(@cursor, @cursor + 1))}</>
         <span class="seg after">${extraFor(@buffer.slice(@cursor, @cursor + 1))}${@buffer.slice(@cursor + 1)}</>
     </>
 

@@ -301,9 +301,6 @@ ${
         document.body.appendChild(script)
     }
 
-    const <isInsert> = @mode == Mode.Insert
-    const <isNormal> = @mode == Mode.Normal
-    const <isVisual> = @mode == Mode.Visual
 }
 
 <engine name=ModeMachine for=Mode initial=.Normal>
@@ -319,9 +316,11 @@ ${
     <p class="subtitle">CodeMirror 6 buffer + scrml-owned modal keymap (Insert / Normal / Visual). Capture-phase keydown gates CM6.</>
 
     <div class="mode-wrap">
-        <span class="badge insert" if=@isInsert>INSERT</>
-        <span class="badge normal" if=@isNormal>NORMAL</>
-        <span class="badge visual" if=@isVisual>VISUAL</>
+        <match for=Mode on=@mode>
+            <Insert><span class="badge insert">INSERT</></>
+            <Normal><span class="badge normal">NORMAL</></>
+            <Visual><span class="badge visual">VISUAL</></>
+        </match>
     </>
 
     <div class="panel status">
