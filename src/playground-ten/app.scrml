@@ -224,16 +224,17 @@ function handleKey(e) {
             </div>
 
             <ul class="regions">
-                ${ for (const r of @regions) {
-                    lift <li
+                <each in=@regions as r key=@.id>
+                    <li
                         class="region"
                         class:focused=(r.id == @focusId)
                         style:opacity=(r.id == @focusId ? "1" : "0.55")>
                         <span class="rtitle">${r.title}</>
                         <span class="rbody">${r.body}</>
                         <span class="rurl">${r.url}</>
-                    </>
-                } }
+                    </li>
+                    <empty>no regions</empty>
+                </each>
             </ul>
 
             <p class="action">${@lastAction}</>

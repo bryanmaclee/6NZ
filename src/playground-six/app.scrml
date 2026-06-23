@@ -54,21 +54,6 @@ ${
         return sev + " (" + ln + "," + col + ") " + code + d.message
     }
 
-    // Render the whole diagnostics list as a single string. We use this
-    // instead of <li for=...> in the markup because the for-lift codegen
-    // leaks the loop variable into the surrounding meta-effect closure
-    // (filed as a separate codegen bug). Plain string interpolation
-    // works around the issue.
-    function describeDiagnostics(ds) {
-        const nl = String.fromCharCode(10)
-        let out = ""
-        for (let i = 0; i < ds.length; i = i + 1) {
-            out = out + describeDiagnostic(ds[i])
-            if (i < ds.length - 1) { out = out + nl }
-        }
-        return out
-    }
-
     function onLspMessage(jsonStr) {
         // Per Bug K fix: a throw inside a reactive effect won't propagate
         // out of the caller, so calling JSON.parse without try/catch is
@@ -352,7 +337,11 @@ ${
 
     <div class="panel diag-panel" if=@hasDiagnostics>
         <strong>Diagnostics (${@diagCount}):</>
-        <pre class="diag-list">${describeDiagnostics(@diagnostics)}</pre>
+        <ul class="diag-list">
+            <each in=@diagnostics key=__index__>
+                <li class="diag-item">${describeDiagnostic(@.)}</li>
+            </each>
+        </ul>
     </>
 
     <div class="panel notes">

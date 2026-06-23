@@ -108,11 +108,10 @@ ${
             <button class="reset-btn" onclick=clearLog()>Clear</>
         </>
         <ol class="log">
-            ${
-                for (let line of @log) {
-                    lift <li>${line}</>
-                }
-            }
+            <each in=@log key=__index__>
+                <li : @.>
+                <empty : "no events yet">
+            </each>
         </ol>
     </>
 

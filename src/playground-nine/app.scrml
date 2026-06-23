@@ -258,23 +258,10 @@ function visibleLines() {
     return walk(0, 0, [])
 }
 
-// Bug V workaround: `class:cursor=ln.isCursor` on a for-lift element is
-// evaluated at create-time only and never re-evaluates when @cursorId
-// changes (filed). So instead of per-line class binding, render the
-// whole tree as a SINGLE reactive ${...} string in a <pre> — a single
-// text interpolation DOES re-render on every dep change. The cursor
-// line gets a textual "> " marker.
-function treeText() {
-    const lines = walk(0, 0, [])
-    let s = ""
-    for (let i = 0; i < lines.length; i = i + 1) {
-        const ln = lines[i]
-        const cur = ln.isCursor ? "> " : "  "
-        if (i > 0) { s = s + String.fromCharCode(10) }
-        s = s + cur + ln.prefix + ln.glyph + " " + ln.label + ln.mark
-    }
-    return s
-}
+// Per-line render via `<each in=@visible>` (§17.7) — see the `.tree` markup
+// below. Bug V (`class:`-on-for-lift frozen at create-time) was fixed S139, so
+// the per-row reactive `class:cursor=@.isCursor` binding works directly; the
+// earlier single-reactive-string `<pre>` accumulator workaround is retired.
 
 // --- keyboard router ----------------------------------------------
 
@@ -300,6 +287,7 @@ function countCollapsed() {
 // derived status pieces
 const <cursorLabel> = labelOf(@cursorId)
 const <collapsedCount> = countCollapsed()
+const <visible> = visibleLines()
 
 }
 
@@ -314,7 +302,12 @@ const <collapsedCount> = countCollapsed()
         <div class="row"><span class="slabel">Last action:</><span class="value">${@lastAction}</></>
     </>
 
-    <div class="tree" tabindex="0" onkeydown=handleKey(event)>${treeText()}</>
+    <div class="tree" tabindex="0" onkeydown=handleKey(event)>
+        <each in=@visible key=@.id>
+            <div class="line" class:cursor=@.isCursor>${(@.isCursor ? "> " : "  ") + @.prefix + @.glyph + " " + @.label + @.mark}</div>
+            <empty>(empty tree)</empty>
+        </each>
+    </>
 
     <div class="panel notes">
         <strong>Focus the tree, then:</> <code>l</code> or <code>→</code> step into · <code>h</code> or <code>←</code> step out · <code>j</code> <code>k</code> siblings · <code>z</code> or <code>Space</code> fold · <code>a</code> auto-collapse<br>

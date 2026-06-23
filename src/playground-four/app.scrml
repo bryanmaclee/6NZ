@@ -268,7 +268,7 @@ ${
         updateCurrentCursor(li + 1, newCol)
     }
 
-    // --- Rendering (plain strings; avoids for-lift for now) -----------
+    // --- Rendering -----------------------------------------------------
 
     function renderBuffer(ls, li, co) {
         // Render with a visible cursor caret inserted at (li, co).
@@ -290,19 +290,19 @@ ${
         return out
     }
 
-    // Depth-first walk of the tree, producing an indented string.
-    // Uses explicit stack — scrml functions can't trivially recurse by name
-    // inside a reactive scope without capture surprises, so iterative.
-    function renderTree(nodes, currentId) {
-        // stack items: { id: int, depth: int, isLast: bool }
-        let stack = [ { id: 0, depth: 0, isLast: true } ]
-        let out = ""
+    // Depth-first flatten of the undo tree into rows for `<each>` (§17.7).
+    // Iterative (explicit stack) — preserves the by-name-recursion caution from
+    // the original build; the flat result feeds keyed per-row rendering, with
+    // the current-node marker carried as a per-row `class:current` binding.
+    function treeRowsOf(nodes, currentId) {
+        // stack items: { id: int, depth: int }
+        let stack = [ { id: 0, depth: 0 } ]
+        let rows = []
         while (stack.length > 0) {
             const top = stack[stack.length - 1]
             stack = stack.slice(0, stack.length - 1)
 
             const n = nodes[top.id]
-            const marker = top.id == currentId ? ">" : " "
             const indent = "  ".repeat(top.depth)
 
             let metaStr = ""
@@ -310,14 +310,15 @@ ${
             else if (n.kind == EditKind.Backspace) { metaStr = "" }
             else if (n.kind == EditKind.NewLine)   { metaStr = "" }
 
-            out = out + marker + " " + indent + "#" + n.id + " " + kindLabel(n.kind) + metaStr + "\n"
+            const label = indent + "#" + n.id + " " + kindLabel(n.kind) + metaStr
+            rows = [...rows, { id: n.id, label: label, isCurrent: n.id == currentId }]
 
             // Push children in reverse so oldest is processed first.
             for (let i = n.children.length - 1; i >= 0; i = i - 1) {
-                stack = [...stack, { id: n.children[i], depth: top.depth + 1, isLast: i == 0 }]
+                stack = [...stack, { id: n.children[i], depth: top.depth + 1 }]
             }
         }
-        return out
+        return rows
     }
 
     // --- Keyboard ------------------------------------------------------
@@ -376,6 +377,7 @@ ${
     }
 
     const <isInsert> = @mode == "insert"
+    const <treeRows> = treeRowsOf(@nodes, @current)
 }
 
 <div class="app">
@@ -393,15 +395,14 @@ ${
         onkeydown=${(e) => handleKeyDown(e)}
     >
         <div class="label">BUFFER</>
-        <!-- Inlining @nodes[@current] rather than curNode() — the compiler
-             doesn't emit display wiring for markup interpolations whose
-             only reactive reads happen behind a helper function call
-             (new bug, noted for filing). Direct @-refs in the
-             interpolation expression do get wired. -->
-        <pre class="buffer">${renderBuffer(@nodes[@current].lines, @nodes[@current].cursorLine, @nodes[@current].cursorCol)}</pre>
+        <div class="buffer">${renderBuffer(curNode().lines, curNode().cursorLine, curNode().cursorCol)}</div>
 
         <div class="label">TREE (&gt; marks current)</>
-        <pre class="tree">${renderTree(@nodes, @current)}</pre>
+        <div class="tree">
+            <each in=@treeRows key=@.id>
+                <div class="treerow" class:current=@.isCurrent>${(@.isCurrent ? "> " : "  ") + @.label}</div>
+            </each>
+        </div>
 
         <div class="hint">${@status}</>
     </>
@@ -510,6 +511,8 @@ ${
         overflow-y: auto;
         white-space: pre;
     }
+
+    .treerow.current { color: #ffd479; font-weight: 600; }
 
     .hint {
         color: #888;

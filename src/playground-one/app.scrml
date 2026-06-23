@@ -183,11 +183,10 @@ ${
             <button class="reset-btn" onclick=clearMode()>Clear</>
         </>
         <ol class="loglist">
-            ${
-                for (let line of @log) {
-                    lift <li>${line}</>
-                }
-            }
+            <each in=@log key=__index__>
+                <li : @.>
+                <empty : "no transitions yet">
+            </each>
         </ol>
     </>
 

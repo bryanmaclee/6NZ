@@ -56,14 +56,12 @@ async function readStatus(page, slabel) {
     }, slabel);
 }
 
-// Tree is rendered as a single <pre> reactive string; the cursor line
-// is prefixed with "> " (Bug V workaround — per-line class binding in a
-// for-lift doesn't track @cursorId; single ${...} string does).
+// Tree is rendered per-line via `<each in=@visible>` (§17.7) — one `.line`
+// element per visible node, with a reactive `class:cursor` binding (Bug V fixed
+// S139). The cursor line still carries a textual "> " prefix for readability.
 async function treeLines(page) {
     return await page.evaluate(() => {
-        const pre = document.querySelector(".tree");
-        if (!pre) return [];
-        return pre.textContent.split("\n");
+        return [...document.querySelectorAll(".tree .line")].map(el => el.textContent);
     });
 }
 
