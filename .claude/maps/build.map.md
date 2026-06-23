@@ -1,6 +1,6 @@
 # build.map.md
 # project: editor (6nz)
-# updated: 2026-06-22T00:00:00Z  commit: 3ee4bc5
+# updated: 2026-06-22T00:00:00Z  commit: d2e9667
 
 ## Development Commands
 
@@ -19,33 +19,30 @@ scrml dev src/playground-four/app.scrml      run p4 (undo tree)
 scrml dev src/playground-five/app.scrml      run p5 (vim modes on CM6)
 bun src/playground-six/bridge.js             start p6 LSP bridge (port 3061)
 scrml dev src/playground-six/app.scrml       run p6 (LSP diagnostics on CM6)
-scrml dev src/playground-seven/app.scrml     run p7 (z-motion on CM6)
 bun src/playground-eight/bridge.js           start p8 LSP bridge (port 3081)
 scrml dev src/playground-eight/app.scrml     run p8 (completion + hover on CM6)
+scrml dev src/playground-seven/app.scrml     run p7 (z-motion on CM6)
 scrml dev src/playground-nine/app.scrml      run p9 (editor IR + logical traversal)
 scrml dev src/playground-ten/app.scrml       run p10 (relevance navigator + §36)
 ```
 
 Per-playground smoke tests (Puppeteer, run individually):
 ```
-NODE_PATH=$scrml/node_modules node src/playground-five/test.js    p5: 18/18
-NODE_PATH=$scrml/node_modules node src/playground-six/test.js     p6: 7/7  (bridge must be running)
-NODE_PATH=$scrml/node_modules node src/playground-seven/test.js   p7: 17/17
-NODE_PATH=$scrml/node_modules node src/playground-eight/test.js   p8: 9/9  (bridge must be running)
-NODE_PATH=$scrml/node_modules node src/playground-nine/test.js    p9: 13/13
-NODE_PATH=$scrml/node_modules node src/playground-ten/test.js     p10: 19/19
+node src/playground-five/test.js    p5: 18/18 smoke checks
+node src/playground-six/test.js     p6: 7/7 smoke (requires bridge running)
+node src/playground-seven/test.js   p7: 17/17 smoke checks
+node src/playground-eight/test.js   p8: 9/9 smoke (requires bridge running)
+node src/playground-nine/test.js    p9: 13/13 smoke checks
+node src/playground-ten/test.js     p10: 19/19 smoke checks
 ```
-
-Test ports: p5=3055, p6=3056, p7=3057, p8=3058, p9=3059, p10=3060 (hardcoded in each test.js).
 
 ## Build & Release
 
 No root-level build tooling. No Makefile, no bundler config.
-Playgrounds are compiled and served by `scrml dev` (compiler at `../scrml/`). Per-playground `dist/`
-dirs are gitignored compiled output.
-`proto/6nz-playable/index.html` is a self-contained single-file HTML — no build step required.
+Playgrounds are built and served by `scrml dev` (scrml compiler's dev server, located at `../scrml/`).
+`proto/6nz-playable/index.html` is a self-contained single-file HTML — no build step.
 
-## CI/CD Pipeline  [.github/workflows/pages.yml]
+## CI/CD Pipeline  [`.github/workflows/pages.yml`]
 
 **Deploy playground to GitHub Pages**
 Triggers: push to `main` filtering `proto/6nz-playable/**` or `.github/workflows/pages.yml`; also `workflow_dispatch`

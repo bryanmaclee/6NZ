@@ -4,22 +4,44 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
-## Session 15 — 2026-06-22 — pre-surge readiness: vPA deputy + flogence channel; p10 → canonical §36 bridge
+## Session 15 — 2026-06-23 — pre-surge readiness (vPA deputy + flogence) + housekeeping/dogfood-confirm; reconciled a parallel fork
 
-**Strategic inflection: 6nz moves from exploratory playgrounds into REAL app work — it integrates into flogence as the native text editor + kb-nav platform, and flogence gets human beta testers soon. User decision: stand the PA-continuity system up NOW, pre-surge ("full proactive build"), not migrate peri-surge.**
+**Two S15 instances ran in parallel off the S14 tip `d2e9667` and were reconciled by merge this session. Strategic inflection: 6nz moves from exploratory playgrounds into REAL app work — it integrates into flogence as the native text editor + kb-nav platform, with human beta testers imminent. User decision: stand the PA-continuity system up NOW, pre-surge ("full proactive build"), not migrate peri-surge.**
 
-### p10 §36 input-state → canonical animationFrame bridge (R26)
+### Track A — pre-surge readiness
+
+**p10 §36 input-state → canonical animationFrame bridge (R26):**
 - Found uncommitted in-flight p10 work (the §36 `@cell` bridge) carrying two "to-be-filed" compiler bugs against scrml `8c27805e`: **AG** (`animationFrame` fails scope-resolution, E-SCOPE-001) + **AH** (§36 device registration only emitted from markup `<#id>` reads, not timer/logic bodies).
 - **R26-verified both against current `dd5331e2`: NOT-REPRODUCED** — minimal + full repros compile clean, emit `animationFrame` + `_scrml_input_mouse_create` from the loop body. Fixed upstream; never filed (saved two false bug reports).
 - Converted p10's §36 panel from the `<timer>`+forced-markup-read workaround to the **canonical §36.6 `animationFrame` loop**; dropped the stale bug comments. **19/19 smoke**, reactive readout confirmed (`x 0→123`). Commit `3ee4bc5`.
 
-### vPA deputy ADOPTED + flogence channel (commit `f44093a`)
+**vPA deputy ADOPTED + flogence channel (commit `f44093a`):**
 - **`vpa.md`** — 6nz deputy contract, scaled from `../scrml-support/vpa-scrml.md` (6nz lacks scrml's state.ts/flograph/dock/@gap machinery → thinner surface). **4 functions:** disjoint-surface maintenance (maps/changelog/digest), digest curation, reboot-gap bridge, **+ F4 autonomous flogence inbox intake** (the 6nz-specific one). Load-bearing constraint + commit/surface-partition model identical to scrml's.
 - **F4 autonomy = "bounded auto-act, unattended"** (user-ratified): the deputy auto-intakes `from: flogence` status/FYI/version/bug-report (files bugs to `handOffs/flogence-intake.md`, **never triages**), surfaces design/scope/live-build/ambiguous + all non-flogence senders. The deputy FILES; the PA TRIAGES.
 - **`pa.md`** — flogence outbox target; the autonomy policy; the PA-side deputy addendum (digest freshness-guard, delta-log single-writer, `git merge deputy-maint` integration, surface partition, wrap-time digest regen, F4 promotion); session-start step 0.
 - **Seams:** `handOffs/{delta-log,deputy-state,flogence-intake,digest}.md` + `scripts/state.ts` (`--digest`/`--check`, dependency-free, bun-runnable).
-- **Maps:** cold refresh dispatched to project-mapper (worktree-isolated; landing pending).
 - **Memory:** project direction recorded (`6nz-to-flogence-and-vpa-adoption`).
+
+### Track B — housekeeping + dogfood-confirmation (parallel instance, merged in)
+
+**Currency sweep (from the non-compliance report):**
+- `README.md` — dead `../scrmlTS` link → `../scrml`; status → exploratory phase (11 playgrounds); added `src/`.
+- `editor-README.md` — "Five playgrounds" → eleven; `scrmlTS`→`scrml`; p0–p4 list → p0–p10 + master-list pointer.
+- `master-list.md §A` — `default-bindings.md` "v0.3 planned" → "v0.3 done S10".
+- p6/p8 source — user-visible "scrmlTS LSP" strings/comments → "scrml" (compile-verified).
+
+**Bug-AB loop closed (R26-verified):** processed the last unread inbox message (`2026-05-30 bug-ab-fixed`); **re-ran p10 harness against compiler `d299798`: 19/19**, both AB guards green. Archived the message.
+
+**Engine `name=` / Bug-AE confirmation re-test (vs `d299798`):** all four `<engine name=ModeMachine for=Mode>` playgrounds confirmed (newer than the `80f2c190` baseline + AE fix `faa213c5`): **p5 18/18, p7 17/17** harnessed, **p1/p2 compile clean**, no `E-ENGINE-001-RT`. §36/AF non-reactivity matches the by-design ruling. **Net: no open 6nz-filed bug against `d299798`** except L/T/U (M6-deferred).
+
+**Source-currency corrections (user audit):**
+- **Corrected the "scrml has no source-level import" claim** (was wrong in the maps + master-list §G). scrml HAS an Import System (SPEC §21/§41): stdlib `scrml:NAME`, relative `./f.js`, `vendor:`, and **cross-file scrml component/engine splitting** (tutorial §3.3 + :551). What it lacks is npm/bare-specifier imports (`E-IMPORT-005`). Load-bearing for integration — playgrounds *can* compose across files.
+- **Noted kickstarter v2** (`scrml/docs/articles/llm-kickstarter-v2-2026-05-04.md`) supersedes our frozen v0/v1 local records.
+
+**Cross-repo:** out to scrml `2026-06-22-0804-...bug-ab-confirmed-plus-engine-name-retest` (fyi); out to master (needs:push). **Discussed (no code):** playground-eleven sketch — first cross-file `<EngineName/>` composition (mode engine + z-motion classifier + CM6 buffer + relevance panel across multiple `.scrml`).
+
+### Reconciliation (merge)
+- Merged `origin/main` (the parallel instance's 4 commits `944d360`/`9682771`/`f0c9854`/`1bb8cbb`) into local. Kept BOTH sides — Track A's deputy/flogence/p10 + Track B's currency sweep + dogfood confirmations. `.claude/maps/` re-run cold post-merge for the union state. The two S15 narratives folded into this block. The fork recurred because session-start ran no coherence check — flagged for a `pa.md` fix.
 
 ---
 

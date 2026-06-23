@@ -4,20 +4,20 @@
 // more LSP surfaces:
 //
 //   - textDocument/completion — fired on trigger chars (< @ $ ? ^ # . : =
-//     space) per scrmlTS S40 LSP capabilities. Results render in CM6's
+//     space) per scrml S40 LSP capabilities. Results render in CM6's
 //     native autocomplete UI via @codemirror/autocomplete.
 //
 //   - textDocument/hover — fired on hover. Tooltip body comes from the
 //     LSP Hover response and shows above the symbol. The L2 hover-with-
 //     signatures surface (S40) supplies the meat.
 //
-// This is the dogfood vehicle for scrmlTS's L1-L4 LSP arc. Diagnostics
+// This is the dogfood vehicle for scrml's L1-L4 LSP arc. Diagnostics
 // already shipped + verified in p6; completion + hover are exercised
 // here for the first time end-to-end.
 //
 // Wire (same as p6):
 //
-//   browser <-- WebSocket --> bridge.js <-- stdio --> scrmlTS LSP
+//   browser <-- WebSocket --> bridge.js <-- stdio --> scrml LSP
 //
 // Requires bridge running: bun src/playground-eight/bridge.js
 // Then: scrml dev src/playground-eight/app.scrml
@@ -356,7 +356,7 @@ function loadCm() {
 
 <div class="app">
     <h1>playground-eight — completion + hover on LSP-wired CM6</>
-    <p class="subtitle">CodeMirror 6 + WebSocket bridge to scrmlTS LSP. Diagnostics (from p6) + completion + hover.</>
+    <p class="subtitle">CodeMirror 6 + WebSocket bridge to scrml LSP. Diagnostics (from p6) + completion + hover.</>
 
     <div class="panel status">
         <div class="row"><span class="slabel">CM6 status:</><span class="value">${@cmStatus}</></>
