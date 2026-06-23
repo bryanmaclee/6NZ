@@ -212,7 +212,7 @@ when work is needed there. Cross-repo coordination happens through the user, not
 - Only append user statements relevant to **this repo**; if a statement concerns a sibling repo, drop a message into their `handOffs/incoming/` instead
 
 ### Commit authorization
-Commits to main are allowed only after explicit user authorization in the current session. Confirm with the user before the first commit of a session, and before any push. Authorization stands for the scope specified, not beyond. Push-to-origin still goes through master-PA push coordination. Force-push / hook bypass / destructive ops stay explicitly-authorized-only.
+Commits to main are allowed only after explicit user authorization in the current session. Confirm with the user before the first commit of a session, and before any push. Authorization stands for the scope specified, not beyond. **Push-to-origin is done DIRECTLY by this PA after explicit user authorization (S15: master no longer orchestrates pushes).** Force-push / hook bypass / destructive ops stay explicitly-authorized-only.
 
 ### What NOT to do
 - Do not edit files in other repos (the user will open a different Claude instance). The single exception is dropping message files into `<sibling>/handOffs/incoming/` — see Cross-repo messaging below.
@@ -302,12 +302,16 @@ When this PA needs to tell another project something (compiler API need, z-motio
 2. Write the message file directly into the target's `handOffs/incoming/` (absolute path above)
 3. Log the send in this repo's `hand-off.md` so there's a local trail
 
-### Push coordination via master
+### Pushing (DIRECT — S15+; master no longer orchestrates pushes)
 
-When this repo is at a push point (especially if you sent messages to other repos):
-1. Send a `needs: push` message to master (`/home/bryan-maclee/scrmlMaster/handOffs/incoming/`)
-2. List which repos are affected (this repo + any repos you dropped messages into)
-3. The master PA will verify all affected repos are clean and push them together
+This PA pushes its OWN repo directly to origin after explicit user authorization. There is no master
+push round-trip. At a push point:
+1. **Coherence check** (the same one that's now session-start step 0): `git fetch origin` +
+   `git rev-list --left-right --count origin/main...HEAD`. A non-zero **LEFT** count means origin diverged
+   (a parallel instance) — **reconcile (merge origin in) BEFORE pushing; never force-push over it.**
+2. Confirm the branch tip is the SHA you intend, then `git push origin main`.
+3. If you dropped messages into sibling repos' inboxes, that's each sibling PA's concern — they push their
+   own repo. You are responsible only for pushing 6nz.
 
 ### Agent authoring (no central store)
 
