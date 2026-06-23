@@ -68,7 +68,8 @@ Both branched off the S14 tip `d2e9667`. Neither knew of the other (the S14 fork
 | Deputy | ADOPTED, stood up, **never booted** (OQ-4). |
 | Maps | Track B's landed via merge; **re-run for union pending** (OQ-2). |
 | Currency debt | **largely CLEARED by Track B** (README/editor-README/p6/p8). |
-| Inbox | 2 unread (idiomatic-audit needs:action + gap-triage fyi); Track B archived bug-ab-fixed. |
+| Inbox | **1 unread** (idiomatic-audit needs:action, tracked in incoming/); gap-triage fyi absorbed → read/. |
+| Wrap | **COMPLETE (S15)** — hand-off · master-list · changelog · inbox · maps · worktree-cleanup · push · user-voice all done. Test: sanity compiles green (p10 19/19, p6/p8 clean); no full 11-smoke (no other source changed). |
 | Bugs | AA OPEN. AG/AH NOT-REPRODUCED (never filed). AB/AD/AE resolved+confirmed. AF by-design. L/T/U M6-deferred. |
 | scrml build | Track A dogfooded `dd5331e2`; Track B `d299798`. Reconcile to one for next dogfood. |
 | Cross-repo pending | master needs:push (supersede Track B's half with merged tip); scrml got a Track B fyi. |
