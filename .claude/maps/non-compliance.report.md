@@ -1,27 +1,41 @@
 # non-compliance.report.md
 # project: editor (6nz)
-# generated: 2026-06-22T00:00:00Z
-# scan mode: FULL_COLD_START (S15 cold refresh — replaces stale 2026-04-27 maps)
+# generated: 2026-06-23T00:00:00Z
+# scan mode: INCREMENTAL_UPDATE (S15 deputy/flogence additions; base: FULL_COLD_START 2026-06-22)
 
 ## Summary
 
-Total docs scanned: 17
-Compliant: 10
+Total docs scanned: 18
+Compliant: 11
 Non-compliant: 5
 Uncertain: 2
 
 Docs scanned (excluding `handOffs/`, `.claude/`, `node_modules/`, `dist/`):
 `editor-README.md`, `editor-architecture.md`, `master-list.md`, `pa.md`, `README.md`,
-`user-voice.md`, `hand-off.md`, `docs/changelog.md`,
+`user-voice.md`, `hand-off.md`, `docs/changelog.md`, `vpa.md`,
 `z-motion-spec/SPEC.md`, `z-motion-spec/README.md`, `z-motion-spec/default-bindings.md`,
 `z-motion-spec/LICENSE` (not a doc — skipped),
 `proto/README.md`, `proto/6nz-playable/README.md`,
 `src/playground-zero/README.md`, `src/playground-one/README.md`,
 `LICENSE.md`
 
+Note: `handOffs/incoming/` messages (2 untracked files as of S15) are out of scope —
+`handOffs/` is excluded per mapper scope rules.
+
 ---
 
-## Non-compliant docs
+## New additions (S15 incremental scan — all compliant)
+
+### vpa.md — COMPLIANT
+
+Current-truth contract for the vPA deputy system adopted S15. All referenced files exist:
+`scripts/state.ts`, `handOffs/delta-log.md`, `handOffs/deputy-state.md`,
+`handOffs/flogence-intake.md`, `handOffs/digest.md`, `master-list.md`, `docs/changelog.md`,
+`.claude/maps/`, `pa.md`. No aspirational or stale content. Compliant.
+
+---
+
+## Non-compliant docs (carried from FULL_COLD_START — no change to findings)
 
 ### README.md
 

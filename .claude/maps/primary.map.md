@@ -1,28 +1,28 @@
 # primary.map.md
 # project: editor (6nz)
-# updated: 2026-06-22T00:00:00Z  commit: d2e9667
+# updated: 2026-06-23T00:00:00Z  commit: 358aca4
 
 ## Project Fingerprint
 
-Language:   scrml (all playground source) + vanilla JS (bridge.js, test.js harnesses, proto/)
+Language:   scrml (all playground source) + vanilla JS (bridge.js, test.js harnesses, proto/) + TypeScript (scripts/state.ts — bun-runnable, no emit)
 Framework:  CodeMirror 6 (architectural target; mounted in p3/p5/p6/p7/p8 via esm.sh bridge)
-Runtime:    Browser (scrml dev server for playgrounds; GitHub Pages for proto)
+Runtime:    Browser (scrml dev server for playgrounds; GitHub Pages for proto) + Bun (scripts/state.ts maintenance tool)
 Compiler:   scrml v0.7.0 (`80f2c190`) at `../scrml/`; newer fixes at `14fb0230`/`faa213c5` (not yet re-baselined)
 Type:       purpose-built code editor — exploratory implementation phase (11 playgrounds; no editor shell yet)
-Size:       ~97 source files (excl. node_modules, dist, .git)
+Size:       ~110 source files (excl. node_modules, dist, .git)
 
 ## Map Index
 
 | Map                  | Status  | Contents                                                        |
 |----------------------|---------|-----------------------------------------------------------------|
-| structure.map.md     | present | directory layout, 12 entry points (per-playground + bridges)   |
-| dependencies.map.md  | present | root: @playwright/test; runtime: CM6 via CDN; internal lineage  |
+| structure.map.md     | present | directory layout, 12 entry points, scripts/ + vpa.md + handOff seams |
+| dependencies.map.md  | present | root: @playwright/test; scripts/state.ts bun tool (no deps); CM6 CDN |
 | schema.map.md        | present | 5 scrml enum types, 5 reactive state shapes from playgrounds    |
 | config.map.md        | present | 2 env vars (PORT, SCRML_DIR) in bridge.js; package.json stub    |
-| build.map.md         | present | per-playground scrml dev commands; CI pipeline; test.js pattern |
+| build.map.md         | present | per-playground scrml dev commands; vPA deputy bun commands; CI  |
 | error.map.md         | present | inline status-string pattern; compiler bug ledger (AA open)     |
 | test.map.md          | present | Puppeteer; 6 test.js harnesses (p5/p6/p7/p8/p9/p10); 103 total |
-| infra.map.md         | present | GitHub Pages (proto only); no server deployment                 |
+| infra.map.md         | present | GitHub Pages (proto only); vPA deputy system; cross-repo table  |
 | api.map.md           | absent  | no routes or API surface                                        |
 | state.map.md         | absent  | no centralized store (@reactives are per-playground only)       |
 | events.map.md        | absent  | no event bus (DOM events only)                                  |
@@ -38,11 +38,13 @@ Size:       ~97 source files (excl. node_modules, dist, .git)
 types / scrml enum types / reactive shapes    → schema.map.md
 environment variables / config keys           → config.map.md
 test patterns / smoke harnesses               → test.map.md
-build commands / CI stages                    → build.map.md
+build commands / CI stages / bun maintenance  → build.map.md
 directory layout / entry points               → structure.map.md
-external packages / CDN libraries             → dependencies.map.md
+external packages / CDN libraries / bun tools → dependencies.map.md
 error types / compiler bug ledger             → error.map.md
-deployment / CI/CD / infra                    → infra.map.md
+deployment / CI/CD / infra / vPA deputy       → infra.map.md
+vPA deputy contract + functions               → infra.map.md (also: read vpa.md directly)
+flogence channel / intake queue               → infra.map.md § Cross-repo Correspondents
 
 ## Task-Shape Routing
 
@@ -79,6 +81,17 @@ deployment / CI/CD / infra                    → infra.map.md
 2. Read `z-motion-spec/SPEC.md` v0.5 directly
 3. Check `non-compliance.report.md` — z-motion-spec/README.md is stale
 
+**vPA deputy boot / maintenance:**
+1. Read `vpa.md` (the contract) directly
+2. `infra.map.md` — surface partition, communication files, worktree model
+3. `build.map.md` — bun scripts/state.ts --digest / --check commands
+4. `structure.map.md` — handOffs/ seam file layout
+
+**Flogence integration / intake:**
+1. `infra.map.md` § Cross-repo Correspondents + § vPA Deputy System / F4
+2. `structure.map.md` — handOffs/incoming/ and flogence-intake.md location
+3. Read `vpa.md` § F4 directly for the exact F4 boundary
+
 **Don't know which (open-ended task brief from user):**
 1. Read `primary.map.md` (this file) in full
 2. Read **Task-Shape Routing** above and self-classify
@@ -110,12 +123,19 @@ diagnose whether the wrong maps were named OR the map granularity is wrong.
   go-to-def, diagnostics, signature help, code actions. In-process browser API still pending.
 - **AF ruling (§36.6 by-design)**: `${<#id>.field}` markup interp is render-once, not reactive.
   Live editor chrome readout requires `@cell` bridge (animationFrame loop → write @cell → interpolate cell).
+  p10 was rewritten to the canonical animationFrame `@cell` bridge in S15.
+- **vPA deputy adopted S15 (2026-06-22).** Contract: `vpa.md` (root). Tool: `bun scripts/state.ts --digest|--check`.
+  Deputy runs on `deputy-maint` branch in sibling worktree `../6nz-deputy-maint`. Communication surfaces:
+  `handOffs/{delta-log,deputy-state,flogence-intake,digest}.md`. PA integrates via `git merge deputy-maint`.
+- **flogence is a new cross-repo correspondent** (`../flogence/`). 6nz is becoming its native editor
+  + kb-nav platform. Flogence beta testers imminent. Inbound messages via `handOffs/incoming/`; deputy
+  auto-intakes bounded flogence messages (F4) unattended between sessions.
 - **`proto/6nz-playable/`** is a vanilla-JS prototype deployed to GitHub Pages — NOT the real
   editor architecture. Input model is real; rendering architecture is not.
 - **Two licensing zones**: `z-motion-spec/` is CC0 open source; all other 6nz code and docs are proprietary.
 
 ## Tags
-#editor #6nz #map #primary #scrml #playgrounds #z-motion #exploratory-implementation
+#editor #6nz #map #primary #scrml #playgrounds #z-motion #exploratory-implementation #vpa-deputy #flogence
 
 ## Links
 - [structure.map.md](./structure.map.md)

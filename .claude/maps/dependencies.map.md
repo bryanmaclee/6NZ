@@ -1,6 +1,6 @@
 # dependencies.map.md
 # project: editor (6nz)
-# updated: 2026-06-22T00:00:00Z  commit: d2e9667
+# updated: 2026-06-23T00:00:00Z  commit: 358aca4
 
 ## Runtime Dependencies
 
@@ -18,6 +18,18 @@ catch { puppeteer = require("puppeteer-core"); }
 ```
 No Puppeteer in root `package.json` — test.js files resolve it from the playground's own `node_modules`
 or the system. The p5/p6/p7/p8/p9/p10 test harnesses follow this pattern.
+
+## Maintenance Tool Dependencies (scripts/)
+
+`scripts/state.ts` — bun-runnable, **no npm deps**. Uses Node/Bun built-in modules only:
+
+| Module | Usage |
+|---|---|
+| `node:child_process` (`execSync`) | `git rev-parse --short HEAD`, `git -C ../scrml rev-parse --short HEAD` |
+| `node:fs` (`readdirSync`, `readFileSync`, `statSync`, `existsSync`, `writeFileSync`) | Walk src/, read changelog.md, read flogence-intake.md, write digest.md |
+| `node:path` (`join`, `resolve`) | Resolve ROOT = repo root (`import.meta.dir + /..`) |
+
+Run with `bun scripts/state.ts --digest` or `bun scripts/state.ts --check`. No bun lockfile or `bun.lockb` — the script is dependency-free.
 
 ## External Runtime Dependencies (per-playground, loaded via CDN at runtime)
 
@@ -47,7 +59,7 @@ playground-three (CM6 probe)    ──→ playground-five, -six, -seven, -eight
 playground-six   (LSP wire)     ──→ playground-eight (+ completion + hover)
 playground-four  (undo tree)    ─── standalone
 playground-nine  (editor IR)    ─── standalone (first non-CM6 playground)
-playground-ten   (relevance nav) ── standalone (§36 input-state; rebuilt S14)
+playground-ten   (relevance nav) ── standalone (§36 input-state; canonical animationFrame @cell bridge S15)
 ```
 
 ## External JS Integration Pattern
@@ -61,9 +73,10 @@ See `master-list.md §G` for full constraint list. `scrml vendor add` CLI (plann
 eventually provide a cleaner path.
 
 ## Tags
-#editor #6nz #map #dependencies #scrml #codemirror #playwright
+#editor #6nz #map #dependencies #scrml #codemirror #playwright #bun
 
 ## Links
 - [primary.map.md](./primary.map.md)
+- [build.map.md](./build.map.md)
 - [master-list.md](../../master-list.md)
 - [pa.md](../../pa.md)

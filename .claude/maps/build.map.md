@@ -1,6 +1,6 @@
 # build.map.md
 # project: editor (6nz)
-# updated: 2026-06-22T00:00:00Z  commit: d2e9667
+# updated: 2026-06-23T00:00:00Z  commit: 358aca4
 
 ## Development Commands
 
@@ -36,6 +36,21 @@ node src/playground-nine/test.js    p9: 13/13 smoke checks
 node src/playground-ten/test.js     p10: 19/19 smoke checks
 ```
 
+## vPA Deputy Maintenance Commands  [`scripts/state.ts`]
+
+```
+bun scripts/state.ts --digest   (re)write handOffs/digest.md — session-start digest
+bun scripts/state.ts --check    print "current" | "STALE" — PA session-start freshness guard
+```
+
+- `--digest` projects: HEAD SHA, dogfood scrml SHA, playground inventory, maps staleness, recent
+  changelog sessions, flogence intake count. Writes to `handOffs/digest.md`.
+- `--check` compares mtime of digest vs source set (src/, .claude/maps/, changelog.md,
+  master-list.md, delta-log.md, flogence-intake.md, hand-off.md). Reports `STALE` if any source is
+  newer than the digest.
+- No deps — bun built-ins only. Run at start of each deputy tick and by PA at wrap-time when no
+  deputy is up.
+
 ## Build & Release
 
 No root-level build tooling. No Makefile, no bundler config.
@@ -59,10 +74,11 @@ Live URL: `https://bryanmaclee.github.io/6NZ/`
 No Dockerfile, no docker-compose.
 
 ## Tags
-#editor #6nz #map #build #ci #github-pages #scrml #playwright #puppeteer
+#editor #6nz #map #build #ci #github-pages #scrml #playwright #puppeteer #bun #vpa-deputy
 
 ## Links
 - [primary.map.md](./primary.map.md)
 - [infra.map.md](./infra.map.md)
+- [dependencies.map.md](./dependencies.map.md)
 - [master-list.md](../../master-list.md)
 - [pa.md](../../pa.md)

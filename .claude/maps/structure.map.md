@@ -1,6 +1,6 @@
 # structure.map.md
 # project: editor (6nz)
-# updated: 2026-06-22T00:00:00Z  commit: d2e9667
+# updated: 2026-06-23T00:00:00Z  commit: 358aca4
 
 ## Entry Points
 
@@ -37,6 +37,9 @@ No unified entry point. Each playground is an independent scrml program:
 │   ├── playground-eight/      LSP completion + hover on CM6        — app.scrml, bridge.js, test.js
 │   ├── playground-nine/       editor IR + logical traversal        — app.scrml, test.js
 │   └── playground-ten/        relevance-region navigator + §36     — app.scrml, test.js
+├── scripts/                   repo maintenance scripts (bun-runnable; no npm deps)
+│   └── state.ts               vPA deputy digest generator: --digest writes handOffs/digest.md,
+│                                --check prints current|STALE (staleness guard for PA session-start)
 ├── proto/                     non-scrml prototypes (vanilla JS; scrml-only rule waived here)
 │   ├── 6nz-playable/          playable prototype, 62 scenarios, deployed to GitHub Pages
 │   └── z-motion-feel/         throwaway z-motion feel-test
@@ -51,11 +54,16 @@ No unified entry point. Each playground is an independent scrml program:
 │   └── pages.yml              deploys proto/6nz-playable/ to GitHub Pages on push to main
 ├── handOffs/                  session rotation archive + cross-repo messaging dropbox
 │   ├── hand-off-{1-14}.md     rotated session records (out of scope for mapping)
-│   └── incoming/              unread cross-repo messages; read/ subdir is archive
+│   ├── incoming/              unread cross-repo messages; read/ subdir is archive
+│   ├── delta-log.md           PA→deputy state stream (PA single-writer; deputy reads each tick)
+│   ├── deputy-state.md        deputy's durable re-hydration anchor (last-absorbed seq, heartbeat)
+│   ├── flogence-intake.md     F4 intake queue — deputy files flogence bugs; PA triages → §F
+│   └── digest.md              @generated session-start digest (regen via bun scripts/state.ts --digest)
+├── vpa.md                     vPA (vice primary agent) deputy contract — 4 functions incl. F4 flogence intake
 ├── editor-README.md           locked high-level design principles
 ├── editor-architecture.md     detailed architecture reasoning for 6 locked concepts (last updated S5 2026-04-12)
-├── master-list.md             live inventory, locked decisions, bug ledger (last updated S14 2026-06-20)
-├── pa.md                      per-repo PA directives + session workflow
+├── master-list.md             live inventory, locked decisions, bug ledger (last updated S15 2026-06-22)
+├── pa.md                      per-repo PA directives + session workflow (incl. S15 addendum — vPA deputy)
 ├── hand-off.md                current session state (S15)
 ├── user-voice.md              per-repo verbatim user log (append-only)
 ├── package.json               stub: name="editor", version="0.1.0", devDep: @playwright/test@1.60.0
@@ -71,13 +79,20 @@ No unified entry point. Each playground is an independent scrml program:
 - **Compiler is sibling repo.** `../scrml/` (renamed from `scrmlTS` at S200). Current version
   dogfooded: v0.7.0 (`80f2c190`); fixes AD/AE at `14fb0230`/`faa213c5` are newer than baseline.
 - **Two licensing zones.** `z-motion-spec/` is CC0 open source. All else is proprietary.
+- **vPA deputy adopted S15.** `vpa.md` (root) is the deputy contract. `scripts/state.ts` is its
+  digest-generator tool. The `handOffs/` seam files (`delta-log.md`, `deputy-state.md`,
+  `flogence-intake.md`, `digest.md`) form the PA↔deputy communication surface.
+- **flogence cross-repo channel.** 6nz is becoming the native editor + kb-nav platform for the
+  `flogence` project (`../flogence/`). Inbound flogence messages arrive via `handOffs/incoming/`;
+  deputy auto-intakes bounded flogence messages (F4) unattended.
 
 ## Ignored / Generated Paths
 
-`node_modules/`, `dist/` (per-playground compiled output), `.git/`, `.claude/`, `handOffs/`
+`node_modules/`, `dist/` (per-playground compiled output), `.git/`, `.claude/`, `handOffs/` (session
+archives and historical hand-offs), `handOffs/incoming/read/` (archived cross-repo messages)
 
 ## Tags
-#editor #6nz #map #structure #playgrounds #scrml
+#editor #6nz #map #structure #playgrounds #scrml #vpa-deputy #flogence
 
 ## Links
 - [primary.map.md](./primary.map.md)
