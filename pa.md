@@ -180,7 +180,13 @@ when work is needed there. Cross-repo coordination happens through the user, not
 - Other project repos (scrml-support, giti, and scrml beyond read-only language reference) — **except** writing message files into their `handOffs/incoming/` (see Cross-repo messaging below)
 
 ### Session-start checklist (this repo only)
-0. **(deputy era, S15+)** Read `handOffs/digest.md` IFF `bun scripts/state.ts --check` reports `current` (else DISTRUST + read cold); read `handOffs/deputy-state.md` (ACK + heartbeat — did your `(vpa:)` casts land? how current is the deputy?); drain `handOffs/flogence-intake.md` (queued flogence bugs → triage per R26 → promote real ones to `master-list.md §F`, strike the line). See "S15 addendum — vPA deputy (PA side)".
+0. **COHERENCE CHECK FIRST (S15+ — non-negotiable).** Before anything else: `git fetch origin` then
+   `git rev-list --left-right --count origin/main...HEAD`. **A non-zero LEFT count means origin has commits
+   you don't — a parallel instance ran (the S14 + S15 fork hazard).** STOP and reconcile (merge origin in,
+   keep both, resolve conflicts) BEFORE doing any new work — do NOT build on a diverged base. A non-zero
+   RIGHT count alone is just unpushed local work. (This check existed only at wrap-time, which is why the
+   fork went unnoticed until close TWICE — S14 and S15. It belongs at the START.)
+0b. **(deputy era, S15+)** Read `handOffs/digest.md` IFF `bun scripts/state.ts --check` reports `current` (else DISTRUST + read cold); read `handOffs/deputy-state.md` (ACK + heartbeat — did your `(vpa:)` casts land? how current is the deputy?); drain `handOffs/flogence-intake.md` (queued flogence bugs → triage per R26 → promote real ones to `master-list.md §F`, strike the line). See "S15 addendum — vPA deputy (PA side)".
 1. Read `pa.md` (this file)
 2. Read `hand-off.md`
 3. List `handOffs/incoming/*.md` (ignore `read/` subdir); if any exist, surface to user
