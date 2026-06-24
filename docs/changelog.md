@@ -4,6 +4,29 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
+## Session 16 — 2026-06-23 — idiomatic-audit rewrite EXECUTED (all tiers) + pushed; 3 new codegen findings to scrml
+
+**Executed scrml's 2026-06-20 per-repo idiomatic-rewrite directive (the inbox `needs:action` item). All 4 tiers landed + pushed to origin (`721660a`). Verified green: 83/83 runtime smoke (p5/6/7/8/9/10) + p0–p4 probe-green. The scrml compiler moved 4× during the session (`a2137214`→`96745d34`→`346b4357`→`7c01b22a`); everything re-verified on the latest.**
+
+### Pre-flight (R26 gates) — cleared
+- Baseline 11/11 compile-clean + node --check on current main. Bug V FIXED (class:-on-for-lift re-evaluates). Gaps #2/#3/#4/#5 NOT-REPRODUCED (emit-inspected) → stale workaround comments removed.
+
+### The rewrite
+- **Tier 0 `42ac2d0` — `<each>` sweep, 0/11 → 6/11.** p0/p1 event+transition logs (`${for…lift}`→`<each in=@log key=__index__>`+`<empty>`); p10 region list (`<each in=@regions as r key=@.id>`, `class:focused`/`style:opacity` preserved, 19/19 incl. insert/remove churn); p9 `treeText` accumulator → per-line `<each in=@visible>` + reactive `class:cursor` (13/13); p6 `describeDiagnostics` → `<ul>/<each>/<li>` (7/7); p4 `renderTree` → `treeRowsOf` flatten + derived `<treeRows>` + `<each>`.
+- **Tier 1 `5760de6` — render-per-state → `<match for=Mode on=@mode>`.** p1/p2/p5/p7 mode badges; all `const <isX>` derived-booleans deleted; p2 cursor `class:` bindings inlined to `(@mode == Mode.X)`.
+- **Tier 2 `25a63d2` — async string-flag → typed state.** p6/p8 `@lspStatus` → `<engine for=LspPhase>` (7/7, 9/9); p3 `@status`/`@error` → typed cell `<cmPhase>: CmPhase`; p4 `@mode` string → `enum`+state-child `<engine>` + `<match>` badge. Status strings now pure projections (lspLabel/cmLabel/modeName value-return match).
+- **Tier 3 `721660a` — polish.** p9 done in T0; p5/p7/p8 `@cmStatus`/`@diagSummary` ruled leave-as-is (host-bridge status strings).
+
+### Findings sent to scrml (`2026-06-23-1917`, needs:action)
+- Part A: gaps #2/#3/#4/#5 NOT-REPRODUCED (closure).
+- Part B (new codegen, w/ repros): **§4.17 `<pre>`/`<code>` raw-content silently drops `${...}`** (broke p4/p6 rendering on current main, info-lint only — fixed `<pre>`→`<div>`); **arrow-form `<engine>` (`.A => .B`) emits no initial-state set** (governed cell undefined at mount; state-child form `<A rule=.B/>` works — used for p4); **bare `.Variant` in a ternary value position → string literal**.
+
+### Notes
+- p0–p4 have no `test.js` (probe-only) — the §4.17 silent breakage in p4 went unnoticed because of this. Smoke-gap flagged for the real-app-work surge.
+- Push model: direct (S15), coherence-checked (`0 4` → fast-forward). Deputy never booted (digest STALE all session; maintenance by PA).
+
+---
+
 ## Session 15 — 2026-06-23 — pre-surge readiness (vPA deputy + flogence) + housekeeping/dogfood-confirm; reconciled a parallel fork
 
 **Two S15 instances ran in parallel off the S14 tip `d2e9667` and were reconciled by merge this session. Strategic inflection: 6nz moves from exploratory playgrounds into REAL app work — it integrates into flogence as the native text editor + kb-nav platform, with human beta testers imminent. User decision: stand the PA-continuity system up NOW, pre-surge ("full proactive build"), not migrate peri-surge.**
