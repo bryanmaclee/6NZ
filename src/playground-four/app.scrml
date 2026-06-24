@@ -67,9 +67,20 @@ ${
     ]
     @current = 0
     @nextId  = 1
-    @mode    = "insert"
     @__lastKey = ""
     @status  = "ready — type to edit, Esc for Normal, then u / Ctrl+R / g- / g+"
+
+    // Editor mode as a typed engine (mirrors p1/p2/p5/p7), replacing the prior
+    // @mode = "insert"/"normal" string-enum. The <engine> (in markup) governs
+    // @mode + enforces the Insert<->Normal edges; modeName projects to a label.
+    type Mode:enum = { Insert, Normal }
+
+    function modeName(m: Mode) {
+        return match m {
+            .Insert :> "insert"
+            .Normal :> "normal"
+        }
+    }
 
     // --- Pure helpers --------------------------------------------------
     //
@@ -328,12 +339,12 @@ ${
         @__lastKey = e.key
 
         if (e.key == "Escape") {
-            @mode = @mode == "insert" ? "normal" : "insert"
-            @status = "-> " + @mode
+            if (@mode == Mode.Insert) { @mode = .Normal } else { @mode = .Insert }
+            @status = "-> " + modeName(@mode)
             return
         }
 
-        if (@mode == "insert") {
+        if (@mode == Mode.Insert) {
             if (e.key == "Backspace") {
                 commit(EditKind.Backspace, "", applyBackspace())
                 @status = "insert: backspace"
@@ -361,7 +372,7 @@ ${
         if (e.key == "l") { motionRight(); @status = "l"; return }
         if (e.key == "j") { motionDown(); @status  = "j"; return }
         if (e.key == "k") { motionUp(); @status    = "k"; return }
-        if (e.key == "i") { @mode = "insert"; @status = "-> insert"; return }
+        if (e.key == "i") { @mode = .Insert; @status = "-> insert"; return }
         @status = "normal: ignored " + e.key
     }
 
@@ -372,21 +383,27 @@ ${
         }]
         @current = 0
         @nextId  = 1
-        @mode    = "insert"
+        @mode    = .Insert
         @status  = "reset"
     }
 
-    const <isInsert> = @mode == "insert"
     const <treeRows> = treeRowsOf(@nodes, @current)
 }
+
+<engine for=Mode initial=.Insert>
+    <Insert rule=.Normal/>
+    <Normal rule=.Insert/>
+</engine>
 
 <div class="app">
     <h1>playground-four — undo tree</>
     <p class="subtitle">keystroke-granular tree. u / Ctrl+R walk branches. g- / g+ walk chronology.</>
 
     <div class="mode-wrap">
-        <span class="badge insert" if=@isInsert>INSERT</>
-        <span class="badge normal" if=(@mode == "normal")>NORMAL</>
+        <match for=Mode on=@mode>
+            <Insert><span class="badge insert">INSERT</></>
+            <Normal><span class="badge normal">NORMAL</></>
+        </match>
     </>
 
     <div

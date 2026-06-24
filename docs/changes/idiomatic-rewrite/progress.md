@@ -39,3 +39,17 @@ Replaced `const <isX>` derived-booleans + `if=`-per-badge with `<match for=Mode 
 - **p2** (3 modes): badge → `<match>`; booleans ALSO fed the cursor `class:` bindings (L347) → inlined those to `(@mode == Mode.X)`; booleans deleted. ALSO removed stale gap #2/#3/#4 comments (all NOT-REPRODUCED). probe: badge + cursor-class track (block-cursor→insert-cursor).
 - p4 NOT done here — its `@mode` is a string `"insert"/"normal"`; folds into Tier 1 AFTER Tier-2 enum+engine promotion.
 Verified @ scrml 346b4357 (compiler bumped a2137214→96745d34→346b4357 over the session). All 11 compile clean; p5/p7 smokes green.
+
+## Tier 2 — async-lifecycle string-flag → engine/typed-cell — COMPLETE (4/4)
+User ruling (S16): engine where smoke-backed, typed-cell where not.
+- **p6** `@lspStatus` 6-string-flag → `<engine for=LspPhase initial=.Disconnected>` (Disconnected/Connecting/Initializing/Ready/Failed/Closed); transition rules mapped to the WS event flow; reads/writes converted; `lspLabel` projects the phase to the display string; diagnostics gating via `@lspPhase == LspPhase.Ready`. **7/7**.
+- **p8** `@lspStatus` 5-string-flag → `<engine for=LspPhase initial=.Idle>` (Idle/WsOpen/Ready/WsError/WsClosed; onclose has no guard → WsError→WsClosed allowed); completion/hover gating via `@lspPhase != LspPhase.Ready`. **9/9**.
+- **p3** `@status`/`@error` CM6-load flag → typed enum cell `<cmPhase>: CmPhase = .Loading` (Loading/Ready/Failed) + `cmLabel` projection; `@error` kept for detail. (No smoke → typed-cell per ruling.) probe: status shows "CM6 loaded and mounted" after load.
+- **p4** `@mode` string "insert"/"normal" → `type Mode:enum {Insert,Normal}` + `<engine>` (state-child form) + `<match for=Mode on=@mode>` badge (folds in the deferred Tier-1) + `modeName` projection. probe: initial INSERT, type→buffer inserts, Esc→NORMAL, i→INSERT.
+
+### FINDING — arrow-form `<engine>` init emission is unreliable
+p4's `<engine for=Mode initial=.Insert>` with arrow transitions (`.Insert => .Normal`) compiled the OLD `__scrml_transitions_mode` path and emitted NO top-level `_scrml_reactive_set("mode", ...)` init — so `@mode` was undefined at mount, the `<match>` rendered empty, and keystrokes fell through to Normal-mode handling. Adding `name=` did NOT fix it (p1/p5/p7 use arrow+name= and DO emit the init — unexplained context difference). Switching to the STATE-CHILD form (`<Insert rule=.Normal/>`, p10's AE-safe canonical form) emitted the newer `__scrml_engine_mode_transitions` path WITH the init set → works. Also: bare `.Variant` literals in a ternary value position (`? .Normal : .Insert`) compiled to string literals; use if/else with direct `= .Variant`. → candidate notes to scrml. p1/p5/p7 left on arrow+name= (working, pre-existing; not churned).
+
+### Tier 2 status-string projections
+Engine/typed-state is the source of truth; the human-readable status strings are now pure projections (lspLabel/cmLabel/modeName value-return match). p5/p7 `@cmStatus` + p8 `@cmStatus`/`@diagSummary` left as host-bridge status strings (Tier-3 borderline; primary state already typed).
+Verified @ scrml 7c01b22a (compiler bumped 4× over the session). All 11 compile clean; p6 7/7, p8 9/9; p3/p4 probe-green.

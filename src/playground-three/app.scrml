@@ -16,8 +16,23 @@ ${
     @charCount = 0
     @lineCount = 0
     @docPreview = ""
-    @status = "loading CM6 from esm.sh..."
+
+    // CM6 load lifecycle as a typed enum cell (§13.5 RemoteData form), replacing
+    // the prior @status string flag (loading/loaded/failed): Loading → Ready |
+    // Failed. cmLabel projects the phase to the status string; @error carries the
+    // failure detail. (Typed cell, not <engine> — no smoke gates this file, so the
+    // lower-risk Tier-1 form per the S16 PA ruling.)
+    type CmPhase:enum = { Loading, Ready, Failed }
+    <cmPhase>: CmPhase = .Loading
     @error = ""
+
+    function cmLabel(p: CmPhase) {
+        return match p {
+            .Loading :> "loading CM6 from esm.sh..."
+            .Ready   :> "CM6 loaded and mounted"
+            .Failed  :> "load failed"
+        }
+    }
 
     function onDocUpdate(update) {
         if (update.docChanged || update.viewportChanged) {
@@ -30,7 +45,8 @@ ${
     function onCmReady(cm) {
         const host = document.querySelector(".cm-host")
         if (!host) {
-            @status = "error: .cm-host not found"
+            @cmPhase = .Failed
+            @error = "error: .cm-host not found"
             return
         }
         const nl = String.fromCharCode(10)
@@ -50,12 +66,12 @@ ${
         @charCount = view.state.doc.length
         @lineCount = view.state.doc.lines
         @docPreview = view.state.doc.toString().slice(0, 100)
-        @status = "CM6 loaded and mounted"
+        @cmPhase = .Ready
         window.__cm = view
     }
 
     function onCmError(e) {
-        @status = "load failed"
+        @cmPhase = .Failed
         @error = e.message ? e.message : String(e)
     }
 
@@ -92,7 +108,7 @@ ${
     <div class="panel status">
         <div class="row">
             <span class="slabel">CM6 status:</>
-            <span class="value">${@status}</>
+            <span class="value">${cmLabel(@cmPhase)}</>
         </>
         <div class="row">
             <span class="slabel">Characters:</>

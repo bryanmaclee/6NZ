@@ -47,7 +47,11 @@ function nextIdSeed() { return 0 }
 @lineCount   = 1
 @cmStatus    = "loading CM6 from esm.sh..."
 @cmError     = ""
-@lspStatus   = "idle"
+// LSP connection lifecycle as a typed engine (§51 / §13.5.0b), replacing the
+// prior @lspStatus string flag (idle/ws-open/ready/ws-error/ws-closed). The
+// <engine> (in markup) enforces legal transitions; lspLabel projects the phase
+// to the status string the panel shows.
+type LspPhase:enum = { Idle, WsOpen, Ready, WsError, WsClosed }
 @lspMsgsIn   = 0
 @lspMsgsOut  = 0
 @diagCount   = 0
@@ -178,12 +182,22 @@ function onLspMessage(text) {
     // Initialize response (id 1).
     if (msg.id == 1 && msg.result is some) {
         sendInitialized(window.__p8_ws)
-        @lspStatus = "ready"
+        @lspPhase = .Ready
         sendDidOpen(window.__p8_ws, window.__cm.state.doc.toString())
     }
 }
 
 // --- WebSocket lifecycle ------------------------------------------
+
+function lspLabel(p: LspPhase) {
+    return match p {
+        .Idle     :> "idle"
+        .WsOpen   :> "ws-open"
+        .Ready    :> "ready"
+        .WsError  :> "ws-error"
+        .WsClosed :> "ws-closed"
+    }
+}
 
 function connectLsp() {
     const ws = new window.WebSocket(lspWsUrl())
@@ -191,17 +205,17 @@ function connectLsp() {
     window.__p8_nextId = 2
     window.__p8_pending = {}
     ws.onopen = function () {
-        @lspStatus = "ws-open"
+        @lspPhase = .WsOpen
         sendInitialize(ws, 1)
     }
     ws.onmessage = function (ev) {
         onLspMessage(ev.data)
     }
     ws.onerror = function (e) {
-        @lspStatus = "ws-error"
+        @lspPhase = .WsError
     }
     ws.onclose = function () {
-        @lspStatus = "ws-closed"
+        @lspPhase = .WsClosed
     }
 }
 
@@ -232,7 +246,7 @@ function onCmReady(cm) {
     // ---- completion source (CM6 → LSP request → CompletionResult) ----
     const completionSource = function (context) {
         if (!window.__p8_ws) { return not }
-        if (@lspStatus != "ready") { return not }
+        if (@lspPhase != LspPhase.Ready) { return not }
         const pos = context.pos
         const doc = context.state.doc
         const line = doc.lineAt(pos)
@@ -272,7 +286,7 @@ function onCmReady(cm) {
     // ---- hover source (CM6 → LSP request → tooltip spec) ----
     const hoverSource = cm.hoverTooltip(function (view, pos, side) {
         if (!window.__p8_ws) { return not }
-        if (@lspStatus != "ready") { return not }
+        if (@lspPhase != LspPhase.Ready) { return not }
         const doc = view.state.doc
         const line = doc.lineAt(pos)
         const lspLine = line.number - 1
@@ -352,6 +366,13 @@ function loadCm() {
 
 }
 
+<engine for=LspPhase initial=.Idle>
+    .Idle    => .WsOpen | .WsError | .WsClosed
+    .WsOpen  => .Ready | .WsError | .WsClosed
+    .Ready   => .WsError | .WsClosed
+    .WsError => .WsClosed
+</>
+
 ^{ loadCm() }
 
 <div class="app">
@@ -360,7 +381,7 @@ function loadCm() {
 
     <div class="panel status">
         <div class="row"><span class="slabel">CM6 status:</><span class="value">${@cmStatus}</></>
-        <div class="row"><span class="slabel">LSP:</><span class="value">${@lspStatus}</></>
+        <div class="row"><span class="slabel">LSP:</><span class="value">${lspLabel(@lspPhase)}</></>
         <div class="row"><span class="slabel">Doc:</><span class="value">${@lineCount} lines, ${@docLength} chars (v${@docVersion})</></>
         <div class="row"><span class="slabel">LSP traffic:</><span class="value">in ${@lspMsgsIn} / out ${@lspMsgsOut}</></>
     </>

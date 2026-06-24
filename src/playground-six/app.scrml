@@ -21,9 +21,26 @@
 <program>
 
 ${
+    // LSP connection lifecycle modeled as a typed engine (§51 / §13.5.0b),
+    // replacing the prior @lspStatus string flag (disconnected/connecting/
+    // init-sent/ready/error/closed — which allowed impossible states). The
+    // <engine> in the markup below enforces legal transitions; lspLabel
+    // projects the phase to the display string the status panel shows.
+    type LspPhase:enum = { Disconnected, Connecting, Initializing, Ready, Failed, Closed }
+
+    function lspLabel(p: LspPhase) {
+        return match p {
+            .Disconnected :> "disconnected"
+            .Connecting   :> "connecting"
+            .Initializing :> "init-sent"
+            .Ready        :> "ready"
+            .Failed       :> "error"
+            .Closed       :> "closed"
+        }
+    }
+
     @cmStatus    = "loading CM6 from esm.sh..."
     @cmError     = ""
-    @lspStatus   = "disconnected"
     @lspError    = ""
     @diagCount   = 0
     @diagnostics = []
@@ -78,7 +95,7 @@ ${
         if (msg.id == 1 && msg.result && msg.result.capabilities) {
             // initialize response — confirm capabilities, then send
             // initialized + open our doc.
-            @lspStatus = "ready"
+            @lspPhase = .Ready
             const caps = msg.result.capabilities
             const has = []
             if (caps.completionProvider) { has.push("completion") }
@@ -186,14 +203,14 @@ ${
     //       named helper function and pass that by reference.
 
     function onWsOpen(ws) {
-        @lspStatus = "init-sent"
+        @lspPhase = .Initializing
         sendInitialize(ws)
     }
 
     function onWsMessage(ws, initialText, eventData) {
-        const wasReady = @lspStatus == "ready"
+        const wasReady = @lspPhase == LspPhase.Ready
         onLspMessage(eventData)
-        const nowReady = @lspStatus == "ready"
+        const nowReady = @lspPhase == LspPhase.Ready
         if (!wasReady && nowReady) {
             sendInitialized(ws)
             sendDidOpen(ws, initialText)
@@ -201,16 +218,16 @@ ${
     }
 
     function onWsError() {
-        @lspStatus = "error"
+        @lspPhase = .Failed
         @lspError = "WebSocket error — is bridge.js running on :3061?"
     }
 
     function onWsClose() {
-        if (@lspStatus != "error") { @lspStatus = "closed" }
+        if (@lspPhase != LspPhase.Failed) { @lspPhase = .Closed }
     }
 
     function connectLsp(initialText) {
-        @lspStatus = "connecting"
+        @lspPhase = .Connecting
         const ws = new window.WebSocket("ws://localhost:3061")
         window.__p6_ws = ws
 
@@ -295,6 +312,13 @@ ${
     const <noDiagnostics> = @diagCount == 0
 }
 
+<engine for=LspPhase initial=.Disconnected>
+    .Disconnected => .Connecting
+    .Connecting   => .Initializing | .Failed | .Closed
+    .Initializing => .Ready | .Failed | .Closed
+    .Ready        => .Failed | .Closed
+</>
+
 ^{ loadCm() }
 
 <div class="app">
@@ -308,7 +332,7 @@ ${
         </>
         <div class="row">
             <span class="slabel">LSP:</>
-            <span class="value">${@lspStatus}</>
+            <span class="value">${lspLabel(@lspPhase)}</>
         </>
         <div class="row">
             <span class="slabel">Cursor:</>
