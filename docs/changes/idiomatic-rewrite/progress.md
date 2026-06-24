@@ -53,3 +53,10 @@ p4's `<engine for=Mode initial=.Insert>` with arrow transitions (`.Insert => .No
 ### Tier 2 status-string projections
 Engine/typed-state is the source of truth; the human-readable status strings are now pure projections (lspLabel/cmLabel/modeName value-return match). p5/p7 `@cmStatus` + p8 `@cmStatus`/`@diagSummary` left as host-bridge status strings (Tier-3 borderline; primary state already typed).
 Verified @ scrml 7c01b22a (compiler bumped 4× over the session). All 11 compile clean; p6 7/7, p8 9/9; p3/p4 probe-green.
+
+## Tier 3 — polish — COMPLETE (no new edits)
+- p9 `treeText`→`<each>` already landed in Tier 0.
+- p5/p7 `@cmStatus` (+ p8 `@cmStatus`/`@diagSummary`): RULED leave-as-is. These are host-bridge status strings (what the CM6 loader reports), not state 6nz owns; lower priority, and each file's PRIMARY state (mode) is already a proper engine. Per the audit's open question + flag #6, the PA rules per file: not worth an engine.
+
+## REWRITE COMPLETE — all tiers landed
+Tier 0 `42ac2d0` · Tier 1 `5760de6` · Tier 2 `25a63d2`. `<each>` 0/11→6/11; render-per-state booleans eliminated; async string-flag lifecycles → typed state repo-wide. No push yet (per user). Pending: final full smoke run; cross-repo notes (4 gaps NOT-REPRODUCED + §4.17 + arrow-engine findings) need user OK; master-list/changelog/maps refresh at wrap.
