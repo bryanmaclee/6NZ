@@ -99,3 +99,17 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 > [selection — next steps] Push to origin + Send scrml the findings.
 
 > go
+
+## Session 17 — 2026-06-24
+
+> read pa.md and start session
+
+> 3
+
+> [selection — p0 disposition] xfail + track
+
+> [selection — file to scrml] File now w/ repro
+
+> [selection — commit] Commit now
+
+> wrap and push

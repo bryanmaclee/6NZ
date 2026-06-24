@@ -4,6 +4,27 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
+## Session 17 — 2026-06-24 — closed the p0–p4 smoke-test gap (all 11 playgrounds now have smokes); surfaced + filed Bug AI
+
+**Closed open-thread #3 — the p0–p4 smoke-test gap (no `test.js`; the cost was the S16 §4.17 silent breakage in p4 sliding through). Added puppeteer smokes to playground-zero/one/two/three/four; all 11 playgrounds (p0–p10) now have smokes. Full wrap suite: 11/11 green — 146 checks passed + 1 tracked XFAIL, 0 failed (@ scrml `2dd135ff`). The p0 xfail caught NEW Bug AI, R26-verified + filed to scrml.**
+
+### Method
+- Verified the harness end-to-end first (existing p9 smoke 13/13 against live `scrml dev` 0.7.0 + puppeteer from `../scrml/node_modules`) before writing anything.
+- 5 worktree-isolated agents (one per playground) read each `app.scrml` + wrote `test.js` off the p9 (non-CM6) / p5 (CM6) templates, each self-verified green. PA landed via `git checkout <branch> -- <file>` (clean clobber), ran an independent sweep, cleaned up all 5 worktrees/branches. Committed `2ab2f4d` (smokes + master-list §F + delta-log).
+
+### Full suite (wrap record, @ scrml `2dd135ff`)
+p0 13+1xfail · p1 12 · p2 13 · p3 10 (CM6 clean off esm.sh) · p4 15 (incl. §4.17 `${}`-in-tree-text regression guard — S16 `<pre>`→`<div>` fix holds) · p5 18 · p6 7 · p7 17 · p8 9 · p9 13 · p10 19. **= 146 passed, 1 xfail, 0 failed; every playground exits 0.**
+
+### Bug AI (NEW) — `<each>/<empty>` fallback leak
+- The p0 smoke's check-6 caught it; left failing per R26, then **independently R26-verified** via a 13-line minimal repro: `<each>` with an `<empty>` body does NOT tear down the fallback on the **empty→non-empty** transition (first item appended *beside* leftover fallback text). Reverse edge (→empty via `@items=[]`) is correct. Distinct from R28-1c (repro uses the array-ref workaround, still leaks). General to any `<each>…<empty>`.
+- **Disposition:** p0 check-6 → tracked **XFAIL** (`xfail()` helper added to `playground-zero/test.js`); suite stays green + flips to XPASS/suite-fail when scrml fixes it. **Filed to scrml** `2026-06-24-0719-...-bug-AI-each-empty-fallback-leak.md` (`needs:action`, inline repro + cmd + SHA + expected/actual + labeled-unverified hypothesis). master-list §F (Bug AI row) updated.
+
+### Notes
+- Two scrml replies now pending: S16 codegen findings (`2026-06-23-1917`) + Bug AI (`2026-06-24-0719`).
+- Deputy still never booted (carried) — PA did all wrap maintenance (digest regen, maps incremental) itself.
+
+---
+
 ## Session 16 — 2026-06-23 — idiomatic-audit rewrite EXECUTED (all tiers) + pushed; 3 new codegen findings to scrml
 
 **Executed scrml's 2026-06-20 per-repo idiomatic-rewrite directive (the inbox `needs:action` item). All 4 tiers landed + pushed to origin (`721660a`). Verified green: 83/83 runtime smoke (p5/6/7/8/9/10) + p0–p4 probe-green. The scrml compiler moved 4× during the session (`a2137214`→`96745d34`→`346b4357`→`7c01b22a`); everything re-verified on the latest.**

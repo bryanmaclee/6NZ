@@ -1,6 +1,6 @@
 # primary.map.md
 # project: editor (6nz)
-# updated: 2026-06-23T19:06:22-06:00  commit: 721660a
+# updated: 2026-06-24T00:00:00Z  commit: 2ab2f4d
 
 ## Project Fingerprint
 
@@ -9,7 +9,7 @@ Framework:  CodeMirror 6 (architectural target; mounted in p3/p5/p6/p7/p8 via es
 Runtime:    Browser (scrml dev server for playgrounds; GitHub Pages for proto) + Bun (scripts/state.ts maintenance tool)
 Compiler:   scrml v0.7.0 (`80f2c190`) at `../scrml/`; newer fixes at `14fb0230`/`faa213c5` (not yet re-baselined)
 Type:       purpose-built code editor — exploratory implementation phase (11 playgrounds; no editor shell yet)
-Size:       ~110 source files (excl. node_modules, dist, .git)
+Size:       ~115 source files (excl. node_modules, dist, .git)
 
 ## Map Index
 
@@ -20,8 +20,8 @@ Size:       ~110 source files (excl. node_modules, dist, .git)
 | schema.map.md        | present | 8 scrml enum types (incl. CmPhase/LspPhase×2 new S16), 6 reactive state shapes, engine table |
 | config.map.md        | present | 2 env vars (PORT, SCRML_DIR) in bridge.js; package.json stub    |
 | build.map.md         | present | per-playground scrml dev commands; vPA deputy bun commands; CI  |
-| error.map.md         | present | inline status-string pattern; compiler bug ledger (AA open)     |
-| test.map.md          | present | Puppeteer; 6 test.js harnesses (p5/p6/p7/p8/p9/p10); 103 total |
+| error.map.md         | present | inline status-string pattern; compiler bug ledger (AA open + Bug AI new S17) |
+| test.map.md          | present | Puppeteer; 11 test.js harnesses (p0–p10); ~131 total checks; p0 xfail (Bug AI) |
 | infra.map.md         | present | GitHub Pages (proto only); vPA deputy system; cross-repo table  |
 | api.map.md           | absent  | no routes or API surface                                        |
 | state.map.md         | absent  | no centralized store (@reactives are per-playground only)       |
@@ -108,13 +108,17 @@ diagnose whether the wrong maps were named OR the map granularity is wrong.
 ## Key Facts
 
 - **11 scrml-native playgrounds** (`src/playground-zero` through `playground-ten`), all GREEN
-  vs scrml v0.7.0 (`80f2c190`). Re-baselined S14 (2026-06-19/20). p0–p4 have no test.js;
-  p5–p10 each have a Puppeteer test.js harness. See `master-list.md §A` for per-playground details.
+  vs scrml v0.7.0 (`80f2c190`). Re-baselined S14 (2026-06-19/20). All 11 playgrounds now have
+  Puppeteer test.js harnesses (p0–p4 added S17; p5–p10 existed from S14). See `master-list.md §A`
+  for per-playground details.
 - **Compiler is `../scrml/`**, not `scrmlTS` (renamed S200). Current dogfooded version: v0.7.0
   `80f2c190`. Fixes for Bug AD/AE landed at `14fb0230`/`faa213c5` — newer than baseline; p1/p2/p5/p7/p10
   need a re-test pass to confirm. No migration needed for `<engine name=...>` (AE fix honored `name=`).
-- **Compiler Bug AA is the only open 6nz-filed bug** vs current scrml. Symptom: bare tail `match`
-  in a plain `function` is silently dropped. Workaround: `return match`. Low priority (lint regression).
+- **Compiler Bug AA is open** vs current scrml. Symptom: bare tail `match` in a plain `function` is
+  silently dropped. Workaround: `return match`. Low priority (lint regression).
+- **Bug AI (new S17) is tracked as an xfail in p0/test.js.** Symptom: `<each>/<empty>` fallback is
+  not torn down on the empty→non-empty transition. Filed 2026-06-24. If scrml fixes it, p0/test.js
+  check 6 will flip to XPASS and the suite will fail — prompting removal of the xfail.
 - **S16 idiomatic rewrites (all 11 playgrounds):** List renders now use Tier-1 `<each in=… key=…>` +
   `<empty>` structural element (p0/p1/p4/p6/p9/p10). Mode badges now use `<match for=Mode on=@mode>`
   state-child blocks (p1/p2/p4/p5/p7/p10). Async lifecycle string-flags converted to typed enums:

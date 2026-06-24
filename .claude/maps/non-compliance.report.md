@@ -1,13 +1,13 @@
 # non-compliance.report.md
 # project: editor (6nz)
-# generated: 2026-06-23T00:00:00Z
-# scan mode: INCREMENTAL_UPDATE (S15 deputy/flogence additions; base: FULL_COLD_START 2026-06-22)
+# generated: 2026-06-24T00:00:00Z
+# scan mode: INCREMENTAL_UPDATE (S17 p0–p4 test.js additions; base: FULL_COLD_START 2026-06-22 + S15 incremental)
 
 ## Summary
 
-Total docs scanned: 18
+Total docs scanned: 18 (unchanged from S15 scan)
 Compliant: 11
-Non-compliant: 5
+Non-compliant: 5 + 1 new config mismatch (see below)
 Uncertain: 2
 
 Docs scanned (excluding `handOffs/`, `.claude/`, `node_modules/`, `dist/`):
@@ -19,12 +19,30 @@ Docs scanned (excluding `handOffs/`, `.claude/`, `node_modules/`, `dist/`):
 `src/playground-zero/README.md`, `src/playground-one/README.md`,
 `LICENSE.md`
 
-Note: `handOffs/incoming/` messages (2 untracked files as of S15) are out of scope —
-`handOffs/` is excluded per mapper scope rules.
+Note: `handOffs/incoming/` messages are out of scope — `handOffs/` excluded per mapper scope rules.
 
 ---
 
-## New additions (S15 incremental scan — all compliant)
+## New finding (S17 incremental — config mismatch)
+
+### package.json `"test"` script — MISMATCH (playwright vs puppeteer)
+
+**Reason:** config mismatch / content-heuristic
+**Detail:** `package.json` declares `@playwright/test@1.60.0` as the sole devDependency and sets
+`"test": "playwright test"`. However, all 11 playground smoke tests are standalone Puppeteer
+harnesses run via `node src/playground-N/test.js`. Puppeteer is not installed at the repo root —
+it is resolved from `../scrml/node_modules` via `NODE_PATH`. The `npm test` / `playwright test`
+command finds no test files and is effectively a no-op. The declared test framework does not
+match the actual test tooling in use.
+**Suggested disposition:** Either (a) update `package.json` to remove `@playwright/test` and
+document the correct run command in a `scripts` entry (e.g., `"smoke": "NODE_PATH=... node
+src/playground-five/test.js"`), or (b) add a note to `README.md` / `editor-README.md` that
+`npm test` is unused and the real test command is `NODE_PATH=.../scrml/node_modules node
+src/playground-N/test.js`. Low-risk cosmetic issue; does not break any functionality.
+
+---
+
+## New additions (S15 incremental — all compliant, carried forward)
 
 ### vpa.md — COMPLIANT
 
