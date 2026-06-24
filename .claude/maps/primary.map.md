@@ -1,6 +1,6 @@
 # primary.map.md
 # project: editor (6nz)
-# updated: 2026-06-23T00:00:00Z  commit: 358aca4
+# updated: 2026-06-23T19:06:22-06:00  commit: 721660a
 
 ## Project Fingerprint
 
@@ -17,7 +17,7 @@ Size:       ~110 source files (excl. node_modules, dist, .git)
 |----------------------|---------|-----------------------------------------------------------------|
 | structure.map.md     | present | directory layout, 12 entry points, scripts/ + vpa.md + handOff seams |
 | dependencies.map.md  | present | root: @playwright/test; scripts/state.ts bun tool (no deps); CM6 CDN |
-| schema.map.md        | present | 5 scrml enum types, 5 reactive state shapes from playgrounds    |
+| schema.map.md        | present | 8 scrml enum types (incl. CmPhase/LspPhase×2 new S16), 6 reactive state shapes, engine table |
 | config.map.md        | present | 2 env vars (PORT, SCRML_DIR) in bridge.js; package.json stub    |
 | build.map.md         | present | per-playground scrml dev commands; vPA deputy bun commands; CI  |
 | error.map.md         | present | inline status-string pattern; compiler bug ledger (AA open)     |
@@ -50,7 +50,7 @@ flogence channel / intake queue               → infra.map.md § Cross-repo Cor
 
 **New playground authoring (next scrml exploration):**
 1. `structure.map.md` — confirm playground number and directory convention
-2. `schema.map.md` — review existing type shapes (Mode variants, NodeKind, EditKind)
+2. `schema.map.md` — review existing type shapes (Mode variants, NodeKind, EditKind, CmPhase, LspPhase)
 3. `error.map.md` — check open compiler bugs (AA open; AD/AE resolved on newer SHA — re-test)
 4. `test.map.md` — review test.js harness pattern before writing test
 
@@ -61,13 +61,13 @@ flogence channel / intake queue               → infra.map.md § Cross-repo Cor
 
 **Updating for new compiler (scrml version bump):**
 1. `error.map.md` — check which bugs are newly resolved (AD/AE at `14fb0230`/`faa213c5`)
-2. `schema.map.md` — check if type syntax changed (`:>` arm arrows, `<engine>` vs `<machine>` already migrated)
+2. `schema.map.md` — check if type syntax changed (`:>` arm arrows, `<engine>` vs `<machine>` already migrated; `<each>`/`<match>`/`<empty>` Tier-1 idioms now canonical)
 3. `dependencies.map.md` — update compiler SHA reference after re-baseline
 4. `test.map.md` — record new pass counts per playground
 
 **Editor architecture / design work:**
 1. `structure.map.md` — understand current playground scope
-2. `schema.map.md` — see existing IR/mode/state shapes
+2. `schema.map.md` — see existing IR/mode/state shapes + engine table
 3. Read `editor-architecture.md` + `master-list.md §B` for locked decisions
 
 **LSP / bridge work (p6 or p8 extension):**
@@ -75,6 +75,7 @@ flogence channel / intake queue               → infra.map.md § Cross-repo Cor
 2. `config.map.md` — PORT and SCRML_DIR env vars
 3. `dependencies.map.md` — CDN-loaded CM6 packages
 4. `error.map.md` — LSP-related compiler bugs
+5. `schema.map.md` — LspPhase enum shape for p6 vs p8
 
 **Spec work (z-motion spec):**
 1. `structure.map.md` — z-motion-spec/ layout
@@ -114,6 +115,11 @@ diagnose whether the wrong maps were named OR the map granularity is wrong.
   need a re-test pass to confirm. No migration needed for `<engine name=...>` (AE fix honored `name=`).
 - **Compiler Bug AA is the only open 6nz-filed bug** vs current scrml. Symptom: bare tail `match`
   in a plain `function` is silently dropped. Workaround: `return match`. Low priority (lint regression).
+- **S16 idiomatic rewrites (all 11 playgrounds):** List renders now use Tier-1 `<each in=… key=…>` +
+  `<empty>` structural element (p0/p1/p4/p6/p9/p10). Mode badges now use `<match for=Mode on=@mode>`
+  state-child blocks (p1/p2/p4/p5/p7/p10). Async lifecycle string-flags converted to typed enums:
+  `CmPhase` (p3 typed cell), `LspPhase` (p6/p8 engines), `Mode` (p4 engine — was string). See
+  `schema.map.md` for full enum shapes and engine table.
 - **External JS constraint**: scrml has no **npm/bare-specifier** `import` (`from 'lodash'` →
   `E-IMPORT-005`) — but it DOES have a full Import System (SPEC §21/§41): stdlib (`scrml:NAME`),
   relative-path JS, `vendor:`, and cross-file scrml component/engine splitting. npm/CDN libraries
