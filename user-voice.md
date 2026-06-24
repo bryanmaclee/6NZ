@@ -85,3 +85,17 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 > push. master pa no longer orchestrates pushes. you should have the latest PA.
 
 > I didnt say wrap. I said push. oh well, so wrap is completly done?
+
+## Session 16 — 2026-06-23
+
+> read pa.md and start session
+
+> [selection] 1 — execute the idiomatic-audit rewrite (the inbox needs:action item).
+
+> [selection] Commit per tier (Tier 0/1/2/3 each one commit), no push until told.
+
+> [selection — Tier 2 form] Engine where smoke-backed, typed-cell where not: <engine for=LspPhase> for p6/p8 (smokes catch guard-throws), typed enum cell for p3 (no smoke), p4 @mode → enum+engine.
+
+> [selection — next steps] Push to origin + Send scrml the findings.
+
+> go
