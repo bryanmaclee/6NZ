@@ -4,6 +4,32 @@ Dated session blocks, newest first. Per-repo session count.
 
 ---
 
+## Session 18 — 2026-07-06 — Playwright migration complete + flonav prototype (flogence integration begins) + scrml dogfooding loop
+
+**Three threads. (1) Completed the puppeteer→Playwright migration of all 11 playground smokes. (2) Amended the plan — integrate 6nz's editing ideas into flogence first — and built `playground-eleven` (flonav), the first integration prototype. (3) Ran a full dogfooding loop with scrml (5 `<each>`/input-layer findings → 4 fixes confirmed + 1 new root-cause) and flogence (integration accepted). Full sweep green: 13 tests (12 playgrounds + Bug AI xfail), 0 failed. Pushed.**
+
+### Playwright migration (COMPLETE)
+- All 11 playground smokes migrated `test.js` (puppeteer) → `app.pw.ts` (`@playwright/test`); the 11 old `test.js` deleted. Added `playwright.config.ts` (testMatch `**/*.pw.ts`, per-spec `scrml dev` boot, parallel-safe on distinct ports) + `src/_pw/scrml-dev.ts` shared helper. `npm test` is now the single source of truth.
+- Method: piloted p9, then 10 worktree agents (one per playground) fanned the pattern; landed via file-delta. p0's Bug AI check ported as `test.fail()` (auto-flips when scrml fixes it).
+- **esm.sh CDN outage** (R2 disk-full → 500 on `@codemirror/view` range tags) worked around with a `page.route` pin-redirect shim on the 5 CM6 playgrounds (kept as permanent hardening). Commits `69dedad` · `5b3f986` · `4048197` · `45685c6`.
+
+### flonav prototype — `src/playground-eleven/` (flogence integration begins)
+- **Plan amended:** standalone 6nz editor deferred; first integrate the editing ideas into flogence's cockpit. Surveyed flogence read-only; floView's node tree already has drill + one-open auto-collapse — the killer fit for cursor-as-PC.
+- Built flonav: keyboard cursor over a floView-shaped node tree (fleet→project→facet→row) with `hjkl` nav + cursor-driven auto-collapse (p9 model) + a compiler-enforced NORMAL/INSERT/VISUAL `<engine>` (p1 model). INSERT composes+routes a prompt to the cursor node; **VISUAL** multi-selects a range + batch-routes one prompt to all selected nodes. Designed around the verified scrml `<each>` constraints (one keyboard surface, single-root rows, no `<textarea>`). 17-step Playwright smoke green. Commits `15464f5` · `c8bdc6e`.
+- Sent flogence the integration mapping + the Playwright harness pattern; **flogence accepted** (nav-first, top-level project router first, harness yes — QUEUED/warm behind their region-leasing).
+
+### scrml dogfooding (priority-#1: production-readiness)
+- **Standing directive set:** scrml enterprise-readiness is priority #1; report every gap to scrml PA (memory saved).
+- Runtime-verified flogence's "fragile input layer" claims (R26, not relaying prose). Filed **5 `<each>`/input-layer findings**: F1 expr-handler dead in `<each>`, F2 `<form onsubmit>`→reload, F3 multi-sibling drop, F4 `<textarea>` RCDATA span-leak, F5 void-in-`<each>` compile error. bind:value NOT-REPRODUCED (SSR caveat).
+- scrml: 4/5 already fixed on s241 (I'd tested stale global 0.7.0). **Re-verified against current source (0.7.1 @ `59dc5287`):** F1/F2/F5 confirmed fixed at runtime; **F3 STILL broken** — pinned to the each-item factory `return _itemFrag.firstChild` (mounts only the first sibling) — re-filed. F4 fix dispatched by scrml.
+- Also filed the **scrml dev live-reload broken** finding (`/_scrml/live-reload` → `ERR_INCOMPLETE_CHUNKED_ENCODING` → no hot-reload → cryptic stale-tab banner).
+
+### Notes
+- Global `scrml` binary is stale (0.7.0/`caa8803b`) vs source (0.7.1/`59dc5287`) — consider updating so smokes run against HEAD.
+- Deputy still never booted (carried) — PA did all wrap maintenance.
+
+---
+
 ## Session 17 — 2026-06-24 — closed the p0–p4 smoke-test gap (all 11 playgrounds now have smokes); surfaced + filed Bug AI
 
 **Closed open-thread #3 — the p0–p4 smoke-test gap (no `test.js`; the cost was the S16 §4.17 silent breakage in p4 sliding through). Added puppeteer smokes to playground-zero/one/two/three/four; all 11 playgrounds (p0–p10) now have smokes. Full wrap suite: 11/11 green — 146 checks passed + 1 tracked XFAIL, 0 failed (@ scrml `2dd135ff`). The p0 xfail caught NEW Bug AI, R26-verified + filed to scrml.**

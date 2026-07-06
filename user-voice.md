@@ -113,3 +113,23 @@ Historical entries (pre-2026-04-14, when user-voice was shared across all repos)
 > [selection — commit] Commit now
 
 > wrap and push
+
+## Session 18 — 2026-07-06
+
+> I have moved all of the browser automation to playwright now. check if installed on this maching
+
+> start the port
+
+> keep the shim as permanent hardening. no wrap. I am ammending my plan for 6nz a little. I still intend on creating a stand-alone editor. but before that we are going to integrate these ideas into the text editing modes in flogence. Take a look at the flogence repo to familiarize your self. I actually think the playground strategy strategy might play in our favor here.
+
+> explain "fragile scrml input layer" and if we are blocked on the cm6, dose scrml-pa know about it.
+
+> verify. My first priority above ALL else, is making scrml enterprise-level and production ready. the point is, if you have a view of scrml that shows gaps, weaknesses, fragility, etc. report them to scrml PA
+
+> file it to scrml.
+
+> resume building playground-eleven
+
+> commit the VISUAL extension
+
+> push, close the dev server.
