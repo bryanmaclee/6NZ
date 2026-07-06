@@ -1,86 +1,121 @@
 # test.map.md
 # project: editor (6nz)
-# updated: 2026-06-24T00:00:00Z  commit: 2ab2f4d
+# updated: 2026-07-06T00:00:00Z  commit: 9af19a5
 
 ## Test Framework
 
-Root: `@playwright/test@1.60.0` is declared in `package.json`; `npm test` runs `playwright test`.
-No Playwright test files exist — the Playwright suite is wired but empty and unused.
+Runner: `@playwright/test@1.60.0` (root `package.json` devDependency)
+Config: `playwright.config.ts` (root)
+Run all: `npm test`  (= `playwright test`)
+Run single: `npx playwright test src/playground-<name>` (e.g. `src/playground-nine`)
 
-Per-playground: standalone Puppeteer harnesses (`test.js` in each playground directory).
-These are independent of Playwright. Puppeteer is NOT installed at the repo root — it is
-resolved from the scrml monorepo sibling via `NODE_PATH`.
+**S18: Puppeteer migration complete.** All 11 original `src/playground-*/test.js` Puppeteer
+harnesses were DELETED and ported to `@playwright/test` spec files named `app.pw.ts`, colocated
+beside each playground's `app.scrml`. Puppeteer is no longer used anywhere in this repo. The
+`package.json` "test" script now genuinely reflects the test tooling in use (the S17
+non-compliance finding on this mismatch is RESOLVED — see `non-compliance.report.md`).
 
-Run command: `NODE_PATH=/home/bryan-maclee/scrmlMaster/scrml/node_modules node src/playground-N/test.js`
+`playwright.config.ts`: `testDir: "src"`, `testMatch: "**/*.pw.ts"`, `fullyParallel: true`,
+`workers: process.env.CI ? 2 : 3`, `timeout: 60_000`, `reporter: [["list"]]`,
+`use: { browserName: "chromium", headless: true, launchOptions: { args: ["--no-sandbox"] } }`.
+No top-level `webServer` block — each spec boots its own `scrml dev` in `beforeAll` (see below),
+so specs are parallel-safe by construction (no shared server, no port contention).
 
-Each harness boots its own `scrml dev <app.scrml> --port 305N` child process, then drives it
-headless. Port assignments: p0=3050, p1=3051, p2=3052, p3=3053, p4=3054, p5=3055 … p10=3060.
+## Shared Helper  [`src/_pw/scrml-dev.ts`]
+
+`bootScrmlDev(appPath, port): Promise<ChildProcess>` — spawns `scrml dev <app> --port <port>`,
+resolves once stdout/stderr contains `"Serving"` or the port number (8s fallback timeout).
+`killScrmlDev(proc)` — kills the child process; swallows already-dead errors.
+
+Usage in every spec:
+```ts
+import { bootScrmlDev, killScrmlDev } from "../_pw/scrml-dev";
+test.beforeAll(async () => { dev = await bootScrmlDev(APP, PORT); });
+test.afterAll(() => killScrmlDev(dev));
+```
+This replaces the hand-rolled `spawn` + fixed-timeout readiness logic that lived in every
+Puppeteer `test.js`.
 
 ## Test Categories
 
-| Playground | Test file | Checks | Notes |
-|---|---|---|---|
-| playground-zero | `src/playground-zero/test.js` | 12 check + 1 xfail | z-motion classifier; xfail for Bug AI (<each>/<empty> fallback leak) |
-| playground-one | `src/playground-one/test.js` | 12 | vim-style Mode engine transitions |
-| playground-two | `src/playground-two/test.js` | 12 | hjkl cursor + z-motion roll in INSERT |
-| playground-three | `src/playground-three/test.js` | 10 | CM6 mount + scrml↔CM6 bridge |
-| playground-four | `src/playground-four/test.js` | 15 | keystroke-granular undo tree + branch nav |
-| playground-five | `src/playground-five/test.js` | 18 | — |
-| playground-six | `src/playground-six/test.js` | 7 | bridge.js required (start before test) |
-| playground-seven | `src/playground-seven/test.js` | 17 | — |
-| playground-eight | `src/playground-eight/test.js` | 9 | bridge.js required (start before test) |
-| playground-nine | `src/playground-nine/test.js` | 13 | — |
-| playground-ten | `src/playground-ten/test.js` | 19 | — |
+All specs are single-file smokes under `src/playground-<name>/app.pw.ts` — no separate
+unit/integration/e2e split; every spec is an in-browser end-to-end smoke against a live
+`scrml dev` instance.
 
-All 11 playgrounds (p0–p10) now have a `test.js` smoke harness.
+| Playground | Spec file | test.step() count | Port(s) | Notes |
+|---|---|---|---|---|
+| playground-zero | `src/playground-zero/app.pw.ts` | 11 steps + 1 separate `test.fail()` case | 3050 | z-motion classifier; Bug AI tracked via native Playwright `test.fail()` (was `xfail()` helper) |
+| playground-one | `src/playground-one/app.pw.ts` | 12 | 3051 | vim-style Mode engine transitions |
+| playground-two | `src/playground-two/app.pw.ts` | 12 | 3052 | hjkl cursor + z-motion roll in INSERT |
+| playground-three | `src/playground-three/app.pw.ts` | 10 | 3053 | CM6 mount + scrml↔CM6 bridge; esm.sh route shim |
+| playground-four | `src/playground-four/app.pw.ts` | 13 | 3054 | keystroke-granular undo tree + branch nav |
+| playground-five | `src/playground-five/app.pw.ts` | 18 | 3055 | vim modes on CM6; esm.sh route shim |
+| playground-six | `src/playground-six/app.pw.ts` | 7 | SCRML_PORT=3066, BRIDGE_PORT=3061 | boots bridge.js AND scrml dev itself (both spawned in `beforeAll`, `SCRML_DIR` resolved for worktree layouts); esm.sh route shim |
+| playground-seven | `src/playground-seven/app.pw.ts` | 17 | 3057 | z-motion on CM6; esm.sh route shim |
+| playground-eight | `src/playground-eight/app.pw.ts` | 8 | SCRML_PORT=3085, BRIDGE_PORT=3081 | boots bridge.js AND scrml dev itself; esm.sh route shim |
+| playground-nine | `src/playground-nine/app.pw.ts` | 12 | 3059 | editor IR + logical traversal |
+| playground-ten | `src/playground-ten/app.pw.ts` | 15 | 3060 | relevance-region navigator + §36 |
+| playground-eleven | `src/playground-eleven/app.pw.ts` | 18 | 3070 | **NEW S18** — flonav keyboard nav + modal prompt (see `structure.map.md`) |
 
-Run p6/p8: start bridge first (`bun src/playground-six/bridge.js` or `bun src/playground-eight/bridge.js`),
-then `node src/playground-N/test.js`.
+All 12 playgrounds (p0–p11) now have a Playwright `app.pw.ts` smoke spec. p6/p8 no longer need a
+manually-started bridge process before running the test — the spec itself spawns both the bridge
+and `scrml dev` in `beforeAll` and resolves `SCRML_DIR` across both canonical and git-worktree
+repo layouts.
 
-## xfail Helper (p0 only)
+**CM6 esm.sh resilience shim (p3/p5/p6/p7/p8 only):** these 5 specs install a `page.route(/https:\/\/esm\.sh\//, ...)`
+handler. esm.sh intermittently 500s on semver-RANGE meta lookups (e.g. `@codemirror/view@^6.x`)
+while exact-pinned builds stay cached and serve 200. On a 5xx, the shim refetches the same module
+pinned to `6.43.0` (the newest cached 6.x) so CM6 can still mount deterministically. It touches
+only third-party CDN network transport — never the app, never an assertion — and is a no-op when
+esm.sh serves the range normally.
 
-`src/playground-zero/test.js` defines an `xfail(name, ok, detail, ref)` helper in addition
-to the usual `check()`. It tracks a known-failing assertion without failing the suite:
+## xfail / Expected-Failure Pattern (p0 only)
 
-- While the bug is present: logs `XFAIL: <name>` and does NOT count as a failure.
-- If the assertion starts passing (bug fixed): logs `XPASS: <name> -- remove the xfail`
-  and counts as a FAILURE — a loud signal to remove the xfail and promote the check.
+The old Puppeteer `xfail(name, ok, detail, ref)` helper (which logged `XFAIL`/`XPASS` without
+failing the suite) is gone. Playwright has a native mechanism: `src/playground-zero/app.pw.ts`
+defines the Bug AI check as its own `test("Bug AI — <each>/<empty> fallback leak (tracked xfail)", ...)`
+that opens with `test.fail(true, "<reason>")`. Playwright then expects this test to fail; if it
+unexpectedly PASSES (bug fixed), Playwright flips the whole suite red — the signal to delete the
+annotation and fold the assertion back into the main step sequence.
 
-Current xfail in p0:
+Current tracked expected-failure in p0:
 - `"<empty> fallback cleared once log is non-empty"` — **Bug AI** (`scrml <each>/<empty>` codegen):
   the `<empty>` fallback is not torn down on the empty→non-empty transition. Filed 2026-06-24.
+  Still open as of S18.
 
 ## Fixtures & Factories
 
-No separate fixture files. Each `test.js` defines inline scenario data.
+No separate fixture files. Each `app.pw.ts` defines inline scenario data and DOM-read helper
+functions (`readField`, `activeMode`, `readCursor`, `treeLines`, etc.) local to the spec.
 
-p6/p8 test.js — sample scrml source strings embedded inline:
-```js
-const SAMPLE_DOC = `<program>\n${...}\n`
-```
-
-p9/p10 test.js — DOM assertions against rendered tree structure; no fixture objects.
+p6/p8 specs embed sample scrml source strings inline (`SAMPLE_DOC` / similar) for diagnostics
+and completion scenarios.
 
 ## Pattern
 
-Tests are Puppeteer-driven real-browser scenarios. Each harness:
-1. Spawns `scrml dev` as a child process, waits for the dev server to be ready
-   (`"Serving"` or port number in stdout/stderr; 8 s fallback timeout)
-2. Launches Puppeteer with `{ headless: "new", args: ["--no-sandbox"] }`
-3. Registers `page.on("pageerror", ...)` to catch runtime JS errors
-4. Dispatches keyboard events (type, keydown/keyup) and waits for DOM state
-5. Asserts via a custom `check(name, condition, detail)` function that logs pass/fail
-6. Reports total passed/failed at end; exits with non-zero on any failure
+Each spec is one sequential `test()` (the interaction is a state machine — each keypress/action
+builds on the last), subdivided into numbered `test.step()` blocks for granular reporting:
+1. `test.beforeAll` boots `scrml dev` (and bridge.js for p6/p8) via `bootScrmlDev`, then waits a
+   fixed settle delay (~1500ms) since the dev server's readiness log can precede first-serve
+   readiness.
+2. `page.goto(URL, { waitUntil: "domcontentloaded" })`, then `page.waitForFunction(...)` polls for
+   the app's actual mount signal (not just page load).
+3. Registers `page.on("pageerror", ...)` and a filtered `page.on("console", ...)` to catch runtime
+   JS errors (favicon/404 noise filtered).
+4. Drives via `page.keyboard.press/type` and small `waitForTimeout` settle waits between actions.
+5. Asserts via Playwright's native `expect(value, message).toBe(...)` inside each `test.step`.
+6. `test.afterAll` calls `killScrmlDev` (and kills the bridge process for p6/p8).
+7. "No page errors" is always the final step in each spec.
 
-Assertion style: `check("description", booleanExpr, optionalDetail)` — explicit pass/fail logging.
-Zero pageerrors (favicon-filtered) is always the final check in each harness.
-
-p0 additionally uses `xfail(name, ok, detail, ref)` for tracked expected failures (see above).
+Assertion style: Playwright `expect()` with a descriptive message argument for failure context,
+one `expect` (or a small cluster) per numbered `test.step`.
 
 ## Tags
-#editor #6nz #map #test #scrml #puppeteer #playgrounds #xfail
+#editor #6nz #map #test #scrml #playwright #playgrounds #xfail
 
 ## Links
 - [primary.map.md](./primary.map.md)
+- [build.map.md](./build.map.md)
+- [structure.map.md](./structure.map.md)
 - [master-list.md](../../master-list.md)
 - [pa.md](../../pa.md)

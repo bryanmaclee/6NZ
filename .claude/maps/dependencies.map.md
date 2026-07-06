@@ -1,23 +1,21 @@
 # dependencies.map.md
 # project: editor (6nz)
-# updated: 2026-06-23T00:00:00Z  commit: 358aca4
+# updated: 2026-07-06T00:00:00Z  commit: 9af19a5
 
 ## Runtime Dependencies
 
-Root `package.json`: no runtime dependencies. Stub only.
+Root `package.json`: no runtime dependencies.
 
 ## Dev / Build Dependencies
 
 Root `package.json`:
-- `@playwright/test@1.60.0` — top-level test runner (Playwright; scripts: `"test": "playwright test"`)
+- `@playwright/test@1.60.0` — sole test runner (`"test": "playwright test"`). Discovers all 12
+  playground specs via `playwright.config.ts` (`testMatch: "**/*.pw.ts"`).
 
-Per-playground `test.js` harnesses use Puppeteer, loaded dynamically:
-```js
-try { puppeteer = require("puppeteer"); }
-catch { puppeteer = require("puppeteer-core"); }
-```
-No Puppeteer in root `package.json` — test.js files resolve it from the playground's own `node_modules`
-or the system. The p5/p6/p7/p8/p9/p10 test harnesses follow this pattern.
+**S18: Puppeteer fully removed.** The 11 per-playground `test.js` harnesses that dynamically
+required `puppeteer` / `puppeteer-core` from the scrml sibling repo were deleted this session and
+ported to `@playwright/test` spec files (`app.pw.ts`). Puppeteer is no longer a dependency of this
+repo in any form — direct, transitive, or sibling-resolved.
 
 ## Maintenance Tool Dependencies (scripts/)
 
@@ -31,6 +29,12 @@ or the system. The p5/p6/p7/p8/p9/p10 test harnesses follow this pattern.
 
 Run with `bun scripts/state.ts --digest` or `bun scripts/state.ts --check`. No bun lockfile or `bun.lockb` — the script is dependency-free.
 
+## Test Helper Dependencies (src/_pw/)
+
+`src/_pw/scrml-dev.ts` — no npm deps. Uses Node built-ins only (`node:child_process` for
+`spawn`/`ChildProcess`). Imported by every `app.pw.ts` spec as `bootScrmlDev`/`killScrmlDev`.
+See `test.map.md`.
+
 ## External Runtime Dependencies (per-playground, loaded via CDN at runtime)
 
 | Playground | Library | Load mechanism |
@@ -39,7 +43,10 @@ Run with `bun scripts/state.ts --digest` or `bun scripts/state.ts --check`. No b
 | p6, p8 | CodeMirror 6 + `@codemirror/autocomplete` + `@codemirror/lint` | Same CDN pattern |
 | p6, p8 | scrml LSP server (`bun lsp/server.js`) | Via `bridge.js` child process |
 
-No version pinning or lockfile for CDN-loaded libraries. Version is resolved by `esm.sh` at runtime.
+No version pinning or lockfile for CDN-loaded libraries. Version is resolved by `esm.sh` at
+runtime. **S18:** the p3/p5/p6/p7/p8 Playwright specs each install a `page.route(/https:\/\/esm\.sh\//, ...)`
+resilience shim in the test (not the app) that pin-redirects `@codemirror/view` range requests to
+`6.43.0` on an esm.sh 5xx — see `test.map.md`.
 
 ## Internal Module Graph
 
@@ -60,6 +67,8 @@ playground-six   (LSP wire)     ──→ playground-eight (+ completion + hover
 playground-four  (undo tree)    ─── standalone
 playground-nine  (editor IR)    ─── standalone (first non-CM6 playground)
 playground-ten   (relevance nav) ── standalone (§36 input-state; canonical animationFrame @cell bridge S15)
+playground-eleven (flonav)      ─── standalone (floView-shaped tree; first flogence-integration
+                                     artifact) [NEW S18]
 ```
 
 ## External JS Integration Pattern
@@ -78,5 +87,6 @@ eventually provide a cleaner path.
 ## Links
 - [primary.map.md](./primary.map.md)
 - [build.map.md](./build.map.md)
+- [test.map.md](./test.map.md)
 - [master-list.md](../../master-list.md)
 - [pa.md](../../pa.md)

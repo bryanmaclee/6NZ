@@ -13,7 +13,11 @@
 //  10. typing composes the prompt buffer
 //  11. Enter routes the prompt to the cursor node, clears buffer, back to NORMAL
 //  12. Esc from INSERT discards + returns to NORMAL
-//  13. no page errors
+//  13. v enters VISUAL and fully expands the tree
+//  14. j/k extend the selection range
+//  15. i -> INSERT batch-routes one prompt to all selected nodes
+//  16. Esc from VISUAL clears selection + restores NORMAL
+//  17. no page errors
 //
 // The surface owns the mode (no <input>, no per-row handlers) so it's clear of
 // the verified scrml <each>-body defects. One sequential test() + test.step().

@@ -1,13 +1,15 @@
 # non-compliance.report.md
 # project: editor (6nz)
-# generated: 2026-06-24T00:00:00Z
-# scan mode: INCREMENTAL_UPDATE (S17 p0–p4 test.js additions; base: FULL_COLD_START 2026-06-22 + S15 incremental)
+# generated: 2026-07-06T00:00:00Z
+# scan mode: INCREMENTAL_UPDATE (S18 Playwright migration + playground-eleven; base: S17 incremental)
 
 ## Summary
 
-Total docs scanned: 18 (unchanged from S15 scan)
-Compliant: 11
-Non-compliant: 5 + 1 new config mismatch (see below)
+Total docs scanned: 19 (18 from prior scan + `docs/changes/idiomatic-rewrite/progress.md` noted;
+`playground-eleven` has no README.md yet)
+Compliant: 14
+Non-compliant: 3 (1 carried-forward narrowed, 2 new)
+Resolved since last scan: 5
 Uncertain: 2
 
 Docs scanned (excluding `handOffs/`, `.claude/`, `node_modules/`, `dist/`):
@@ -17,120 +19,126 @@ Docs scanned (excluding `handOffs/`, `.claude/`, `node_modules/`, `dist/`):
 `z-motion-spec/LICENSE` (not a doc — skipped),
 `proto/README.md`, `proto/6nz-playable/README.md`,
 `src/playground-zero/README.md`, `src/playground-one/README.md`,
-`LICENSE.md`
+`LICENSE.md`, `docs/changes/idiomatic-rewrite/progress.md` (historical session log — see note below)
 
 Note: `handOffs/incoming/` messages are out of scope — `handOffs/` excluded per mapper scope rules.
 
 ---
 
-## New finding (S17 incremental — config mismatch)
+## RESOLVED since S17 scan (re-verified this pass — no action needed)
 
-### package.json `"test"` script — MISMATCH (playwright vs puppeteer)
+### package.json `"test"` script — RESOLVED
 
-**Reason:** config mismatch / content-heuristic
-**Detail:** `package.json` declares `@playwright/test@1.60.0` as the sole devDependency and sets
-`"test": "playwright test"`. However, all 11 playground smoke tests are standalone Puppeteer
-harnesses run via `node src/playground-N/test.js`. Puppeteer is not installed at the repo root —
-it is resolved from `../scrml/node_modules` via `NODE_PATH`. The `npm test` / `playwright test`
-command finds no test files and is effectively a no-op. The declared test framework does not
-match the actual test tooling in use.
-**Suggested disposition:** Either (a) update `package.json` to remove `@playwright/test` and
-document the correct run command in a `scripts` entry (e.g., `"smoke": "NODE_PATH=... node
-src/playground-five/test.js"`), or (b) add a note to `README.md` / `editor-README.md` that
-`npm test` is unused and the real test command is `NODE_PATH=.../scrml/node_modules node
-src/playground-N/test.js`. Low-risk cosmetic issue; does not break any functionality.
+Previously flagged: `@playwright/test` declared but no spec files existed, making `npm test` a
+no-op that didn't match the actual (Puppeteer) test tooling. **As of S18, this is resolved for
+real**: all 11 original `test.js` Puppeteer harnesses were deleted and ported to `@playwright/test`
+spec files (`app.pw.ts`), plus a new 12th spec for `playground-eleven`. `npm test` now discovers
+and runs all 12 specs via `playwright.config.ts`. The declared test framework now matches the
+actual test tooling in use. Verified: `find src -name test.js` returns nothing; `find src -name
+"*.pw.ts"` returns 12 files.
 
----
+### README.md — RESOLVED
 
-## New additions (S15 incremental — all compliant, carried forward)
+Previously flagged for a stale `../scrmlTS` link and a "design phase, no implementation yet"
+status line. Re-checked this pass: `grep -n "scrmlTS\|design phase" README.md` returns no matches.
+The file has been updated since the S17 scan.
 
-### vpa.md — COMPLIANT
+### editor-README.md — RESOLVED (prior finding); see new minor lag below
 
-Current-truth contract for the vPA deputy system adopted S15. All referenced files exist:
-`scripts/state.ts`, `handOffs/delta-log.md`, `handOffs/deputy-state.md`,
-`handOffs/flogence-intake.md`, `handOffs/digest.md`, `master-list.md`, `docs/changelog.md`,
-`.claude/maps/`, `pa.md`. No aspirational or stale content. Compliant.
+Previously flagged for `scrmlTS` references and a playground list capped at p0–p4. Re-checked:
+no `scrmlTS` matches; the file now reads "Eleven scrml-native playgrounds exist" and lists
+`playground-zero … playground-ten`. The original finding is resolved. See **new finding** below —
+this count is now one session behind (`playground-eleven` shipped this session).
 
----
+### src/playground-six/app.scrml — RESOLVED (app.scrml itself); bridge.js narrowed finding carried forward
 
-## Non-compliant docs (carried from FULL_COLD_START — no change to findings)
+Previously flagged for `scrmlTS` in the app.scrml comment block and UI subtitle. Re-checked:
+`grep -n "scrmlTS" src/playground-six/app.scrml` returns no matches — the scrml source file itself
+is clean. `bridge.js` still has one stale line (see new finding below, narrowed scope).
 
-### README.md
+### src/playground-eight/app.scrml and bridge.js — RESOLVED
 
-**Reason:** grep-mismatch + content-heuristic
-**Detail:** Three stale items in the current `README.md`:
-1. Line 3: `[scrml](../scrmlTS)` — links to the old `scrmlTS` repo path. Compiler was renamed
-   to `scrml` at S200 (dir `../scrml/`). The link target `../scrmlTS` does not exist.
-2. Line 6-7: "Status: design phase. No implementation yet — awaiting compiler API exposure in scrmlTS."
-   — 11 working playgrounds exist; the compiler is now named `scrml`, not `scrmlTS`; LSP L1-L4
-   is reachable. The status line is badly stale.
-3. The "What's here" section omits all mention of the 11 `src/` playgrounds and the `docs/` directory.
-**Suggested disposition:** Update in-place. Fix the `scrmlTS` link to `scrml`. Update status to
-reflect exploratory implementation phase. Add a brief `src/` mention.
+Previously flagged for `scrmlTS` references in both files. Re-checked: neither file contains
+`scrmlTS` anymore (both `app.scrml` and `bridge.js` are clean; `bridge.js` line 4 correctly reads
+"Spawns scrml's LSP"). Fully resolved — no narrowing needed here (contrast with p6 below).
 
----
+### master-list.md §A default-bindings.md entry — RESOLVED
 
-### editor-README.md
+Previously flagged for an internal inconsistency (§A said "v0.2, planned" while §E said "DONE
+S10"). Re-checked: §A line 27 now reads `[x][x] default-bindings.md — v0.3 (rewritten S10, commit
+0ffb452; companion to SPEC v0.5)...` — consistent with §E. Resolved.
 
-**Reason:** content-heuristic + grep-mismatch
-**Detail:** Two stale items:
-1. Line 10: "remains gated on scrmlTS compiler API exposure" — compiler renamed to `scrml` at S200.
-2. Line 113: "src/playground-zero … playground-four" — lists only p0–p4. There are now 11
-   playgrounds (p0–p10). The structure section in this doc describes only 5 playgrounds and is
-   missing p5–p10.
-3. Line 122: same "gated on scrmlTS" text repeated.
-**Suggested disposition:** Update in-place. Replace `scrmlTS` with `scrml`. Expand the playground
-list to p0–p10 or just reference `master-list.md` for the current inventory.
+### z-motion-spec/README.md — RESOLVED
+
+Previously flagged (uncertain) for showing `SPEC.md — v0.1 specification` in its layout block.
+Re-checked: line 61 now reads `SPEC.md   v0.5 specification`. Resolved.
 
 ---
 
-### src/playground-six/app.scrml (comment block)
+## Non-compliant docs (current findings)
 
-**Reason:** content-heuristic (stale terminology in source comments)
-**Detail:** Line 7 comment: `browser <-- WebSocket --> bridge.js <-- stdio --> scrmlTS LSP`
-and line in the rendered UI subtitle: "CM6 buffer wired to scrmlTS LSP via WebSocket bridge."
-The compiler is named `scrml`, not `scrmlTS` (renamed S200). These are user-visible strings
-and source comments.
-**Suggested disposition:** Update comments and the `<p class="subtitle">` string in the scrml
-source to say "scrml LSP" instead of "scrmlTS LSP". Low priority — functional, just stale naming.
+### src/playground-six/bridge.js (comment, line 4) — NARROWED FINDING
 
----
-
-### src/playground-eight/app.scrml (comment block and bridge.js)
-
-**Reason:** content-heuristic (stale terminology in source comments and bridge comment)
-**Detail:** `app.scrml` comments reference "scrmlTS S40 LSP capabilities", "scrmlTS's L1-L4 LSP arc",
-and "scrmlTS LSP" in the wire diagram and subtitle string. `bridge.js` comment block still says
-"Spawns scrmlTS's LSP" in the header (though the code itself was updated with S200 rename note).
-Same issue as p6.
-**Suggested disposition:** Update comment blocks and UI subtitle string to say `scrml`. Low priority.
+**Reason:** content-heuristic (stale terminology in a source comment)
+**Detail:** Line 4: `// Spawns scrmlTS's LSP (`bun lsp/server.js --stdio`) and exposes it` — still
+uses the pre-S200-rename name. Line 19 also says "LSP at scrmlTS via SCRMLTS_DIR env". Line 26
+correctly documents the rename (`Dir renamed scrmlTS→scrml at S200; env override accepts SCRML_DIR
+or legacy SCRMLTS_DIR`), so the legacy env-var name is intentional back-compat, not stale — only
+the line-4 and line-19 prose is stale terminology. This is a much narrower finding than the S17
+version (which also covered `app.scrml`, now clean). The companion file `playground-eight/bridge.js`
+does NOT have this issue (already says "Spawns scrml's LSP").
+**Suggested disposition:** Update line 4 to "Spawns scrml's LSP" and line 19's prose to say "scrml"
+(keep `SCRMLTS_DIR` as the documented legacy env fallback name — that's a real back-compat surface,
+not a typo). Low priority — functional, cosmetic only.
 
 ---
 
-### master-list.md §A — `default-bindings.md` entry
+### src/playground-one/README.md — NEW FINDING (S18)
 
-**Reason:** content-heuristic (internal inconsistency)
-**Detail:** Line 26 in §A reads:
-`default-bindings.md — v0.2, partially stale against SPEC v0.5. v0.3 rewrite planned.`
-But §E line 112 confirms: `default-bindings.md v0.3 rewrite — DONE S10 (commit 0ffb452)`.
-The §A checklist entry was never updated to reflect the v0.3 completion.
-The file itself (`z-motion-spec/default-bindings.md`) is indeed v0.3 — the §A entry is stale.
-**Suggested disposition:** Update §A entry to `[x][x] default-bindings.md — v0.3 (rewritten S10;
-companion to SPEC v0.5)`. No file move needed.
+**Reason:** grep-mismatch (test tooling claim no longer matches code)
+**Detail:** Line 40: "Puppeteer-driven, 8/8 functional tests pass (Insert→Normal→Visual→V-LINE→
+Normal→Insert→TOGGLE-HOLD→Insert)." Puppeteer was fully retired this session — `playground-one`'s
+test is now `src/playground-one/app.pw.ts` (`@playwright/test`, 12 `test.step()`s per
+`test.map.md`), not a Puppeteer `test.js`. The "8/8" count also does not match either the old
+`test.js` (12 checks, per the pre-migration `test.map.md`) or the new Playwright spec (12 steps) —
+this claim appears to have been stale even before the migration.
+**Suggested disposition:** Update the README to describe the Playwright spec and its actual step
+count (12), or drop the specific count and point to `npx playwright test src/playground-one` as
+the authoritative check. Low priority — informational README only, does not affect test execution.
+
+---
+
+### editor-README.md — NEW FINDING (S18, minor lag)
+
+**Reason:** content-heuristic (undercounts playgrounds by one)
+**Detail:** Line 7: "Eleven scrml-native playgrounds exist"; line 113: "`src/playground-zero` …
+`playground-ten` — eleven scrml-native playgrounds". `playground-eleven` (flonav) shipped this
+session, making the true count twelve (p0–p11). This is a same-session lag, not aspirational
+content — low severity, expected to be caught in the next full doc pass.
+**Suggested disposition:** Bump "eleven" → "twelve" and extend the range to `playground-eleven` the
+next time this file is touched. Very low priority.
+
+---
+
+## Source-code comment drift (informational — not a doc, flagged for completeness)
+
+### src/playground-eleven/app.pw.ts (header comment, lines 3-16)
+
+**Reason:** content-heuristic (comment undercounts actual test steps)
+**Detail:** The top-of-file summary comment enumerates 13 asserted behaviors (steps 1–13,
+NORMAL/INSERT modal behavior + tree nav + auto-collapse). The actual spec body has 17 numbered
+`test.step()` calls — steps 13–16 cover VISUAL-mode multi-select + batch-route behavior added in a
+later commit this session (`S18: playground-eleven VISUAL mode — multi-select + batch-route`)
+without updating the header comment. Not a `.md` doc, so outside the strict non-compliance scan
+scope, but flagged here since it's a direct byproduct of this session's changes and is easy to fix
+alongside them.
+**Suggested disposition:** Extend the header comment to list steps 14–17 (VISUAL selection extend,
+batch-route, Esc-clears-selection, no-page-errors), or simplify it to a one-line summary + "see
+test.step() calls for the full sequence." Very low priority.
 
 ---
 
 ## Uncertain docs (needs human review)
-
-### z-motion-spec/README.md
-
-**Reason:** content-heuristic
-**Detail:** The file layout block inside reads: `SPEC.md — v0.1 specification`. The actual
-SPEC.md is v0.5. The layout listing also omits `default-bindings.md`. This README appears
-to be from the initial v0.1 era and was never updated.
-**What to check:** Update layout block to show SPEC.md v0.5 + include default-bindings.md.
-
----
 
 ### src/playground-zero/README.md
 
@@ -138,15 +146,33 @@ to be from the initial v0.1 era and was never updated.
 **Detail:** Line 21: references `../../handOffs/incoming/read/2026-04-20-1700-scrmlTS-to-6nz-all-6-bugs-fixed.md`
 — the filename contains `scrmlTS`, reflecting the pre-rename era. The file path is a historical
 reference to a read inbox message, not a live link to source code; likely acceptable as-is (history).
+Unchanged since the S17/S15 scans.
 **What to check:** Decide if historical inbox message references in playground READMEs are acceptable.
 If yes, no action needed. If scrmlTS→scrml rename should be reflected everywhere, update the filename reference.
 
 ---
 
+### docs/changes/idiomatic-rewrite/progress.md
+
+**Reason:** uncertain — needs human review (directory-location heuristic)
+**Detail:** This is a session-progress log (S16 idiomatic-rewrite work) sitting under `docs/changes/`,
+not under an excluded `archive/` path. Its content is historical/session-log in tone (describes what
+was done, past tense, with commit-style notes) rather than aspirational or a design proposal, so it
+does not clearly trip the aspirational-content heuristics. However, `docs/changes/` is not one of
+the mapper's standard exclusion paths (`archive/`, `handOffs/`), so it was scanned rather than
+skipped by convention.
+**What to check:** Decide whether `docs/changes/` should be added to this project's exclusion
+convention (alongside `archive/`) so future scans skip it by default, or whether it should continue
+to be scanned as a live doc.
+
+---
+
 ## Tags
-#non-compliance #project-mapper #cleanup #editor #6nz
+#non-compliance #project-mapper #cleanup #editor #6nz #playwright
 
 ## Links
 - [primary.map.md](./primary.map.md)
+- [test.map.md](./test.map.md)
+- [structure.map.md](./structure.map.md)
 - [master-list.md](../../master-list.md)
 - [pa.md](../../pa.md)
