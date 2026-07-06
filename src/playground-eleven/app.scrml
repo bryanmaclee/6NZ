@@ -29,7 +29,7 @@
 ${
 
 type NodeKind:enum = { Fleet, Project, Facet, Row }
-type Mode:enum = { Normal, Insert }
+type Mode:enum = { Normal, Insert, Visual }
 
 function kindGlyph(k: NodeKind) {
     return match k {
@@ -65,7 +65,14 @@ function kindGlyph(k: NodeKind) {
 @autoCollapse = true
 @promptText   = ""
 @routeLog     = []
-@lastAction   = "NORMAL — l/h step, j/k siblings, i to message a PA"
+@lastAction   = "NORMAL — l/h step, j/k siblings, v select, i message a PA"
+
+// VISUAL-mode selection: anchor node + the auto-collapse state to restore on
+// exit (VISUAL forces the tree fully open so the visible order is stable to
+// range-select over). @insertTargets carries the node(s) a routed prompt hits.
+@anchorId          = -1
+@savedAutoCollapse = true
+@insertTargets     = []
 
 // --- node arena lookups (mirror playground-nine) ------------------
 
@@ -170,13 +177,76 @@ function siblingDelta(delta) {
 
 // --- modal keyboard router ----------------------------------------
 
+// --- VISUAL selection (multi-node, for batch messaging) -----------
+//
+// The selection is the contiguous run of VISIBLE nodes between the anchor
+// (where `v` was pressed) and the cursor, in visible order. VISUAL forces
+// auto-collapse OFF so that order is a stable, fully-expanded list.
+
+function visibleIndexOf(base, id) {
+    for (let i = 0; i < base.length; i = i + 1) {
+        if (base[i].id == id) { return i }
+    }
+    return -1
+}
+
+function selectedIds() {
+    const base = walk(0, 0, [])
+    const ai = visibleIndexOf(base, @anchorId)
+    const ci = visibleIndexOf(base, @cursorId)
+    if (ai < 0 || ci < 0) { return [@cursorId] }
+    const lo = ai < ci ? ai : ci
+    const hi = ai < ci ? ci : ai
+    let ids = []
+    for (let i = lo; i <= hi; i = i + 1) { ids = [...ids, base[i].id] }
+    return ids
+}
+
+function enterVisual() {
+    @anchorId = @cursorId
+    @savedAutoCollapse = @autoCollapse
+    @autoCollapse = false
+    @mode = Mode.Visual
+    @lastAction = "VISUAL — j/k extend selection, i to message it"
+}
+
+function leaveVisual(reason) {
+    @autoCollapse = @savedAutoCollapse
+    @anchorId = -1
+    @mode = Mode.Normal
+    @lastAction = reason
+}
+
+function visualMove(delta) {
+    const base = walk(0, 0, [])
+    const ci = visibleIndexOf(base, @cursorId)
+    const target = ci + delta
+    if (ci >= 0 && target >= 0 && target < base.length) {
+        @cursorId = base[target].id
+        @lastAction = "VISUAL extend -> " + labelOf(@cursorId)
+    }
+}
+
+// --- INSERT (single- or multi-target) + routing -------------------
+
 function enterInsert() {
+    @insertTargets = [@cursorId]
     @mode = Mode.Insert
     @lastAction = "INSERT — message " + labelOf(@cursorId)
 }
 
+function enterInsertFromVisual() {
+    const ids = selectedIds()
+    @insertTargets = ids
+    @autoCollapse = @savedAutoCollapse
+    @anchorId = -1
+    @mode = Mode.Insert
+    @lastAction = "INSERT — message " + ids.length + " nodes"
+}
+
 function leaveInsert(reason) {
     @promptText = ""
+    @insertTargets = []
     @mode = Mode.Normal
     @lastAction = reason
 }
@@ -186,11 +256,22 @@ function routePrompt() {
         @lastAction = "INSERT — empty, nothing routed"
         return
     }
-    const entry = "-> " + labelOf(@cursorId) + ": " + @promptText
+    const targets = @insertTargets
+    let entry = ""
+    if (targets.length == 1) {
+        entry = "-> " + labelOf(targets[0]) + ": " + @promptText
+    } else {
+        let names = ""
+        for (let i = 0; i < targets.length; i = i + 1) {
+            names = names + (i > 0 ? ", " : "") + labelOf(targets[i])
+        }
+        entry = "-> [" + targets.length + "] " + names + ": " + @promptText
+    }
     @routeLog = [entry, ...@routeLog].slice(0, 8)
     @promptText = ""
+    @insertTargets = []
     @mode = Mode.Normal
-    @lastAction = "routed to " + labelOf(@cursorId)
+    @lastAction = "routed to " + targets.length + " node(s)"
 }
 
 function handleNormalKey(e) {
@@ -200,8 +281,19 @@ function handleNormalKey(e) {
     if (k == "j" || k == "ArrowDown")  { e.preventDefault(); siblingDelta(1); return }
     if (k == "k" || k == "ArrowUp")    { e.preventDefault(); siblingDelta(-1); return }
     if (k == "a")                      { e.preventDefault(); toggleAutoCollapse(); return }
+    if (k == "v")                      { e.preventDefault(); enterVisual(); return }
     if (k == "i")                      { e.preventDefault(); enterInsert(); return }
     @lastAction = "NORMAL: ignored " + k
+}
+
+function handleVisualKey(e) {
+    const k = e.key
+    if (k == "Escape")                 { e.preventDefault(); leaveVisual("Esc — selection cleared"); return }
+    if (k == "v")                      { e.preventDefault(); leaveVisual("VISUAL off"); return }
+    if (k == "j" || k == "ArrowDown")  { e.preventDefault(); visualMove(1); return }
+    if (k == "k" || k == "ArrowUp")    { e.preventDefault(); visualMove(-1); return }
+    if (k == "i")                      { e.preventDefault(); enterInsertFromVisual(); return }
+    @lastAction = "VISUAL: ignored " + k
 }
 
 function handleInsertKey(e) {
@@ -216,7 +308,9 @@ function handleInsertKey(e) {
 }
 
 function handleKey(e) {
-    if (@mode == Mode.Normal) { handleNormalKey(e) } else { handleInsertKey(e) }
+    if (@mode == Mode.Normal)      { handleNormalKey(e) }
+    else if (@mode == Mode.Visual) { handleVisualKey(e) }
+    else                           { handleInsertKey(e) }
 }
 
 // --- recursive tree-walk renderer (mirror playground-nine) --------
@@ -256,15 +350,41 @@ function walk(id, depth, acc) {
     return out
 }
 
+// Second pass over the flat visible list: mark the VISUAL selection range
+// (between anchor and cursor in visible order). Non-visual modes mark nothing.
+function visibleLines() {
+    const base = walk(0, 0, [])
+    let lo = -1
+    let hi = -2
+    if (@mode == Mode.Visual) {
+        const ai = visibleIndexOf(base, @anchorId)
+        const ci = visibleIndexOf(base, @cursorId)
+        if (ai >= 0 && ci >= 0) {
+            lo = ai < ci ? ai : ci
+            hi = ai < ci ? ci : ai
+        }
+    }
+    let out = []
+    for (let i = 0; i < base.length; i = i + 1) {
+        const b = base[i]
+        out = [...out, {
+            id: b.id, prefix: b.prefix, glyph: b.glyph, label: b.label,
+            mark: b.mark, isCursor: b.isCursor, isSelected: (i >= lo && i <= hi)
+        }]
+    }
+    return out
+}
+
 // derived cells
 const <cursorLabel> = labelOf(@cursorId)
-const <visible> = walk(0, 0, [])
+const <visible> = visibleLines()
 const <caret> = @mode == Mode.Insert ? "█" : ""
 
 }
 
 <engine name=ModeMachine for=Mode initial=.Normal>
-    .Normal => .Insert
+    .Normal => .Insert | .Visual
+    .Visual => .Normal | .Insert
     .Insert => .Normal
 </>
 
@@ -276,13 +396,14 @@ const <caret> = @mode == Mode.Insert ? "█" : ""
         <match for=Mode on=@mode>
             <Normal><div class="badge normal">NORMAL</></>
             <Insert><div class="badge insert">INSERT</></>
+            <Visual><div class="badge visual">VISUAL</></>
         </match>
     </>
 
     <div class="surface" tabindex="0" onkeydown=handleKey(event)>
         <div class="tree">
             <each in=@visible key=@.id>
-                <div class="line" class:cursor=@.isCursor>${(@.isCursor ? "> " : "  ") + @.prefix + @.glyph + " " + @.label + @.mark}</div>
+                <div class="line" class:cursor=@.isCursor class:selected=@.isSelected>${(@.isCursor ? "> " : "  ") + @.prefix + @.glyph + " " + @.label + @.mark}</div>
                 <empty>(no nodes)</empty>
             </each>
         </>
@@ -309,8 +430,8 @@ const <caret> = @mode == Mode.Insert ? "█" : ""
     </>
 
     <div class="panel notes">
-        <strong>Focus the surface, then:</> <code>l</code> <code>h</code> step in/out · <code>j</code> <code>k</code> siblings · <code>a</code> auto-collapse · <code>i</code> INSERT<br/>
-        In INSERT: type to compose, <code>Enter</code> routes the prompt to the PA at the cursor node, <code>Esc</code> back to NORMAL. One keyboard surface owns the mode — the flogence-native reframe of modal editing as orchestration navigation.
+        <strong>Focus the surface, then:</> <code>l</code> <code>h</code> step in/out · <code>j</code> <code>k</code> siblings · <code>a</code> auto-collapse · <code>v</code> VISUAL select · <code>i</code> INSERT<br/>
+        <strong>VISUAL</> (<code>v</code>): the tree fully expands; <code>j</code> <code>k</code> extend the selection, then <code>i</code> composes one prompt to <em>all</em> selected nodes (batch-message the fleet). <strong>INSERT</> (<code>i</code>): type, <code>Enter</code> routes to the target node(s), <code>Esc</code> discards. One keyboard surface owns the mode — the flogence-native reframe of modal editing as orchestration navigation.
     </>
 </>
 
@@ -332,6 +453,7 @@ const <caret> = @mode == Mode.Insert ? "█" : ""
     }
     .badge.normal { color: #88ff88; background: rgba(136, 255, 136, 0.08); }
     .badge.insert { color: #ffa500; background: rgba(255, 165, 0, 0.08); }
+    .badge.visual { color: #66ccff; background: rgba(102, 204, 255, 0.08); }
     .surface {
         background: #111; border: 2px solid #333; border-radius: 6px;
         padding: 0.85rem 1rem; margin-bottom: 0.9rem; outline: none;
@@ -339,6 +461,7 @@ const <caret> = @mode == Mode.Insert ? "█" : ""
     .surface:focus { border-color: #ffa500; }
     .tree { white-space: pre; font-size: 0.95rem; line-height: 1.5; min-height: 10rem; }
     .line { color: #cfcfcf; padding: 0 0.3rem; border-radius: 3px; }
+    .line.selected { background: rgba(102, 204, 255, 0.18); color: #bfe6ff; }
     .line.cursor { background: rgba(255, 165, 0, 0.22); color: #ffd479; font-weight: 700; }
     .prompt-bar {
         margin-top: 0.75rem; padding-top: 0.6rem; border-top: 1px solid #333;

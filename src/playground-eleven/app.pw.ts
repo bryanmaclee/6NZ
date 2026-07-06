@@ -69,6 +69,9 @@ async function promptText(page: Page): Promise<string> {
 async function focusSurface(page: Page): Promise<void> {
   await page.evaluate(() => document.querySelector<HTMLElement>(".surface")?.focus());
 }
+async function selectedCount(page: Page): Promise<number> {
+  return await page.locator(".tree .line.selected").count();
+}
 async function press(page: Page, key: string): Promise<void> {
   await page.keyboard.press(key);
   await page.waitForTimeout(80);
@@ -162,7 +165,44 @@ test("playground-eleven — flonav keyboard nav + modal prompt", async ({ page }
     expect(await modeBadge(page)).toBe("NORMAL");
     expect(await promptText(page)).toBe("");
   });
-  await test.step("13. no page errors", async () => {
+  await test.step("13. v enters VISUAL and fully expands the tree", async () => {
+    // navigate to a stable start: up to fleet, into scrml, into first facet
+    await press(page, "h");
+    await press(page, "h");
+    await press(page, "l"); // -> scrml
+    await press(page, "l"); // -> satellite
+    await press(page, "v");
+    expect(await modeBadge(page)).toBe("VISUAL");
+    expect(await lineCount(page), "VISUAL force-expands all nodes").toBe(15);
+  });
+  await test.step("14. j/k extend the selection range", async () => {
+    expect(await selectedCount(page), "anchor selected").toBeGreaterThanOrEqual(1);
+    await press(page, "j");
+    await press(page, "j");
+    expect(await selectedCount(page), "selection grew").toBeGreaterThanOrEqual(3);
+  });
+  await test.step("15. i -> INSERT batch-routes one prompt to all selected nodes", async () => {
+    await press(page, "i");
+    expect(await modeBadge(page)).toBe("INSERT");
+    await page.keyboard.type("ping");
+    await page.waitForTimeout(80);
+    await press(page, "Enter");
+    expect(await modeBadge(page)).toBe("NORMAL");
+    const first = (await page.textContent(".loglist li")) ?? "";
+    expect(first, "batch entry marks multiple targets").toContain("[");
+    expect(first).toContain("ping");
+    // auto-collapse restored after the VISUAL->INSERT flow
+    expect(await readStatus(page, "Auto-collapse:")).toBe("ON");
+  });
+  await test.step("16. Esc from VISUAL clears selection + restores NORMAL", async () => {
+    await press(page, "v");
+    expect(await modeBadge(page)).toBe("VISUAL");
+    await press(page, "Escape");
+    expect(await modeBadge(page)).toBe("NORMAL");
+    expect(await selectedCount(page)).toBe(0);
+    expect(await readStatus(page, "Auto-collapse:")).toBe("ON");
+  });
+  await test.step("17. no page errors", async () => {
     const unknown = errors.filter((e) => !e.includes("favicon"));
     expect(unknown, unknown.join(" | ")).toHaveLength(0);
   });
